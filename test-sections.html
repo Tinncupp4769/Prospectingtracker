@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Section Navigation Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto p-8">
+        <h1 class="text-3xl font-bold mb-8">Section Navigation Test</h1>
+        
+        <!-- Test Status -->
+        <div id="status" class="mb-8 p-4 bg-blue-100 rounded-lg">
+            <p class="font-bold">Status: <span id="status-text">Testing...</span></p>
+            <p class="text-sm mt-2">Current User: <span id="current-user">None</span></p>
+            <p class="text-sm">Authenticated: <span id="auth-status">No</span></p>
+        </div>
+        
+        <!-- Navigation Buttons -->
+        <div class="mb-8 space-y-4">
+            <h2 class="text-xl font-bold mb-4">Test Navigation</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <button onclick="testShowSection('dashboard')" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    <i class="fas fa-chart-line mr-2"></i>Dashboard
+                </button>
+                <button onclick="testShowSection('leaderboard')" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    <i class="fas fa-trophy mr-2"></i>Leaderboard
+                </button>
+                <button onclick="testShowSection('goals')" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                    <i class="fas fa-bullseye mr-2"></i>Goals
+                </button>
+                <button onclick="testShowSection('users')" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                    <i class="fas fa-users mr-2"></i>Users
+                </button>
+            </div>
+        </div>
+        
+        <!-- Test Results -->
+        <div class="mb-8">
+            <h2 class="text-xl font-bold mb-4">Test Results</h2>
+            <div id="test-results" class="space-y-2"></div>
+        </div>
+        
+        <!-- Debug Info -->
+        <div class="mb-8">
+            <h2 class="text-xl font-bold mb-4">Debug Information</h2>
+            <div id="debug-info" class="bg-gray-100 p-4 rounded-lg font-mono text-sm"></div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <button onclick="quickLogin()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                <i class="fas fa-sign-in-alt mr-2"></i>Quick Login
+            </button>
+            <button onclick="testAll()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                <i class="fas fa-play mr-2"></i>Test All
+            </button>
+            <button onclick="checkSections()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                <i class="fas fa-search mr-2"></i>Check Sections
+            </button>
+            <button onclick="location.reload()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                <i class="fas fa-redo mr-2"></i>Reload
+            </button>
+            <button onclick="openMainApp()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                <i class="fas fa-external-link-alt mr-2"></i>Open Main App
+            </button>
+            <button onclick="clearAndReload()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                <i class="fas fa-trash mr-2"></i>Clear & Reload
+            </button>
+        </div>
+    </div>
+    
+    <!-- Load app scripts -->
+    <script src="js/unified-app.js"></script>
+    
+    <script>
+        // Test functions
+        let testResults = [];
+        
+        function updateStatus() {
+            // Check authentication
+            const isAuth = UnifiedApp.state.authenticated;
+            const user = UnifiedApp.state.currentUser;
+            
+            document.getElementById('auth-status').textContent = isAuth ? 'Yes' : 'No';
+            document.getElementById('current-user').textContent = user ? `${user.name} (${user.role})` : 'None';
+            document.getElementById('status-text').textContent = isAuth ? 'Logged In' : 'Not Logged In';
+        }
+        
+        function addTestResult(test, success, message) {
+            testResults.push({ test, success, message });
+            
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `p-2 rounded ${success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
+            resultDiv.innerHTML = `
+                <i class="fas ${success ? 'fa-check' : 'fa-times'} mr-2"></i>
+                <strong>${test}:</strong> ${message}
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+        
+        function testShowSection(sectionName) {
+            try {
+                if (typeof window.showSection === 'function') {
+                    window.showSection(sectionName);
+                    addTestResult(`Show ${sectionName}`, true, 'Function called successfully');
+                } else {
+                    addTestResult(`Show ${sectionName}`, false, 'showSection function not found');
+                }
+            } catch (error) {
+                addTestResult(`Show ${sectionName}`, false, error.message);
+            }
+        }
+        
+        async function quickLogin() {
+            try {
+                // Create session directly
+                const session = {
+                    user: {
+                        id: 'bmiller-001',
+                        name: 'Bryan Miller',
+                        email: 'bmiller@ascm.org',
+                        role: 'admin',
+                        platformRole: 'admin',
+                        team: 'ASCM Leadership'
+                    },
+                    loginTime: Date.now(),
+                    expiresAt: Date.now() + 30 * 60 * 1000
+                };
+                
+                localStorage.setItem('spt_session', JSON.stringify(session));
+                UnifiedApp.state.authenticated = true;
+                UnifiedApp.state.currentUser = session.user;
+                
+                updateStatus();
+                addTestResult('Quick Login', true, 'Logged in as Bryan Miller');
+            } catch (error) {
+                addTestResult('Quick Login', false, error.message);
+            }
+        }
+        
+        function checkSections() {
+            const sections = ['dashboard', 'leaderboard', 'goals', 'users'];
+            const debugInfo = document.getElementById('debug-info');
+            let info = '';
+            
+            // Check if sections exist in main app
+            info += '<strong>Main App Sections:</strong><br>';
+            sections.forEach(section => {
+                const exists = !!document.getElementById(`${section}-section`);
+                info += `${section}-section: ${exists ? '✅ Exists' : '❌ Not Found'}<br>`;
+            });
+            
+            // Check functions
+            info += '<br><strong>Functions:</strong><br>';
+            const functions = ['showSection', 'loadSectionData', 'loadDashboardData', 'loadLeaderboard', 'loadGoals', 'loadUsers'];
+            functions.forEach(func => {
+                const exists = typeof window[func] === 'function';
+                info += `${func}: ${exists ? '✅ Available' : '❌ Not Found'}<br>`;
+            });
+            
+            // Check Auth
+            info += '<br><strong>Auth Methods:</strong><br>';
+            const authMethods = ['isAuthenticated', 'getCurrentUser', 'protectRoute', 'showLoginPage'];
+            authMethods.forEach(method => {
+                const exists = window.Auth && typeof window.Auth[method] === 'function';
+                info += `Auth.${method}: ${exists ? '✅ Available' : '❌ Not Found'}<br>`;
+            });
+            
+            debugInfo.innerHTML = info;
+        }
+        
+        async function testAll() {
+            // Clear previous results
+            document.getElementById('test-results').innerHTML = '';
+            testResults = [];
+            
+            // Test authentication
+            if (!UnifiedApp.state.authenticated) {
+                await quickLogin();
+            }
+            
+            // Test each section
+            const sections = ['dashboard', 'leaderboard', 'goals', 'users'];
+            for (const section of sections) {
+                testShowSection(section);
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            // Check sections
+            checkSections();
+        }
+        
+        function openMainApp() {
+            window.open('index.html', '_blank');
+        }
+        
+        function clearAndReload() {
+            if (confirm('Clear all data and reload?')) {
+                localStorage.clear();
+                location.reload();
+            }
+        }
+        
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            updateStatus();
+            checkSections();
+            
+            // Auto-login for testing
+            if (!UnifiedApp.state.authenticated) {
+                setTimeout(quickLogin, 1000);
+            }
+        });
+    </script>
+</body>
+</html>

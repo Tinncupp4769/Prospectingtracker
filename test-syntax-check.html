@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Syntax Check</title>
+</head>
+<body>
+    <h1>Checking for JavaScript Syntax Errors</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function checkScripts() {
+            const scripts = [
+                'js/api.js',
+                'js/charts.js', 
+                'js/leaderboard.js',
+                'js/goals.js',
+                'js/goal-calculator.js',
+                'js/conversion-analytics.js',
+                'js/dashboard-visualizations.js',
+                'js/users.js',
+                'js/enhancements.js',
+                'js/app.js'
+            ];
+            
+            const results = document.getElementById('results');
+            let html = '<ul>';
+            
+            for (const script of scripts) {
+                try {
+                    const response = await fetch(script);
+                    const code = await response.text();
+                    
+                    try {
+                        // Try to parse as a function to check syntax
+                        new Function(code);
+                        html += `<li style="color: green;">✓ ${script} - OK</li>`;
+                    } catch (syntaxError) {
+                        html += `<li style="color: red;">✗ ${script} - ${syntaxError.message}</li>`;
+                        console.error(`Syntax error in ${script}:`, syntaxError);
+                    }
+                } catch (fetchError) {
+                    html += `<li style="color: orange;">? ${script} - Could not load</li>`;
+                }
+            }
+            
+            html += '</ul>';
+            results.innerHTML = html;
+        }
+        
+        checkScripts();
+    </script>
+</body>
+</html>

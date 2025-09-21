@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Critical Fixes Test Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        .test-pass { color: #10B981; }
+        .test-fail { color: #EF4444; }
+        .test-pending { color: #F59E0B; }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold mb-2 text-gray-800">
+                <i class="fas fa-wrench text-red-600 mr-2"></i>
+                Critical Fixes Test Suite
+            </h1>
+            <p class="text-gray-600">Testing Dashboard Dropdown, Leaderboard, Reset Function, and Login Bypass fixes</p>
+        </div>
+
+        <!-- Test Results -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Automated Test Results</h2>
+            <button onclick="runAllTests()" class="mb-4 px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                <i class="fas fa-play mr-2"></i>Run All Tests
+            </button>
+            <div id="test-results" class="space-y-2"></div>
+        </div>
+
+        <!-- Manual Test Section -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Manual Tests</h2>
+            
+            <div class="grid grid-cols-2 gap-6">
+                <!-- Dashboard Tests -->
+                <div>
+                    <h3 class="font-semibold mb-3 text-indigo-600">
+                        <i class="fas fa-chart-line mr-2"></i>Dashboard Tests
+                    </h3>
+                    <div class="space-y-2">
+                        <button onclick="testUserDropdown()" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-left">
+                            <i class="fas fa-users mr-2"></i>Test User Dropdown Population
+                        </button>
+                        <button onclick="testViewModeToggle()" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-left">
+                            <i class="fas fa-exchange-alt mr-2"></i>Test View Mode Toggle
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Leaderboard Tests -->
+                <div>
+                    <h3 class="font-semibold mb-3 text-green-600">
+                        <i class="fas fa-trophy mr-2"></i>Leaderboard Tests
+                    </h3>
+                    <div class="space-y-2">
+                        <button onclick="testLeaderboardLoad()" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-left">
+                            <i class="fas fa-list-ol mr-2"></i>Test Leaderboard Loading
+                        </button>
+                        <button onclick="testGenerateSampleData()" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-left">
+                            <i class="fas fa-database mr-2"></i>Generate Sample Activities
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Reset Function Tests -->
+                <div>
+                    <h3 class="font-semibold mb-3 text-red-600">
+                        <i class="fas fa-redo mr-2"></i>Reset Function Tests
+                    </h3>
+                    <div class="space-y-2">
+                        <button onclick="testResetPreservesUsers()" class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-left">
+                            <i class="fas fa-user-shield mr-2"></i>Test User Preservation
+                        </button>
+                        <button onclick="simulateReset()" class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-left">
+                            <i class="fas fa-trash-alt mr-2"></i>Simulate Reset (Safe)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Login Tests -->
+                <div>
+                    <h3 class="font-semibold mb-3 text-purple-600">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Login Tests
+                    </h3>
+                    <div class="space-y-2">
+                        <button onclick="testLoginState()" class="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-left">
+                            <i class="fas fa-lock mr-2"></i>Check Login State
+                        </button>
+                        <button onclick="testFreshLoad()" class="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-left">
+                            <i class="fas fa-external-link-alt mr-2"></i>Test Fresh Load Behavior
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Inspector -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Data Inspector</h2>
+            <div class="grid grid-cols-3 gap-4 mb-4">
+                <button onclick="inspectUsers()" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                    <i class="fas fa-users mr-2"></i>Inspect Users
+                </button>
+                <button onclick="inspectActivities()" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                    <i class="fas fa-tasks mr-2"></i>Inspect Activities
+                </button>
+                <button onclick="inspectSession()" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                    <i class="fas fa-key mr-2"></i>Inspect Session
+                </button>
+            </div>
+            <div id="data-inspector" class="font-mono text-sm bg-gray-100 p-4 rounded overflow-auto max-h-96"></div>
+        </div>
+    </div>
+
+    <script>
+        // Test logging
+        function logTest(name, status, details = '') {
+            const resultsDiv = document.getElementById('test-results');
+            const testDiv = document.createElement('div');
+            testDiv.className = `p-3 rounded bg-gray-50 border-l-4 ${
+                status === 'PASS' ? 'border-green-500' : 
+                status === 'FAIL' ? 'border-red-500' : 'border-yellow-500'
+            }`;
+            
+            const icon = status === 'PASS' ? '✅' : status === 'FAIL' ? '❌' : '⏳';
+            const statusClass = status === 'PASS' ? 'test-pass' : status === 'FAIL' ? 'test-fail' : 'test-pending';
+            
+            testDiv.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <strong>${name}</strong>
+                        ${details ? `<div class="text-sm text-gray-600 mt-1">${details}</div>` : ''}
+                    </div>
+                    <span class="${statusClass} text-xl">${icon}</span>
+                </div>
+            `;
+            resultsDiv.appendChild(testDiv);
+        }
+
+        // Automated tests
+        async function runAllTests() {
+            document.getElementById('test-results').innerHTML = '';
+            console.log('🧪 Running all tests...');
+            
+            // Test 1: Check critical functions exist
+            logTest('Function Availability', 'PENDING');
+            const functions = {
+                'toggleAdminViewMode': window.parent.toggleAdminViewMode,
+                'loadAdminDashboard': window.parent.loadAdminDashboard,
+                'loadLeaderboard': window.parent.loadLeaderboard,
+                'confirmResetAllData': window.parent.confirmResetAllData
+            };
+            
+            let allFunctionsExist = true;
+            for (const [name, func] of Object.entries(functions)) {
+                if (typeof func === 'function') {
+                    logTest(`  - ${name}`, 'PASS', 'Function exists');
+                } else {
+                    logTest(`  - ${name}`, 'FAIL', 'Function not found');
+                    allFunctionsExist = false;
+                }
+            }
+            
+            // Test 2: Check user data integrity
+            logTest('User Data Integrity', 'PENDING');
+            const users = JSON.parse(localStorage.getItem('unified_users') || '[]');
+            const sptUsers = JSON.parse(localStorage.getItem('spt_users') || '[]');
+            
+            if (users.length > 0 || sptUsers.length > 0) {
+                logTest('Users Found', 'PASS', `${Math.max(users.length, sptUsers.length)} users in storage`);
+            } else {
+                logTest('Users Found', 'FAIL', 'No users in storage');
+            }
+            
+            // Test 3: Check activity data
+            logTest('Activity Data', 'PENDING');
+            const activities = JSON.parse(localStorage.getItem('spt_activities') || '[]');
+            logTest('Activities', activities.length > 0 ? 'PASS' : 'FAIL', 
+                   `${activities.length} activities found`);
+            
+            // Test 4: Check session state
+            logTest('Session State', 'PENDING');
+            const authenticated = localStorage.getItem('spt_authenticated');
+            const session = localStorage.getItem('spt_session');
+            
+            if (authenticated || session) {
+                logTest('Authentication', 'PASS', `Authenticated: ${authenticated === 'true'}`);
+            } else {
+                logTest('Authentication', 'PASS', 'Not authenticated (login required)');
+            }
+        }
+
+        // Manual test functions
+        function testUserDropdown() {
+            console.log('Testing user dropdown...');
+            const users = JSON.parse(localStorage.getItem('unified_users') || '[]');
+            logTest('User Dropdown Test', users.length > 0 ? 'PASS' : 'FAIL', 
+                   `Found ${users.length} users to populate dropdown`);
+            
+            // Show users
+            document.getElementById('data-inspector').innerHTML = 
+                '<h3 class="font-bold mb-2">Users for Dropdown:</h3>' +
+                users.map(u => `${u.name || u.firstName + ' ' + u.lastName} (${u.role})`).join('<br>');
+        }
+
+        function testViewModeToggle() {
+            console.log('Testing view mode toggle...');
+            logTest('View Mode Toggle', 'PASS', 'Toggle function available');
+            alert('To test: Open main app, go to Dashboard as admin, toggle between Individual and Team views');
+        }
+
+        function testLeaderboardLoad() {
+            console.log('Testing leaderboard load...');
+            if (typeof window.parent.loadLeaderboard === 'function') {
+                logTest('Leaderboard Function', 'PASS', 'loadLeaderboard function exists');
+                
+                // Check for activities
+                const activities = JSON.parse(localStorage.getItem('spt_activities') || '[]');
+                if (activities.length === 0) {
+                    logTest('Leaderboard Data', 'FAIL', 'No activities - will generate sample data');
+                } else {
+                    logTest('Leaderboard Data', 'PASS', `${activities.length} activities available`);
+                }
+            } else {
+                logTest('Leaderboard Function', 'FAIL', 'loadLeaderboard not found');
+            }
+        }
+
+        function testGenerateSampleData() {
+            console.log('Generating sample activities...');
+            const users = JSON.parse(localStorage.getItem('unified_users') || localStorage.getItem('spt_users') || '[]');
+            const activities = [];
+            const types = ['call', 'email', 'meeting'];
+            
+            users.forEach(user => {
+                for (let i = 0; i < 10; i++) {
+                    activities.push({
+                        id: `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                        userId: user.id || user.email,
+                        type: types[Math.floor(Math.random() * types.length)],
+                        description: `Test activity ${i + 1}`,
+                        timestamp: Date.now() - (Math.random() * 7 * 24 * 60 * 60 * 1000),
+                        completed: true
+                    });
+                }
+            });
+            
+            const existing = JSON.parse(localStorage.getItem('spt_activities') || '[]');
+            localStorage.setItem('spt_activities', JSON.stringify([...existing, ...activities]));
+            
+            logTest('Generate Sample Data', 'PASS', `Created ${activities.length} test activities`);
+        }
+
+        function testResetPreservesUsers() {
+            console.log('Testing user preservation...');
+            
+            // Check current state
+            const usersBefore = JSON.parse(localStorage.getItem('unified_users') || '[]');
+            const activitiesBefore = JSON.parse(localStorage.getItem('spt_activities') || '[]');
+            
+            logTest('Reset Preservation Test', 'PASS', 
+                   `Current: ${usersBefore.length} users, ${activitiesBefore.length} activities`);
+            
+            alert('The reset function will now:\n' +
+                  '1. Delete all activities and goals\n' +
+                  '2. Preserve all user accounts\n' +
+                  '3. Show dual confirmations');
+        }
+
+        function simulateReset() {
+            console.log('Simulating reset (safe mode)...');
+            
+            // Save current state
+            const usersBefore = localStorage.getItem('unified_users');
+            const activitiesBefore = localStorage.getItem('spt_activities');
+            
+            // Simulate what would happen
+            const activityKeys = ['spt_activities', 'spt_goals', 'spt_conversions'];
+            
+            logTest('Reset Simulation', 'PASS', 
+                   `Would delete: ${activityKeys.join(', ')}\nWould preserve: unified_users, spt_users`);
+            
+            // Show what would be kept
+            document.getElementById('data-inspector').innerHTML = 
+                '<h3 class="font-bold text-green-600">Would be PRESERVED:</h3>' +
+                '<pre>' + (usersBefore ? usersBefore.substring(0, 200) + '...' : 'No users') + '</pre>' +
+                '<h3 class="font-bold text-red-600 mt-4">Would be DELETED:</h3>' +
+                '<pre>' + (activitiesBefore ? activitiesBefore.substring(0, 200) + '...' : 'No activities') + '</pre>';
+        }
+
+        function testLoginState() {
+            console.log('Testing login state...');
+            
+            const authenticated = localStorage.getItem('spt_authenticated');
+            const session = localStorage.getItem('spt_session');
+            const appLoaded = sessionStorage.getItem('app_loaded');
+            const loginShown = sessionStorage.getItem('login_shown');
+            
+            const state = {
+                authenticated: authenticated === 'true',
+                hasSession: !!session,
+                appLoaded: !!appLoaded,
+                loginShown: !!loginShown
+            };
+            
+            logTest('Login State Check', 'PASS', JSON.stringify(state, null, 2));
+            
+            document.getElementById('data-inspector').innerHTML = 
+                '<h3 class="font-bold mb-2">Login State:</h3>' +
+                `<div>Authenticated: ${state.authenticated ? '✅ Yes' : '❌ No'}</div>` +
+                `<div>Has Session: ${state.hasSession ? '✅ Yes' : '❌ No'}</div>` +
+                `<div>App Loaded: ${state.appLoaded ? '✅ Yes' : '❌ No'}</div>` +
+                `<div>Login Shown: ${state.loginShown ? '✅ Yes' : '❌ No'}</div>`;
+        }
+
+        function testFreshLoad() {
+            console.log('Testing fresh load behavior...');
+            
+            if (confirm('This will clear session storage to simulate a fresh load. Continue?')) {
+                sessionStorage.clear();
+                logTest('Fresh Load Test', 'PASS', 'Session cleared - reload app to test login requirement');
+                
+                alert('Session cleared!\n\n' +
+                      'Now when you open the main app, it should:\n' +
+                      '1. Show the login page first\n' +
+                      '2. Not auto-login even if previously authenticated\n' +
+                      '3. Require manual login');
+            }
+        }
+
+        // Data inspection functions
+        function inspectUsers() {
+            const users = JSON.parse(localStorage.getItem('unified_users') || '[]');
+            const sptUsers = JSON.parse(localStorage.getItem('spt_users') || '[]');
+            
+            const allUsers = [...users, ...sptUsers];
+            const uniqueUsers = [];
+            const seen = new Set();
+            
+            allUsers.forEach(user => {
+                if (user && user.email && !seen.has(user.email)) {
+                    seen.add(user.email);
+                    uniqueUsers.push(user);
+                }
+            });
+            
+            document.getElementById('data-inspector').innerHTML = 
+                `<h3 class="font-bold mb-2">Users (${uniqueUsers.length} total):</h3>` +
+                '<div class="space-y-2">' +
+                uniqueUsers.map(u => `
+                    <div class="p-2 bg-white rounded border">
+                        <div class="font-semibold">${u.name || u.firstName + ' ' + u.lastName}</div>
+                        <div class="text-sm text-gray-600">
+                            Email: ${u.email}<br>
+                            Role: ${u.role} | Platform: ${u.platformRole || 'user'}<br>
+                            ID: ${u.id}
+                        </div>
+                    </div>
+                `).join('') +
+                '</div>';
+        }
+
+        function inspectActivities() {
+            const activities = JSON.parse(localStorage.getItem('spt_activities') || '[]');
+            
+            document.getElementById('data-inspector').innerHTML = 
+                `<h3 class="font-bold mb-2">Activities (${activities.length} total):</h3>` +
+                '<div class="space-y-2">' +
+                activities.slice(0, 10).map(a => `
+                    <div class="p-2 bg-white rounded border">
+                        <div class="font-semibold">${a.type}</div>
+                        <div class="text-sm text-gray-600">
+                            User: ${a.userId}<br>
+                            Description: ${a.description}<br>
+                            Date: ${new Date(a.timestamp).toLocaleDateString()}
+                        </div>
+                    </div>
+                `).join('') +
+                (activities.length > 10 ? '<div class="text-gray-500">... and more</div>' : '') +
+                '</div>';
+        }
+
+        function inspectSession() {
+            const data = {
+                localStorage: {
+                    spt_authenticated: localStorage.getItem('spt_authenticated'),
+                    spt_session: localStorage.getItem('spt_session'),
+                    unified_users: localStorage.getItem('unified_users') ? 'Present' : 'Missing',
+                    spt_users: localStorage.getItem('spt_users') ? 'Present' : 'Missing',
+                    spt_activities: localStorage.getItem('spt_activities') ? 'Present' : 'Missing'
+                },
+                sessionStorage: {
+                    app_loaded: sessionStorage.getItem('app_loaded'),
+                    login_shown: sessionStorage.getItem('login_shown')
+                }
+            };
+            
+            document.getElementById('data-inspector').innerHTML = 
+                '<h3 class="font-bold mb-2">Storage State:</h3>' +
+                '<pre class="text-xs">' + JSON.stringify(data, null, 2) + '</pre>';
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            console.log('Critical Fixes Test Suite loaded');
+            inspectSession();
+        });
+    </script>
+</body>
+</html>

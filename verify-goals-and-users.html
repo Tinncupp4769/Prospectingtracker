@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Goals and User Selection - Sales Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                <i class="fas fa-check-double text-green-600 mr-3"></i>
+                Verify Goals and User Selection
+            </h1>
+            <p class="text-gray-600">
+                Comprehensive verification of restored goals and admin user selection
+            </p>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-bolt text-yellow-600 mr-2"></i>
+                Quick Actions
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onclick="restoreAndVerifyGoals()" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                    <i class="fas fa-undo mr-2"></i>
+                    Restore & Verify Goals
+                </button>
+                
+                <button onclick="checkUserDropdown()" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-users mr-2"></i>
+                    Check User Dropdown
+                </button>
+                
+                <button onclick="runComprehensiveCheck()" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                    <i class="fas fa-clipboard-check mr-2"></i>
+                    Run All Checks
+                </button>
+            </div>
+        </div>
+
+        <!-- Goals Verification -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-bullseye text-indigo-600 mr-2"></i>
+                Goals Verification
+            </h2>
+            
+            <div id="goals-status" class="mb-4 p-4 rounded-lg info">
+                <i class="fas fa-info-circle mr-2"></i>
+                Click "Restore & Verify Goals" to check goal status
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-semibold mb-3">Expected AE Goals (Weekly)</h3>
+                    <table class="w-full text-sm">
+                        <tbody>
+                            <tr class="border-b"><td class="py-1">Calls Made:</td><td class="font-bold text-right">200</td></tr>
+                            <tr class="border-b"><td class="py-1">Emails Sent:</td><td class="font-bold text-right">300</td></tr>
+                            <tr class="border-b"><td class="py-1">LinkedIn Messages:</td><td class="font-bold text-right">100</td></tr>
+                            <tr class="border-b"><td class="py-1">Meetings Booked:</td><td class="font-bold text-right">20</td></tr>
+                            <tr class="border-b"><td class="py-1">Pipeline Generated:</td><td class="font-bold text-right">$250,000</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold mb-3">Expected AM Goals (Weekly)</h3>
+                    <table class="w-full text-sm">
+                        <tbody>
+                            <tr class="border-b"><td class="py-1">Accounts Targeted:</td><td class="font-bold text-right">30</td></tr>
+                            <tr class="border-b"><td class="py-1">Calls Made:</td><td class="font-bold text-right">150</td></tr>
+                            <tr class="border-b"><td class="py-1">Emails Sent:</td><td class="font-bold text-right">250</td></tr>
+                            <tr class="border-b"><td class="py-1">Meetings Booked:</td><td class="font-bold text-right">15</td></tr>
+                            <tr class="border-b"><td class="py-1">Pipeline Generated:</td><td class="font-bold text-right">$300,000</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div id="goals-details" class="mt-4 hidden">
+                <h3 class="font-semibold mb-2">Goal Details:</h3>
+                <div id="goals-list" class="max-h-64 overflow-y-auto text-sm"></div>
+            </div>
+        </div>
+
+        <!-- User Dropdown Verification -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-user-cog text-orange-600 mr-2"></i>
+                Admin User Selection Verification
+            </h2>
+            
+            <div id="dropdown-status" class="mb-4 p-4 rounded-lg info">
+                <i class="fas fa-info-circle mr-2"></i>
+                Click "Check User Dropdown" to verify user selection functionality
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-semibold mb-3">Test Dropdown</h3>
+                    <select id="test-user-dropdown" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        <option value="">Loading users...</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold mb-3">User List</h3>
+                    <div id="user-list" class="max-h-40 overflow-y-auto text-sm">
+                        <p class="text-gray-500">Users will appear here...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Console Output -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-terminal text-gray-600 mr-2"></i>
+                Console Output
+            </h2>
+            
+            <div id="console-output" class="bg-gray-900 text-gray-100 rounded-lg p-4 h-64 overflow-y-auto font-mono text-sm">
+                <div class="text-green-400">System ready for verification...</div>
+            </div>
+            
+            <div class="mt-4 flex justify-between">
+                <button onclick="clearConsole()" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                    <i class="fas fa-eraser mr-2"></i>Clear Console
+                </button>
+                
+                <a href="index.html" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                    <i class="fas fa-arrow-left mr-2"></i>Return to App
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/admin-fixes.js"></script>
+    
+    <script>
+        // Mock current user for testing
+        window.currentUser = { 
+            id: 'admin-test', 
+            name: 'Test Admin', 
+            platformRole: 'admin',
+            role: 'admin'
+        };
+        
+        // Console logging
+        function log(message, type = 'info') {
+            const console = document.getElementById('console-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            
+            let colorClass = 'text-gray-400';
+            let icon = '•';
+            
+            switch(type) {
+                case 'success':
+                    colorClass = 'text-green-400';
+                    icon = '✅';
+                    break;
+                case 'error':
+                    colorClass = 'text-red-400';
+                    icon = '❌';
+                    break;
+                case 'warning':
+                    colorClass = 'text-yellow-400';
+                    icon = '⚠️';
+                    break;
+                case 'info':
+                    colorClass = 'text-blue-400';
+                    icon = 'ℹ️';
+                    break;
+            }
+            
+            div.className = colorClass;
+            div.textContent = `[${timestamp}] ${icon} ${message}`;
+            console.appendChild(div);
+            console.scrollTop = console.scrollHeight;
+        }
+        
+        // Clear console
+        function clearConsole() {
+            document.getElementById('console-output').innerHTML = '<div class="text-green-400">Console cleared</div>';
+        }
+        
+        // Restore and verify goals
+        async function restoreAndVerifyGoals() {
+            const statusDiv = document.getElementById('goals-status');
+            statusDiv.className = 'mb-4 p-4 rounded-lg warning';
+            statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Restoring and verifying goals...';
+            
+            log('Starting goal restoration and verification...', 'info');
+            
+            try {
+                // First restore the goals
+                log('Restoring actual saved goals...', 'info');
+                const result = await restoreActualSavedGoals();
+                log(`Restored/Updated ${result.restoredCount} goals`, 'success');
+                
+                // Then verify them
+                log('Verifying goals in system...', 'info');
+                const goals = await API.getGoals();
+                const roleGoals = (goals.data || []).filter(g => g.type === 'role');
+                
+                log(`Found ${roleGoals.length} role-based goals`, 'info');
+                
+                // Check specific values
+                const checks = [
+                    { role: 'ae', period: 'weekly', metric: 'calls_made', expected: 200 },
+                    { role: 'ae', period: 'weekly', metric: 'emails_sent', expected: 300 },
+                    { role: 'ae', period: 'weekly', metric: 'meetings_booked', expected: 20 },
+                    { role: 'ae', period: 'weekly', metric: 'pipeline_generated', expected: 250000 },
+                    { role: 'am', period: 'weekly', metric: 'calls_made', expected: 150 },
+                    { role: 'am', period: 'weekly', metric: 'emails_sent', expected: 250 },
+                    { role: 'am', period: 'weekly', metric: 'meetings_booked', expected: 15 },
+                    { role: 'am', period: 'weekly', metric: 'pipeline_generated', expected: 300000 }
+                ];
+                
+                let allCorrect = true;
+                const detailsDiv = document.getElementById('goals-details');
+                const listDiv = document.getElementById('goals-list');
+                listDiv.innerHTML = '';
+                
+                checks.forEach(check => {
+                    const goal = roleGoals.find(g => 
+                        g.role === check.role && 
+                        g.period === check.period && 
+                        g.metric === check.metric
+                    );
+                    
+                    const div = document.createElement('div');
+                    if (goal && goal.target === check.expected) {
+                        div.className = 'text-green-600';
+                        div.innerHTML = `✅ ${check.role.toUpperCase()} ${check.period} ${check.metric}: ${goal.target} (correct)`;
+                        log(`✅ ${check.role.toUpperCase()} ${check.metric}: ${goal.target}`, 'success');
+                    } else if (goal) {
+                        div.className = 'text-red-600';
+                        div.innerHTML = `❌ ${check.role.toUpperCase()} ${check.period} ${check.metric}: ${goal.target} (expected ${check.expected})`;
+                        log(`❌ ${check.role.toUpperCase()} ${check.metric}: ${goal.target} (expected ${check.expected})`, 'error');
+                        allCorrect = false;
+                    } else {
+                        div.className = 'text-red-600';
+                        div.innerHTML = `❌ ${check.role.toUpperCase()} ${check.period} ${check.metric}: MISSING`;
+                        log(`❌ ${check.role.toUpperCase()} ${check.metric}: MISSING`, 'error');
+                        allCorrect = false;
+                    }
+                    listDiv.appendChild(div);
+                });
+                
+                detailsDiv.classList.remove('hidden');
+                
+                if (allCorrect) {
+                    statusDiv.className = 'mb-4 p-4 rounded-lg success';
+                    statusDiv.innerHTML = '<i class="fas fa-check-circle mr-2"></i>All goals are correctly restored!';
+                    log('All goals verified successfully!', 'success');
+                } else {
+                    statusDiv.className = 'mb-4 p-4 rounded-lg error';
+                    statusDiv.innerHTML = '<i class="fas fa-times-circle mr-2"></i>Some goals are incorrect or missing';
+                    log('Some goals need attention', 'warning');
+                }
+                
+            } catch (error) {
+                statusDiv.className = 'mb-4 p-4 rounded-lg error';
+                statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>Error: ' + error.message;
+                log('Error: ' + error.message, 'error');
+            }
+        }
+        
+        // Check user dropdown
+        async function checkUserDropdown() {
+            const statusDiv = document.getElementById('dropdown-status');
+            statusDiv.className = 'mb-4 p-4 rounded-lg warning';
+            statusDiv.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Checking user dropdown functionality...';
+            
+            log('Testing user dropdown population...', 'info');
+            
+            try {
+                // Get users
+                const response = await API.getUsers();
+                const users = response.data || [];
+                
+                log(`Found ${users.length} total users`, 'info');
+                
+                // Filter sales users
+                const salesUsers = users.filter(u => u.role === 'ae' || u.role === 'am');
+                log(`Found ${salesUsers.length} sales users (AE/AM)`, 'info');
+                
+                // Populate test dropdown
+                const dropdown = document.getElementById('test-user-dropdown');
+                dropdown.innerHTML = '<option value="">Select a user...</option>';
+                
+                salesUsers.forEach(user => {
+                    const option = document.createElement('option');
+                    option.value = user.id;
+                    option.textContent = `${user.name} (${user.role.toUpperCase()})`;
+                    dropdown.appendChild(option);
+                    log(`Added user: ${user.name} (${user.role.toUpperCase()})`, 'success');
+                });
+                
+                // Display user list
+                const listDiv = document.getElementById('user-list');
+                listDiv.innerHTML = salesUsers.map(u => 
+                    `<div class="py-1 border-b">
+                        <strong>${u.name}</strong> - ${u.role.toUpperCase()} 
+                        <span class="text-gray-500">(${u.email})</span>
+                    </div>`
+                ).join('');
+                
+                if (salesUsers.length > 0) {
+                    statusDiv.className = 'mb-4 p-4 rounded-lg success';
+                    statusDiv.innerHTML = `<i class="fas fa-check-circle mr-2"></i>User dropdown working! Found ${salesUsers.length} users.`;
+                    log('User dropdown populated successfully!', 'success');
+                } else {
+                    statusDiv.className = 'mb-4 p-4 rounded-lg warning';
+                    statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>No sales users found. Create some AE/AM users first.';
+                    log('No sales users found', 'warning');
+                }
+                
+            } catch (error) {
+                statusDiv.className = 'mb-4 p-4 rounded-lg error';
+                statusDiv.innerHTML = '<i class="fas fa-times-circle mr-2"></i>Error: ' + error.message;
+                log('Error: ' + error.message, 'error');
+            }
+        }
+        
+        // Run comprehensive check
+        async function runComprehensiveCheck() {
+            log('Running comprehensive verification...', 'info');
+            log('=================================', 'info');
+            
+            // Check goals
+            await restoreAndVerifyGoals();
+            
+            log('=================================', 'info');
+            
+            // Check dropdown
+            await checkUserDropdown();
+            
+            log('=================================', 'info');
+            log('Comprehensive check complete!', 'success');
+        }
+        
+        // Auto-run on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            log('Verification page loaded', 'info');
+            log('Click any button above to start verification', 'info');
+            
+            // Populate test dropdown
+            checkUserDropdown();
+        });
+    </script>
+</body>
+</html>

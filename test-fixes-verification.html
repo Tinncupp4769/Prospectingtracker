@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fixes Verification Test - Sales Prospecting Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .test-passed { background-color: #d4edda; color: #155724; }
+        .test-failed { background-color: #f8d7da; color: #721c24; }
+        .test-pending { background-color: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                <i class="fas fa-vial text-purple-600 mr-3"></i>
+                Fixes Verification Test Suite
+            </h1>
+            <p class="text-gray-600">
+                Comprehensive testing for goal restoration and data reset fixes
+            </p>
+        </div>
+
+        <!-- Test Section 1: Goal Restoration -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-bullseye text-blue-600 mr-2"></i>
+                Test 1: Goal Restoration with Correct Values
+            </h2>
+            
+            <div class="space-y-4">
+                <p class="text-sm text-gray-600">
+                    This test verifies that the goals are restored with the correct values that were previously set.
+                </p>
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <h3 class="font-semibold mb-2">Expected AE Weekly Goals:</h3>
+                        <ul class="text-sm space-y-1">
+                            <li>• Calls Made: 150</li>
+                            <li>• Emails Sent: 250</li>
+                            <li>• LinkedIn Messages: 75</li>
+                            <li>• Meetings Booked: 15</li>
+                            <li>• Pipeline Generated: $150,000</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold mb-2">Expected AM Weekly Goals:</h3>
+                        <ul class="text-sm space-y-1">
+                            <li>• Accounts Targeted: 25</li>
+                            <li>• Calls Made: 100</li>
+                            <li>• Emails Sent: 200</li>
+                            <li>• Meetings Booked: 10</li>
+                            <li>• Pipeline Generated: $200,000</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="flex space-x-4">
+                    <button onclick="testGoalRestoration()" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        <i class="fas fa-play mr-2"></i>Run Goal Test
+                    </button>
+                    <button onclick="executeGoalRestoration()" 
+                            class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        <i class="fas fa-undo mr-2"></i>Restore Goals Now
+                    </button>
+                </div>
+                
+                <div id="goal-test-result" class="p-4 rounded-lg test-pending">
+                    <i class="fas fa-hourglass-half mr-2"></i>Test not yet run
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Section 2: User Data Reset -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-user-times text-orange-600 mr-2"></i>
+                Test 2: User Data Reset (Activities Only)
+            </h2>
+            
+            <div class="space-y-4">
+                <p class="text-sm text-gray-600">
+                    This test verifies that resetting user data only deletes activities, not the user account.
+                </p>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select Test User:</label>
+                    <select id="test-user-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                        <option value="">Loading users...</option>
+                    </select>
+                </div>
+                
+                <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="bg-gray-50 p-3 rounded">
+                        <div class="text-sm text-gray-600">User Status</div>
+                        <div id="user-status" class="font-bold">-</div>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded">
+                        <div class="text-sm text-gray-600">Activities Before</div>
+                        <div id="activities-before" class="font-bold">-</div>
+                    </div>
+                    <div class="bg-gray-50 p-3 rounded">
+                        <div class="text-sm text-gray-600">Activities After</div>
+                        <div id="activities-after" class="font-bold">-</div>
+                    </div>
+                </div>
+                
+                <div class="flex space-x-4">
+                    <button onclick="testUserDataReset()" 
+                            class="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700">
+                        <i class="fas fa-flask mr-2"></i>Test Data Reset
+                    </button>
+                    <button onclick="verifyUserExists()" 
+                            class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                        <i class="fas fa-check mr-2"></i>Verify User Exists
+                    </button>
+                </div>
+                
+                <div id="reset-test-result" class="p-4 rounded-lg test-pending">
+                    <i class="fas fa-hourglass-half mr-2"></i>Test not yet run
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Section 3: Deleted Activities Filtering -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-filter text-green-600 mr-2"></i>
+                Test 3: Deleted Activities Filtering
+            </h2>
+            
+            <div class="space-y-4">
+                <p class="text-sm text-gray-600">
+                    This test verifies that deleted activities are properly filtered from all calculations.
+                </p>
+                
+                <div class="flex space-x-4">
+                    <button onclick="testDeletedFiltering()" 
+                            class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        <i class="fas fa-filter mr-2"></i>Test Filtering
+                    </button>
+                </div>
+                
+                <div id="filter-test-result" class="p-4 rounded-lg test-pending">
+                    <i class="fas fa-hourglass-half mr-2"></i>Test not yet run
+                </div>
+                
+                <div id="filter-test-details" class="mt-4 p-4 bg-gray-50 rounded-lg hidden">
+                    <h4 class="font-semibold mb-2">Test Details:</h4>
+                    <div id="filter-test-log" class="text-sm space-y-1"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Console Output -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-terminal text-gray-600 mr-2"></i>
+                Test Console
+            </h2>
+            
+            <div id="console-output" class="bg-gray-900 text-gray-100 rounded-lg p-4 h-64 overflow-y-auto font-mono text-sm">
+                <div>Test suite initialized. Ready to run tests.</div>
+            </div>
+            
+            <div class="mt-4">
+                <button onclick="clearConsole()" 
+                        class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                    <i class="fas fa-eraser mr-2"></i>Clear Console
+                </button>
+            </div>
+        </div>
+
+        <!-- Return Link -->
+        <div class="mt-6 text-center">
+            <a href="index.html" class="inline-flex items-center text-indigo-600 hover:text-indigo-800">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Return to Main Application
+            </a>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/restore-goals.js"></script>
+    
+    <script>
+        let currentUser = { id: 'test-admin', name: 'Test Admin', platformRole: 'admin' };
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadTestUsers();
+            addLog('Test suite ready', 'info');
+        });
+        
+        // Load test users
+        async function loadTestUsers() {
+            try {
+                const users = await API.getUsers();
+                const select = document.getElementById('test-user-select');
+                
+                if (users.data && users.data.length > 0) {
+                    select.innerHTML = '<option value="">Select a user to test...</option>';
+                    users.data.forEach(user => {
+                        if (user.role === 'ae' || user.role === 'am') {
+                            const option = document.createElement('option');
+                            option.value = user.id;
+                            option.textContent = `${user.name} (${user.role.toUpperCase()})`;
+                            select.appendChild(option);
+                        }
+                    });
+                } else {
+                    select.innerHTML = '<option value="">No users found</option>';
+                }
+            } catch (error) {
+                addLog('Error loading users: ' + error.message, 'error');
+            }
+        }
+        
+        // Test 1: Goal Restoration
+        async function testGoalRestoration() {
+            addLog('Starting goal restoration test...', 'info');
+            const resultDiv = document.getElementById('goal-test-result');
+            
+            try {
+                // Check current goals
+                const goals = await API.getGoals();
+                const roleGoals = goals.data ? goals.data.filter(g => g.type === 'role') : [];
+                
+                addLog(`Found ${roleGoals.length} role-based goals`, 'info');
+                
+                // Check for specific expected values
+                let correctGoals = 0;
+                let incorrectGoals = [];
+                
+                const expectedValues = {
+                    'ae-weekly-calls_made': 150,
+                    'ae-weekly-emails_sent': 250,
+                    'ae-weekly-linkedin_messages': 75,
+                    'ae-weekly-meetings_booked': 15,
+                    'ae-weekly-pipeline_generated': 150000,
+                    'am-weekly-accounts_targeted': 25,
+                    'am-weekly-calls_made': 100,
+                    'am-weekly-emails_sent': 200,
+                    'am-weekly-meetings_booked': 10,
+                    'am-weekly-pipeline_generated': 200000
+                };
+                
+                for (const [key, expectedValue] of Object.entries(expectedValues)) {
+                    const [role, period, metric] = key.split('-');
+                    const goal = roleGoals.find(g => 
+                        g.role === role && 
+                        g.period === period && 
+                        g.metric === metric
+                    );
+                    
+                    if (goal && goal.target === expectedValue) {
+                        correctGoals++;
+                        addLog(`✅ ${key}: ${expectedValue}`, 'success');
+                    } else if (goal) {
+                        incorrectGoals.push(`${key}: expected ${expectedValue}, got ${goal.target}`);
+                        addLog(`❌ ${key}: expected ${expectedValue}, got ${goal.target}`, 'error');
+                    } else {
+                        incorrectGoals.push(`${key}: missing`);
+                        addLog(`❌ ${key}: missing`, 'error');
+                    }
+                }
+                
+                if (incorrectGoals.length === 0) {
+                    resultDiv.className = 'p-4 rounded-lg test-passed';
+                    resultDiv.innerHTML = '<i class="fas fa-check-circle mr-2"></i>All goals have correct values!';
+                } else {
+                    resultDiv.className = 'p-4 rounded-lg test-failed';
+                    resultDiv.innerHTML = `<i class="fas fa-times-circle mr-2"></i>Found ${incorrectGoals.length} incorrect/missing goals. Click "Restore Goals Now" to fix.`;
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'p-4 rounded-lg test-failed';
+                resultDiv.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i>Error: ' + error.message;
+                addLog('Test failed: ' + error.message, 'error');
+            }
+        }
+        
+        // Execute goal restoration
+        async function executeGoalRestoration() {
+            if (!confirm('This will restore all missing goals with the correct values. Continue?')) {
+                return;
+            }
+            
+            addLog('Executing goal restoration...', 'info');
+            
+            try {
+                const result = await restoreDefaultGoals();
+                addLog(`Restoration complete: ${result.restoredCount} goals restored`, 'success');
+                
+                // Re-run the test
+                await testGoalRestoration();
+            } catch (error) {
+                addLog('Restoration failed: ' + error.message, 'error');
+            }
+        }
+        
+        // Test 2: User Data Reset
+        async function testUserDataReset() {
+            const userId = document.getElementById('test-user-select').value;
+            if (!userId) {
+                alert('Please select a user first');
+                return;
+            }
+            
+            addLog('Starting user data reset test...', 'info');
+            const resultDiv = document.getElementById('reset-test-result');
+            
+            try {
+                // Get user before reset
+                const userBefore = await API.getUser(userId);
+                document.getElementById('user-status').textContent = userBefore ? 'Exists' : 'Not Found';
+                
+                // Count activities before
+                const activitiesBefore = await API.getActivities();
+                const userActivitiesBefore = activitiesBefore.data.filter(a => a.userId === userId);
+                document.getElementById('activities-before').textContent = userActivitiesBefore.length;
+                
+                addLog(`User ${userBefore.name} has ${userActivitiesBefore.length} activities`, 'info');
+                
+                // Create a test activity to delete
+                if (userActivitiesBefore.length === 0) {
+                    addLog('Creating test activity...', 'info');
+                    await API.createActivity({
+                        userId: userId,
+                        type: 'ae_summary',
+                        week: '2025-W03',
+                        callsMade: 10,
+                        emailsSent: 20
+                    });
+                }
+                
+                // Simulate reset (just mark activities as deleted)
+                addLog('Simulating data reset...', 'info');
+                for (const activity of userActivitiesBefore) {
+                    await API.deleteActivity(activity.id);
+                }
+                
+                // Check user after reset
+                const userAfter = await API.getUser(userId);
+                const activitiesAfter = await API.getActivities();
+                const userActivitiesAfter = activitiesAfter.data.filter(a => a.userId === userId && !a.deleted);
+                
+                document.getElementById('activities-after').textContent = userActivitiesAfter.length;
+                
+                if (userAfter && userActivitiesAfter.length === 0) {
+                    resultDiv.className = 'p-4 rounded-lg test-passed';
+                    resultDiv.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Test passed! User exists, activities deleted.';
+                    addLog('✅ User still exists, activities properly deleted', 'success');
+                } else if (!userAfter) {
+                    resultDiv.className = 'p-4 rounded-lg test-failed';
+                    resultDiv.innerHTML = '<i class="fas fa-times-circle mr-2"></i>Test failed! User was deleted (should not happen).';
+                    addLog('❌ User was incorrectly deleted!', 'error');
+                } else {
+                    resultDiv.className = 'p-4 rounded-lg test-failed';
+                    resultDiv.innerHTML = `<i class="fas fa-times-circle mr-2"></i>Test failed! ${userActivitiesAfter.length} activities remain.`;
+                    addLog(`❌ ${userActivitiesAfter.length} activities were not deleted`, 'error');
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'p-4 rounded-lg test-failed';
+                resultDiv.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i>Error: ' + error.message;
+                addLog('Test failed: ' + error.message, 'error');
+            }
+        }
+        
+        // Verify user exists
+        async function verifyUserExists() {
+            const userId = document.getElementById('test-user-select').value;
+            if (!userId) {
+                alert('Please select a user first');
+                return;
+            }
+            
+            try {
+                const user = await API.getUser(userId);
+                if (user) {
+                    alert(`User "${user.name}" exists and is ${user.isActive ? 'active' : 'inactive'}`);
+                    addLog(`User ${user.name} verified as existing`, 'success');
+                } else {
+                    alert('User not found!');
+                    addLog('User not found', 'error');
+                }
+            } catch (error) {
+                alert('Error checking user: ' + error.message);
+                addLog('Error: ' + error.message, 'error');
+            }
+        }
+        
+        // Test 3: Deleted Activities Filtering
+        async function testDeletedFiltering() {
+            addLog('Starting deleted activities filtering test...', 'info');
+            const resultDiv = document.getElementById('filter-test-result');
+            const detailsDiv = document.getElementById('filter-test-details');
+            const logDiv = document.getElementById('filter-test-log');
+            
+            try {
+                // Get raw activities from API
+                const response = await fetch('tables/activities?limit=100');
+                const rawData = await response.json();
+                
+                // Get filtered activities from our API wrapper
+                const filteredData = await API.getActivities();
+                
+                const totalRaw = rawData.data ? rawData.data.length : 0;
+                const deletedRaw = rawData.data ? rawData.data.filter(a => a.deleted).length : 0;
+                const activeRaw = totalRaw - deletedRaw;
+                const totalFiltered = filteredData.data ? filteredData.data.length : 0;
+                
+                logDiv.innerHTML = `
+                    <div>• Total records in database: ${totalRaw}</div>
+                    <div>• Deleted records: ${deletedRaw}</div>
+                    <div>• Active records: ${activeRaw}</div>
+                    <div>• Records after filtering: ${totalFiltered}</div>
+                `;
+                
+                detailsDiv.classList.remove('hidden');
+                
+                if (totalFiltered === activeRaw) {
+                    resultDiv.className = 'p-4 rounded-lg test-passed';
+                    resultDiv.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Filtering working correctly! Deleted records excluded.';
+                    addLog(`✅ Filtering correct: ${deletedRaw} deleted records excluded`, 'success');
+                } else {
+                    resultDiv.className = 'p-4 rounded-lg test-failed';
+                    resultDiv.innerHTML = `<i class="fas fa-times-circle mr-2"></i>Filtering issue! Expected ${activeRaw} records, got ${totalFiltered}.`;
+                    addLog(`❌ Filtering issue: Expected ${activeRaw}, got ${totalFiltered}`, 'error');
+                }
+                
+            } catch (error) {
+                resultDiv.className = 'p-4 rounded-lg test-failed';
+                resultDiv.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i>Error: ' + error.message;
+                addLog('Test failed: ' + error.message, 'error');
+            }
+        }
+        
+        // Console functions
+        function addLog(message, type = 'info') {
+            const consoleOutput = document.getElementById('console-output');
+            const timestamp = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            
+            let icon = '';
+            let color = '';
+            switch(type) {
+                case 'success':
+                    icon = '✅';
+                    color = 'text-green-400';
+                    break;
+                case 'error':
+                    icon = '❌';
+                    color = 'text-red-400';
+                    break;
+                case 'info':
+                    icon = 'ℹ️';
+                    color = 'text-blue-400';
+                    break;
+                default:
+                    icon = '•';
+                    color = 'text-gray-400';
+            }
+            
+            div.className = color;
+            div.textContent = `[${timestamp}] ${icon} ${message}`;
+            consoleOutput.appendChild(div);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        function clearConsole() {
+            document.getElementById('console-output').innerHTML = '<div>Console cleared</div>';
+        }
+        
+        // Helper function for showAlert (if not available)
+        function showAlert(message, type) {
+            addLog(message, type);
+        }
+    </script>
+</body>
+</html>

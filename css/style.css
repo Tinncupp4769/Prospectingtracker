@@ -1,0 +1,359 @@
+/* Sales Prospecting Activity Tracker - Custom Styles */
+
+/* Sidebar Navigation */
+.nav-link.active {
+    background-color: #374151;
+    color: white;
+}
+
+/* Content Sections */
+.content-section {
+    animation: fadeIn 0.3s ease-in;
+}
+
+.content-section.hidden {
+    display: none !important;
+}
+
+/* Dashboard View Buttons */
+.dashboard-view-btn {
+    background-color: #F3F4F6;
+    color: #6B7280;
+}
+
+.dashboard-view-btn.active {
+    background-color: #4F46E5;
+    color: white;
+}
+
+.dashboard-view {
+    animation: slideIn 0.3s ease-in;
+}
+
+.dashboard-view.hidden {
+    display: none !important;
+}
+
+/* Status Indicators */
+.status-on-track {
+    background-color: #10B981;
+    color: white;
+    padding: 2px 12px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-at-risk {
+    background-color: #F59E0B;
+    color: white;
+    padding: 2px 12px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-behind {
+    background-color: #EF4444;
+    color: white;
+    padding: 2px 12px;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Activity Type Badges */
+.activity-badge-call {
+    background-color: #DBEAFE;
+    color: #1E40AF;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.activity-badge-email {
+    background-color: #D1FAE5;
+    color: #065F46;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.activity-badge-meeting {
+    background-color: #EDE9FE;
+    color: #6B21A8;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.activity-badge-linkedin {
+    background-color: #E0E7FF;
+    color: #3730A3;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* Leaderboard Rank Badges */
+.rank-1 {
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: white;
+    font-weight: bold;
+    padding: 4px 12px;
+    border-radius: 6px;
+}
+
+.rank-2 {
+    background: linear-gradient(135deg, #C0C0C0, #808080);
+    color: white;
+    font-weight: bold;
+    padding: 4px 12px;
+    border-radius: 6px;
+}
+
+.rank-3 {
+    background: linear-gradient(135deg, #CD7F32, #8B4513);
+    color: white;
+    font-weight: bold;
+    padding: 4px 12px;
+    border-radius: 6px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #4F46E5;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Table Hover Effects */
+tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+tbody tr:hover {
+    background-color: #F9FAFB;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #F3F4F6;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #9CA3AF;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #6B7280;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    aside {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+        position: fixed;
+        z-index: 50;
+        height: 100vh;
+    }
+    
+    aside.mobile-open {
+        transform: translateX(0);
+    }
+    
+    main {
+        margin-left: 0;
+    }
+}
+
+/* Success/Error/Warning Messages */
+.alert-success {
+    background-color: #D1FAE5;
+    color: #065F46;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border-left: 4px solid #10B981;
+    margin-bottom: 16px;
+}
+
+.alert-error {
+    background-color: #FEE2E2;
+    color: #991B1B;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border-left: 4px solid #EF4444;
+    margin-bottom: 16px;
+}
+
+.alert-warning {
+    background-color: #FEF3C7;
+    color: #92400E;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border-left: 4px solid #F59E0B;
+    margin-bottom: 16px;
+}
+
+.alert-info {
+    background-color: #DBEAFE;
+    color: #1E40AF;
+    padding: 12px 16px;
+    border-radius: 8px;
+    border-left: 4px solid #3B82F6;
+    margin-bottom: 16px;
+}
+
+/* Form Focus States */
+input:focus,
+select:focus,
+textarea:focus {
+    outline: none;
+    ring: 2;
+    ring-color: #4F46E5;
+    border-color: transparent;
+}
+
+/* Button Hover Effects */
+button {
+    transition: all 0.2s ease;
+}
+
+button:hover {
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+/* Card Hover Effects */
+.hover-card {
+    transition: all 0.3s ease;
+}
+
+.hover-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Progress Bar */
+.progress-bar {
+    background-color: #E5E7EB;
+    border-radius: 9999px;
+    overflow: hidden;
+    height: 8px;
+}
+
+.progress-bar-fill {
+    background: linear-gradient(90deg, #4F46E5, #7C3AED);
+    height: 100%;
+    transition: width 0.5s ease;
+}
+
+/* Activity Entry Specific Styles */
+.activity-input-card {
+    transition: all 0.3s ease;
+}
+
+.activity-input-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Number input styling */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    opacity: 1;
+    height: 30px;
+}
+
+/* Week selector styling */
+input[type="week"] {
+    min-width: 200px;
+}
+
+/* Gradient backgrounds for activity sections */
+.gradient-purple-blue {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.gradient-blue-teal {
+    background: linear-gradient(135deg, #667eea 0%, #48b1bf 100%);
+}
+
+.gradient-green-emerald {
+    background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+}
+
+/* Summary card animations */
+.summary-value {
+    transition: all 0.3s ease;
+}
+
+.summary-value:hover {
+    transform: scale(1.05);
+}
+
+/* Print Styles */
+@media print {
+    nav,
+    aside,
+    button,
+    .no-print {
+        display: none !important;
+    }
+    
+    main {
+        margin: 0;
+        padding: 0;
+    }
+    
+    .content-section {
+        display: block !important;
+    }
+}

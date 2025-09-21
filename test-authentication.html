@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Test - Sales Activity Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-6">Authentication System Test</h1>
+        
+        <!-- Test Status Dashboard -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Authentication Status -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-lock text-indigo-600 mr-2"></i>
+                    Authentication Status
+                </h2>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Logged In:</span>
+                        <span id="auth-status" class="text-sm font-mono font-bold">Checking...</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">User Name:</span>
+                        <span id="user-name" class="text-sm font-mono">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">User Role:</span>
+                        <span id="user-role" class="text-sm font-mono">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Platform Role:</span>
+                        <span id="platform-role" class="text-sm font-mono">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Session Information -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-clock text-green-600 mr-2"></i>
+                    Session Information
+                </h2>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Login Time:</span>
+                        <span id="login-time" class="text-sm font-mono">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Last Activity:</span>
+                        <span id="last-activity" class="text-sm font-mono">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Expires At:</span>
+                        <span id="expires-at" class="text-sm font-mono">-</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Time Left:</span>
+                        <span id="time-left" class="text-sm font-mono font-bold">-</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Permissions Check -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-shield-alt text-purple-600 mr-2"></i>
+                    Permissions
+                </h2>
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Dashboard:</span>
+                        <span id="perm-dashboard" class="text-sm">❓</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Activity:</span>
+                        <span id="perm-activity" class="text-sm">❓</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Analytics:</span>
+                        <span id="perm-analytics" class="text-sm">❓</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Users (Admin):</span>
+                        <span id="perm-users" class="text-sm">❓</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm text-gray-600">Goals (Admin):</span>
+                        <span id="perm-goals" class="text-sm">❓</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Actions -->
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Login Tests -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-sign-in-alt text-blue-600 mr-2"></i>
+                    Login Tests
+                </h2>
+                <div class="space-y-3">
+                    <button onclick="testLogin('admin@example.com', 'admin123')" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+                        Login as Admin
+                    </button>
+                    <button onclick="testLogin('ae@example.com', 'admin123')" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm">
+                        Login as Account Executive
+                    </button>
+                    <button onclick="testLogin('am@example.com', 'admin123')" class="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-sm">
+                        Login as Account Manager
+                    </button>
+                    <button onclick="testLogin('invalid@example.com', 'wrongpass')" class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm">
+                        Test Invalid Login
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Session Tests -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-vial text-orange-600 mr-2"></i>
+                    Session Tests
+                </h2>
+                <div class="space-y-3">
+                    <button onclick="testSessionRefresh()" class="w-full px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 text-sm">
+                        Test Activity Refresh
+                    </button>
+                    <button onclick="testSessionExpiry()" class="w-full px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm">
+                        Simulate Session Expiry
+                    </button>
+                    <button onclick="testLogout()" class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm">
+                        Test Logout
+                    </button>
+                    <button onclick="checkAuthState()" class="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-sm">
+                        Refresh Status
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Log -->
+        <div class="mt-6 bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">
+                <i class="fas fa-terminal text-gray-600 mr-2"></i>
+                Test Log
+            </h2>
+            <div id="test-log" class="bg-gray-900 text-green-400 p-4 rounded font-mono text-sm h-64 overflow-y-auto">
+                > Authentication test suite initialized...<br>
+            </div>
+        </div>
+        
+        <!-- Test Results -->
+        <div class="mt-6 bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">
+                <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                Test Results
+            </h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="text-center">
+                    <div id="test-login" class="text-3xl mb-2">❓</div>
+                    <p class="text-sm text-gray-600">Login System</p>
+                </div>
+                <div class="text-center">
+                    <div id="test-session" class="text-3xl mb-2">❓</div>
+                    <p class="text-sm text-gray-600">Session Management</p>
+                </div>
+                <div class="text-center">
+                    <div id="test-permissions" class="text-3xl mb-2">❓</div>
+                    <p class="text-sm text-gray-600">Permissions</p>
+                </div>
+                <div class="text-center">
+                    <div id="test-security" class="text-3xl mb-2">❓</div>
+                    <p class="text-sm text-gray-600">Security</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <script>
+        // Test functions
+        function log(message) {
+            const logEl = document.getElementById('test-log');
+            const timestamp = new Date().toLocaleTimeString();
+            logEl.innerHTML += `> [${timestamp}] ${message}<br>`;
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+        
+        // Check authentication state
+        function checkAuthState() {
+            log('Checking authentication state...');
+            
+            const isAuth = Auth.isAuthenticated();
+            const session = Auth.getSession();
+            
+            // Update auth status
+            document.getElementById('auth-status').textContent = isAuth ? '✅ YES' : '❌ NO';
+            document.getElementById('auth-status').className = isAuth ? 'text-sm font-mono font-bold text-green-600' : 'text-sm font-mono font-bold text-red-600';
+            
+            if (session && session.user) {
+                document.getElementById('user-name').textContent = session.user.name;
+                document.getElementById('user-role').textContent = session.user.role;
+                document.getElementById('platform-role').textContent = session.user.platformRole || 'user';
+                
+                // Session info
+                document.getElementById('login-time').textContent = new Date(session.loginTime).toLocaleTimeString();
+                document.getElementById('last-activity').textContent = new Date(session.lastActivity).toLocaleTimeString();
+                document.getElementById('expires-at').textContent = new Date(session.expiresAt).toLocaleTimeString();
+                
+                // Calculate time left
+                const timeLeft = Math.max(0, session.expiresAt - Date.now());
+                const minutes = Math.floor(timeLeft / 60000);
+                const seconds = Math.floor((timeLeft % 60000) / 1000);
+                document.getElementById('time-left').textContent = `${minutes}m ${seconds}s`;
+                
+                // Check permissions
+                const permissions = ['dashboard', 'activity', 'analytics', 'users', 'goals'];
+                permissions.forEach(perm => {
+                    const hasPermission = Auth.hasPermission(perm);
+                    const el = document.getElementById(`perm-${perm}`);
+                    if (el) {
+                        el.textContent = hasPermission ? '✅' : '❌';
+                    }
+                });
+                
+                document.getElementById('test-session').textContent = '✅';
+                log('✓ Session is active');
+            } else {
+                // Clear fields
+                document.getElementById('user-name').textContent = '-';
+                document.getElementById('user-role').textContent = '-';
+                document.getElementById('platform-role').textContent = '-';
+                document.getElementById('login-time').textContent = '-';
+                document.getElementById('last-activity').textContent = '-';
+                document.getElementById('expires-at').textContent = '-';
+                document.getElementById('time-left').textContent = '-';
+                
+                // Clear permissions
+                ['dashboard', 'activity', 'analytics', 'users', 'goals'].forEach(perm => {
+                    const el = document.getElementById(`perm-${perm}`);
+                    if (el) el.textContent = '❓';
+                });
+                
+                log('✗ No active session');
+            }
+        }
+        
+        // Test login
+        async function testLogin(email, password) {
+            log(`Testing login with ${email}...`);
+            
+            const result = await Auth.login(email, password);
+            
+            if (result.success) {
+                log(`✓ Login successful for ${result.user.name}`);
+                document.getElementById('test-login').textContent = '✅';
+                checkAuthState();
+            } else {
+                log(`✗ Login failed: ${result.error}`);
+                document.getElementById('test-login').textContent = '❌';
+            }
+        }
+        
+        // Test session refresh
+        function testSessionRefresh() {
+            log('Testing session activity refresh...');
+            Auth.updateActivity();
+            log('✓ Session activity updated');
+            checkAuthState();
+        }
+        
+        // Test session expiry
+        function testSessionExpiry() {
+            log('Simulating session expiry...');
+            const session = Auth.getSession();
+            if (session) {
+                session.expiresAt = Date.now() - 1000;
+                localStorage.setItem(Auth.SESSION_KEY, JSON.stringify(session));
+                log('✓ Session expiry time set to past');
+                
+                // Check timeout
+                Auth.checkSessionTimeout();
+                
+                setTimeout(() => {
+                    checkAuthState();
+                    document.getElementById('test-security').textContent = '✅';
+                }, 1000);
+            } else {
+                log('✗ No session to expire');
+            }
+        }
+        
+        // Test logout
+        async function testLogout() {
+            log('Testing logout...');
+            await Auth.logout('Manual logout test');
+            log('✓ Logout completed');
+            checkAuthState();
+        }
+        
+        // Test permissions
+        function testPermissions() {
+            const session = Auth.getSession();
+            if (!session) {
+                log('✗ No session for permission test');
+                return;
+            }
+            
+            log('Testing permissions...');
+            const tests = [
+                { perm: 'dashboard', expected: true },
+                { perm: 'users', expected: session.user.platformRole === 'admin' },
+                { perm: 'goals', expected: session.user.platformRole === 'admin' }
+            ];
+            
+            let passed = true;
+            tests.forEach(test => {
+                const result = Auth.hasPermission(test.perm);
+                if (result === test.expected) {
+                    log(`✓ Permission '${test.perm}': ${result}`);
+                } else {
+                    log(`✗ Permission '${test.perm}': expected ${test.expected}, got ${result}`);
+                    passed = false;
+                }
+            });
+            
+            document.getElementById('test-permissions').textContent = passed ? '✅' : '❌';
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            log('Initializing authentication...');
+            Auth.init();
+            checkAuthState();
+            
+            // Auto-refresh status every 5 seconds
+            setInterval(() => {
+                checkAuthState();
+            }, 5000);
+            
+            // Run initial tests
+            setTimeout(() => {
+                testPermissions();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

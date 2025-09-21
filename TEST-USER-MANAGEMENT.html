@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management Test Suite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        .test-pass { background-color: #10B981; color: white; }
+        .test-fail { background-color: #EF4444; color: white; }
+        .test-pending { background-color: #F59E0B; color: white; }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold mb-2 text-gray-800">
+                <i class="fas fa-vial text-indigo-600 mr-2"></i>
+                User Management Test Suite
+            </h1>
+            <p class="text-gray-600">Comprehensive testing of Add User and Reset All Data functionality</p>
+        </div>
+
+        <!-- Test Control Panel -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Test Controls</h2>
+            <div class="flex space-x-4">
+                <button onclick="runAllTests()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                    <i class="fas fa-play mr-2"></i>Run All Tests
+                </button>
+                <button onclick="clearResults()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">
+                    <i class="fas fa-eraser mr-2"></i>Clear Results
+                </button>
+                <button onclick="window.location.href='index.html'" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                    <i class="fas fa-home mr-2"></i>Go to App
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Test Results</h2>
+            <div id="test-results" class="space-y-2"></div>
+        </div>
+
+        <!-- Manual Test Buttons -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Manual Test Buttons</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <h3 class="font-semibold mb-2">User View Functions</h3>
+                    <div class="space-y-2">
+                        <button onclick="testShowUserView('list')" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Show User List
+                        </button>
+                        <button onclick="testShowUserView('add')" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Show Add User Form
+                        </button>
+                        <button onclick="testShowUserView('act-as')" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Show Act As User
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-semibold mb-2">Data Functions</h3>
+                    <div class="space-y-2">
+                        <button onclick="testCreateUser()" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                            Create Test User
+                        </button>
+                        <button onclick="testLoadUsers()" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                            Load Users List
+                        </button>
+                        <button onclick="testResetData()" class="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                            Test Reset Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Storage Inspector -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Storage Inspector</h2>
+            <div class="mb-4">
+                <button onclick="inspectStorage()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                    <i class="fas fa-search mr-2"></i>Inspect Storage
+                </button>
+            </div>
+            <div id="storage-content" class="font-mono text-sm bg-gray-100 p-4 rounded overflow-auto max-h-96"></div>
+        </div>
+    </div>
+
+    <script>
+        // Test utilities
+        function logTest(name, status, details = '') {
+            const resultsDiv = document.getElementById('test-results');
+            const statusClass = status === 'PASS' ? 'test-pass' : 
+                               status === 'FAIL' ? 'test-fail' : 'test-pending';
+            
+            const testDiv = document.createElement('div');
+            testDiv.className = `p-3 rounded flex justify-between items-center ${statusClass}`;
+            testDiv.innerHTML = `
+                <div>
+                    <strong>${name}</strong>
+                    ${details ? `<div class="text-sm mt-1 opacity-90">${details}</div>` : ''}
+                </div>
+                <div class="text-lg">
+                    ${status === 'PASS' ? '✅' : status === 'FAIL' ? '❌' : '⏳'}
+                </div>
+            `;
+            resultsDiv.appendChild(testDiv);
+        }
+
+        function clearResults() {
+            document.getElementById('test-results').innerHTML = '';
+            console.clear();
+        }
+
+        // Automated tests
+        async function runAllTests() {
+            clearResults();
+            console.log('🧪 Starting automated tests...');
+            
+            // Test 1: Check if functions exist
+            logTest('Function Existence Check', 'PENDING');
+            const functions = [
+                'showUserView',
+                'setupAddUserForm',
+                'confirmResetAllData',
+                'resetAllData',
+                'loadUsersList'
+            ];
+            
+            let allFunctionsExist = true;
+            functions.forEach(funcName => {
+                const exists = typeof window.parent[funcName] === 'function';
+                if (!exists) {
+                    allFunctionsExist = false;
+                    logTest(`  - ${funcName}`, 'FAIL', 'Function not found');
+                } else {
+                    logTest(`  - ${funcName}`, 'PASS', 'Function exists');
+                }
+            });
+            
+            // Test 2: Check localStorage
+            logTest('LocalStorage Check', 'PENDING');
+            try {
+                localStorage.setItem('test', 'value');
+                localStorage.removeItem('test');
+                logTest('LocalStorage Access', 'PASS', 'Can read/write to localStorage');
+            } catch (e) {
+                logTest('LocalStorage Access', 'FAIL', e.message);
+            }
+            
+            // Test 3: Check for user data
+            logTest('User Data Check', 'PENDING');
+            const users = JSON.parse(localStorage.getItem('unified_users') || '[]');
+            const sptUsers = JSON.parse(localStorage.getItem('spt_users') || '[]');
+            
+            if (users.length > 0 || sptUsers.length > 0) {
+                logTest('User Data Exists', 'PASS', `Found ${Math.max(users.length, sptUsers.length)} users`);
+                
+                // Check for Bryan Miller
+                const bryanExists = [...users, ...sptUsers].some(u => 
+                    u.email === 'bmiller@ascm.org' || u.username === 'bmiller'
+                );
+                if (bryanExists) {
+                    logTest('Bryan Miller Account', 'PASS', 'Bryan Miller found in user data');
+                } else {
+                    logTest('Bryan Miller Account', 'FAIL', 'Bryan Miller not found');
+                }
+            } else {
+                logTest('User Data Exists', 'FAIL', 'No users found in storage');
+            }
+            
+            // Test 4: DOM Elements
+            logTest('DOM Elements Check', 'PENDING');
+            const requiredElements = [
+                'users-section',
+                'users-list-view',
+                'users-add-view',
+                'users-act-as-view',
+                'add-user-form',
+                'users-table'
+            ];
+            
+            // Check in parent window (main app)
+            const parentDoc = window.parent.document;
+            requiredElements.forEach(id => {
+                const elem = parentDoc.getElementById(id);
+                if (elem) {
+                    logTest(`  - #${id}`, 'PASS', 'Element found');
+                } else {
+                    logTest(`  - #${id}`, 'FAIL', 'Element not found');
+                }
+            });
+            
+            console.log('✅ Automated tests complete');
+        }
+
+        // Manual test functions
+        function testShowUserView(view) {
+            console.log(`Testing showUserView('${view}')...`);
+            try {
+                if (window.parent.showUserView) {
+                    window.parent.showUserView(view);
+                    logTest(`Show ${view} view`, 'PASS', 'Function executed successfully');
+                } else {
+                    logTest(`Show ${view} view`, 'FAIL', 'showUserView function not found');
+                }
+            } catch (e) {
+                logTest(`Show ${view} view`, 'FAIL', e.message);
+            }
+        }
+
+        function testCreateUser() {
+            console.log('Testing user creation...');
+            const testUser = {
+                id: 'test-' + Date.now(),
+                firstName: 'Test',
+                lastName: 'User',
+                name: 'Test User',
+                email: 'test@example.com',
+                username: 'testuser',
+                password: 'test123',
+                role: 'ae',
+                platformRole: 'user',
+                status: 'active',
+                team: 'Sales Team',
+                createdAt: Date.now()
+            };
+            
+            try {
+                const users = JSON.parse(localStorage.getItem('unified_users') || '[]');
+                users.push(testUser);
+                localStorage.setItem('unified_users', JSON.stringify(users));
+                
+                logTest('Create Test User', 'PASS', `User created: ${testUser.username}`);
+                
+                // Try to reload the list
+                if (window.parent.loadUsersList) {
+                    window.parent.loadUsersList();
+                }
+            } catch (e) {
+                logTest('Create Test User', 'FAIL', e.message);
+            }
+        }
+
+        function testLoadUsers() {
+            console.log('Testing load users...');
+            try {
+                if (window.parent.loadUsersList) {
+                    window.parent.loadUsersList();
+                    logTest('Load Users List', 'PASS', 'Function executed');
+                } else {
+                    logTest('Load Users List', 'FAIL', 'loadUsersList function not found');
+                }
+            } catch (e) {
+                logTest('Load Users List', 'FAIL', e.message);
+            }
+        }
+
+        function testResetData() {
+            console.log('Testing reset data (mock - won\'t actually reset)...');
+            try {
+                if (window.parent.confirmResetAllData) {
+                    logTest('Reset Data Function', 'PASS', 'confirmResetAllData function exists');
+                } else {
+                    logTest('Reset Data Function', 'FAIL', 'confirmResetAllData function not found');
+                }
+                
+                if (window.parent.resetAllData) {
+                    logTest('Reset Data Alias', 'PASS', 'resetAllData alias exists');
+                } else {
+                    logTest('Reset Data Alias', 'FAIL', 'resetAllData alias not found');
+                }
+            } catch (e) {
+                logTest('Reset Data Test', 'FAIL', e.message);
+            }
+        }
+
+        // Storage inspector
+        function inspectStorage() {
+            const storageDiv = document.getElementById('storage-content');
+            let html = '<h3 class="font-bold mb-2">LocalStorage Contents:</h3>';
+            
+            const relevantKeys = [
+                'unified_users',
+                'spt_users',
+                'spt_activities',
+                'spt_goals',
+                'spt_session',
+                'spt_authenticated',
+                'unified_state'
+            ];
+            
+            relevantKeys.forEach(key => {
+                const value = localStorage.getItem(key);
+                if (value) {
+                    try {
+                        const parsed = JSON.parse(value);
+                        const preview = Array.isArray(parsed) ? 
+                            `Array[${parsed.length}]` : 
+                            typeof parsed === 'object' ? 
+                            `Object{${Object.keys(parsed).slice(0, 3).join(', ')}...}` : 
+                            value.substring(0, 50) + '...';
+                        
+                        html += `
+                            <div class="mb-3 p-2 bg-white rounded border">
+                                <div class="font-semibold text-indigo-600">${key}:</div>
+                                <div class="text-gray-700">${preview}</div>
+                                <details class="mt-1">
+                                    <summary class="cursor-pointer text-sm text-gray-500">Show full data</summary>
+                                    <pre class="mt-2 text-xs overflow-auto">${JSON.stringify(parsed, null, 2)}</pre>
+                                </details>
+                            </div>
+                        `;
+                    } catch {
+                        html += `
+                            <div class="mb-3 p-2 bg-white rounded border">
+                                <div class="font-semibold text-indigo-600">${key}:</div>
+                                <div class="text-gray-700">${value.substring(0, 100)}...</div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    html += `
+                        <div class="mb-3 p-2 bg-gray-50 rounded border border-gray-200">
+                            <div class="font-semibold text-gray-400">${key}:</div>
+                            <div class="text-gray-400 text-sm">Not found</div>
+                        </div>
+                    `;
+                }
+            });
+            
+            storageDiv.innerHTML = html;
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            console.log('Test suite loaded. Running initial checks...');
+            inspectStorage();
+        });
+    </script>
+</body>
+</html>

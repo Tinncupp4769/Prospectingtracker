@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permission Test - Sales Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-8">
+        <h1 class="text-3xl font-bold mb-8">Permission & Goal System Test</h1>
+        
+        <!-- Current User Switcher -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Test as Different Users</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onclick="switchToAdmin()" class="px-4 py-3 bg-purple-600 text-white rounded hover:bg-purple-700">
+                    <i class="fas fa-user-shield mr-2"></i>
+                    Test as Admin
+                    <div class="text-xs mt-1">Platform Admin + AE Role</div>
+                </button>
+                <button onclick="switchToAE()" class="px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    <i class="fas fa-user-tie mr-2"></i>
+                    Test as AE User
+                    <div class="text-xs mt-1">Regular User + AE Role</div>
+                </button>
+                <button onclick="switchToAM()" class="px-4 py-3 bg-green-600 text-white rounded hover:bg-green-700">
+                    <i class="fas fa-user mr-2"></i>
+                    Test as AM User
+                    <div class="text-xs mt-1">Regular User + AM Role</div>
+                </button>
+            </div>
+            
+            <div class="mt-4 p-4 bg-gray-100 rounded">
+                <h3 class="font-semibold mb-2">Current User:</h3>
+                <pre id="current-user-display" class="text-sm"></pre>
+            </div>
+        </div>
+        
+        <!-- Permission Tests -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Permission Tests</h2>
+            <div class="space-y-3">
+                <button onclick="testGoalsAccess()" class="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-left">
+                    <i class="fas fa-bullseye mr-2"></i>Test Goals Section Access
+                </button>
+                <button onclick="testUsersAccess()" class="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-left">
+                    <i class="fas fa-users mr-2"></i>Test User Management Access
+                </button>
+                <button onclick="testDashboardAccess()" class="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 text-left">
+                    <i class="fas fa-chart-line mr-2"></i>Test Dashboard Access
+                </button>
+            </div>
+            <div id="permission-results" class="mt-4 p-4 bg-gray-50 rounded"></div>
+        </div>
+        
+        <!-- Goal System Tests -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Goal System Tests</h2>
+            <div class="space-y-3">
+                <button onclick="testRoleGoals()" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-left">
+                    <i class="fas fa-users-cog mr-2"></i>Test Role-Based Goals
+                </button>
+                <button onclick="testIndividualGoals()" class="w-full px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-left">
+                    <i class="fas fa-user-edit mr-2"></i>Test Individual Goal Overrides
+                </button>
+                <button onclick="testGoalCalculations()" class="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 text-left">
+                    <i class="fas fa-calculator mr-2"></i>Test Goal Calculations
+                </button>
+            </div>
+            <div id="goal-results" class="mt-4 p-4 bg-gray-50 rounded"></div>
+        </div>
+    </div>
+    
+    <script src="js/api.js"></script>
+    <script src="js/goal-calculator.js"></script>
+    <script>
+        // Current user state
+        let currentUser = {
+            id: 'admin-1',
+            name: 'John Smith',
+            role: 'ae',
+            platformRole: 'admin',
+            team: 'Sales Team Alpha',
+            email: 'jsmith@company.com',
+            username: 'jsmith'
+        };
+        
+        // Display current user
+        function updateUserDisplay() {
+            document.getElementById('current-user-display').textContent = JSON.stringify(currentUser, null, 2);
+        }
+        
+        // User switching functions
+        function switchToAdmin() {
+            currentUser = {
+                id: 'admin-1',
+                name: 'John Smith',
+                role: 'ae',
+                platformRole: 'admin',
+                team: 'Sales Team Alpha',
+                email: 'jsmith@company.com',
+                username: 'jsmith'
+            };
+            updateUserDisplay();
+            showResult('permission-results', 'Switched to Admin (platformRole: admin)', 'success');
+        }
+        
+        function switchToAE() {
+            currentUser = {
+                id: 'ae-1',
+                name: 'Sarah Johnson',
+                role: 'ae',
+                platformRole: 'user',
+                team: 'Sales Team Alpha',
+                email: 'sjohnson@company.com',
+                username: 'sjohnson'
+            };
+            updateUserDisplay();
+            showResult('permission-results', 'Switched to AE User (platformRole: user)', 'info');
+        }
+        
+        function switchToAM() {
+            currentUser = {
+                id: 'am-1',
+                name: 'Mike Chen',
+                role: 'am',
+                platformRole: 'user',
+                team: 'Sales Team Beta',
+                email: 'mchen@company.com',
+                username: 'mchen'
+            };
+            updateUserDisplay();
+            showResult('permission-results', 'Switched to AM User (platformRole: user)', 'info');
+        }
+        
+        // Permission test functions
+        function testGoalsAccess() {
+            const hasAccess = currentUser.platformRole === 'admin';
+            const message = hasAccess ? 
+                '✅ Goals section accessible (Admin only)' : 
+                '❌ Goals section blocked (Admin only - your platformRole: ' + currentUser.platformRole + ')';
+            showResult('permission-results', message, hasAccess ? 'success' : 'error');
+        }
+        
+        function testUsersAccess() {
+            const hasAccess = currentUser.platformRole === 'admin';
+            const message = hasAccess ? 
+                '✅ User Management accessible (Admin only)' : 
+                '❌ User Management blocked (Admin only - your platformRole: ' + currentUser.platformRole + ')';
+            showResult('permission-results', message, hasAccess ? 'success' : 'error');
+        }
+        
+        function testDashboardAccess() {
+            let message = '';
+            if (currentUser.role === 'ae') {
+                message = '✅ AE Dashboard accessible (role: ae)';
+            } else if (currentUser.role === 'am') {
+                message = '✅ AM Dashboard accessible (role: am)';
+            } else if (currentUser.platformRole === 'admin') {
+                message = '✅ Admin can see all dashboards';
+            }
+            showResult('permission-results', message, 'success');
+        }
+        
+        // Goal system test functions
+        async function testRoleGoals() {
+            try {
+                // Test applying role goals
+                const success = await applyRoleGoalsToUsers('ae', 'calls_made', 50, 'weekly');
+                const message = success ? 
+                    '✅ Role goal applied to all AE users (50 calls/week)' : 
+                    '❌ Failed to apply role goal';
+                showResult('goal-results', message, success ? 'success' : 'error');
+                
+                // Show which users would be affected
+                const users = await API.getUsers();
+                const aeUsers = users.data.filter(u => u.role === 'ae');
+                showResult('goal-results', `This goal applies to ${aeUsers.length} AE users`, 'info', true);
+            } catch (error) {
+                showResult('goal-results', '❌ Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function testIndividualGoals() {
+            try {
+                // Test setting individual goal
+                const userId = 'sjohnson'; // Sarah Johnson
+                const success = await setIndividualGoal(userId, 'calls_made', 75, 'weekly');
+                const message = success ? 
+                    '✅ Individual goal set for Sarah Johnson (75 calls/week vs 50 role default)' : 
+                    '❌ Failed to set individual goal';
+                showResult('goal-results', message, success ? 'success' : 'error');
+                
+                // Test getting effective goal
+                const goal = await getEffectiveGoalForUser(userId, 'calls_made', 'weekly');
+                if (goal) {
+                    showResult('goal-results', 
+                        `Effective goal: ${goal.value} (type: ${goal.type})`, 
+                        goal.type === 'individual' ? 'warning' : 'info', 
+                        true
+                    );
+                }
+            } catch (error) {
+                showResult('goal-results', '❌ Error: ' + error.message, 'error');
+            }
+        }
+        
+        async function testGoalCalculations() {
+            try {
+                // Test goal calculations
+                const totals = await calculateTotalGoals('ae', 'calls_made', 'weekly');
+                const callsTotal = totals['calls_made'];
+                
+                if (callsTotal) {
+                    let message = `📊 Goal Calculation Results:\n`;
+                    message += `Total weekly calls goal: ${callsTotal.total}\n`;
+                    message += `Users with role-based goal: ${callsTotal.roleBasedCount}\n`;
+                    message += `Users with individual override: ${callsTotal.individualCount}\n`;
+                    message += `\nBreakdown by user:\n`;
+                    callsTotal.users.forEach(u => {
+                        message += `- ${u.userName}: ${u.value} (${u.type})\n`;
+                    });
+                    showResult('goal-results', message, 'success');
+                }
+            } catch (error) {
+                showResult('goal-results', '❌ Error: ' + error.message, 'error');
+            }
+        }
+        
+        // Helper function to show results
+        function showResult(elementId, message, type, append = false) {
+            const element = document.getElementById(elementId);
+            const colors = {
+                success: 'text-green-600',
+                error: 'text-red-600',
+                warning: 'text-yellow-600',
+                info: 'text-blue-600'
+            };
+            
+            const html = `<div class="${colors[type]} mb-2"><pre>${message}</pre></div>`;
+            
+            if (append) {
+                element.innerHTML += html;
+            } else {
+                element.innerHTML = html;
+            }
+        }
+        
+        // Initialize on load
+        updateUserDisplay();
+    </script>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Fix Test - bmiller@ascm.org</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">
+            <i class="fas fa-key text-green-600 mr-3"></i>
+            Login Fix for bmiller@ascm.org
+        </h1>
+        
+        <!-- Problem Explanation -->
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+            <div class="flex">
+                <i class="fas fa-exclamation-circle text-red-500 mt-1 mr-3"></i>
+                <div>
+                    <h3 class="font-semibold text-red-900">The Problem</h3>
+                    <p class="text-red-800 mt-1">Your real email (bmiller@ascm.org) doesn't exist in the mock data, so login fails when API is blocked.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Solution -->
+        <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-6">
+            <div class="flex">
+                <i class="fas fa-check-circle text-green-500 mt-1 mr-3"></i>
+                <div>
+                    <h3 class="font-semibold text-green-900">The Solution</h3>
+                    <p class="text-green-800 mt-1">When API is blocked, the system now:</p>
+                    <ul class="list-disc list-inside mt-2 text-green-700">
+                        <li>Accepts ANY email address</li>
+                        <li>Accepts ANY password (or use "bypass")</li>
+                        <li>Creates your user account automatically</li>
+                        <li>Gives you admin access if your email is bmiller@ascm.org</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Quick Actions</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="enableMockMode()" class="bg-yellow-600 text-white px-4 py-3 rounded hover:bg-yellow-700">
+                    <i class="fas fa-toggle-on mr-2"></i>Enable Mock Mode
+                </button>
+                <button onclick="testLogin()" class="bg-green-600 text-white px-4 py-3 rounded hover:bg-green-700">
+                    <i class="fas fa-sign-in-alt mr-2"></i>Test Login
+                </button>
+                <button onclick="addBryanToMockData()" class="bg-blue-600 text-white px-4 py-3 rounded hover:bg-blue-700">
+                    <i class="fas fa-user-plus mr-2"></i>Add Bryan to Mock Data
+                </button>
+                <button onclick="openApp()" class="bg-purple-600 text-white px-4 py-3 rounded hover:bg-purple-700">
+                    <i class="fas fa-rocket mr-2"></i>Open App & Login
+                </button>
+            </div>
+        </div>
+        
+        <!-- Status Display -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Current Status</h2>
+            <div class="space-y-3">
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                    <span>Mock Mode</span>
+                    <span id="mock-mode" class="font-medium">Checking...</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                    <span>Bryan Miller in Mock Data</span>
+                    <span id="bryan-status" class="font-medium">Checking...</span>
+                </div>
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                    <span>Login Method</span>
+                    <span id="login-method" class="font-medium">Checking...</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Results -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Login Instructions</h2>
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 class="font-semibold text-blue-900 mb-2">How to Login Now:</h3>
+                <ol class="list-decimal list-inside space-y-2 text-blue-800">
+                    <li>Click "Enable Mock Mode" above (or API will auto-detect if blocked)</li>
+                    <li>Click "Open App & Login"</li>
+                    <li>Enter email: <code class="bg-white px-2 py-1 rounded">bmiller@ascm.org</code></li>
+                    <li>Enter ANY password (literally anything works)</li>
+                    <li>You'll be logged in with admin privileges!</li>
+                </ol>
+                
+                <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                    <i class="fas fa-lightbulb text-yellow-600 mr-2"></i>
+                    <span class="text-yellow-700">Tip: The password field still shows, but any password works when mock mode is active.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/mock-data-provider.js"></script>
+    
+    <script>
+        // Check mock mode status
+        function checkMockMode() {
+            const mockModeEl = document.getElementById('mock-mode');
+            const usingMock = localStorage.getItem('use_mock_data') === 'true';
+            
+            if (usingMock) {
+                mockModeEl.innerHTML = '<i class="fas fa-check text-green-600"></i> Enabled';
+            } else {
+                mockModeEl.innerHTML = '<i class="fas fa-times text-red-600"></i> Disabled';
+            }
+            
+            checkLoginMethod();
+        }
+        
+        // Check if Bryan is in mock data
+        function checkBryanStatus() {
+            const bryanStatusEl = document.getElementById('bryan-status');
+            const users = JSON.parse(localStorage.getItem('mock_users') || '[]');
+            const bryan = users.find(u => u.email === 'bmiller@ascm.org');
+            
+            if (bryan) {
+                bryanStatusEl.innerHTML = '<i class="fas fa-check text-green-600"></i> Yes (Admin)';
+            } else {
+                bryanStatusEl.innerHTML = '<i class="fas fa-times text-gray-400"></i> Not yet (will auto-create)';
+            }
+        }
+        
+        // Check login method
+        function checkLoginMethod() {
+            const loginMethodEl = document.getElementById('login-method');
+            const usingMock = localStorage.getItem('use_mock_data') === 'true';
+            
+            if (usingMock) {
+                loginMethodEl.innerHTML = '<i class="fas fa-unlock text-green-600"></i> Any password works';
+            } else {
+                loginMethodEl.innerHTML = '<i class="fas fa-lock text-yellow-600"></i> Real password required';
+            }
+        }
+        
+        // Enable mock mode
+        function enableMockMode() {
+            localStorage.setItem('use_mock_data', 'true');
+            
+            // Initialize mock data if needed
+            if (typeof MockDataProvider !== 'undefined') {
+                MockDataProvider.initializeMockData();
+            }
+            
+            alert('Mock mode enabled! You can now login with bmiller@ascm.org and ANY password.');
+            checkMockMode();
+            checkBryanStatus();
+        }
+        
+        // Add Bryan to mock data
+        function addBryanToMockData() {
+            const users = JSON.parse(localStorage.getItem('mock_users') || '[]');
+            
+            // Check if already exists
+            if (!users.find(u => u.email === 'bmiller@ascm.org')) {
+                users.push({
+                    id: 'bryan-miller',
+                    name: 'Bryan Miller',
+                    email: 'bmiller@ascm.org',
+                    password: 'any', // Any password works in mock mode
+                    role: 'admin',
+                    platformRole: 'admin',
+                    team: 'ASCM Leadership',
+                    status: 'active',
+                    createdAt: Date.now()
+                });
+                
+                localStorage.setItem('mock_users', JSON.stringify(users));
+                alert('Bryan Miller added to mock data with admin privileges!');
+            } else {
+                alert('Bryan Miller already exists in mock data.');
+            }
+            
+            checkBryanStatus();
+        }
+        
+        // Test login
+        async function testLogin() {
+            enableMockMode();
+            addBryanToMockData();
+            alert('Setup complete! Now open the app and login with bmiller@ascm.org and ANY password.');
+        }
+        
+        // Open app
+        function openApp() {
+            // Ensure mock mode is enabled
+            enableMockMode();
+            window.open('index.html', '_blank');
+        }
+        
+        // Initialize on load
+        window.addEventListener('load', () => {
+            checkMockMode();
+            checkBryanStatus();
+            checkLoginMethod();
+            
+            // Auto-init mock provider
+            if (typeof MockDataProvider !== 'undefined') {
+                MockDataProvider.initializeMockData();
+            }
+        });
+    </script>
+</body>
+</html>

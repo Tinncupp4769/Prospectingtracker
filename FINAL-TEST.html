@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Comprehensive Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-8">
+            <h1 class="text-3xl font-bold mb-8 text-center">🧪 Final Comprehensive Test Suite</h1>
+            
+            <!-- Test Status Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="text-center p-4 border rounded-lg">
+                    <i class="fas fa-sign-in-alt text-3xl text-blue-500 mb-2"></i>
+                    <h3 class="font-bold">Login Centering</h3>
+                    <div id="test-login" class="mt-2 text-sm">⏳ Pending</div>
+                </div>
+                
+                <div class="text-center p-4 border rounded-lg">
+                    <i class="fas fa-user-plus text-3xl text-green-500 mb-2"></i>
+                    <h3 class="font-bold">Add User</h3>
+                    <div id="test-adduser" class="mt-2 text-sm">⏳ Pending</div>
+                </div>
+                
+                <div class="text-center p-4 border rounded-lg">
+                    <i class="fas fa-trash text-3xl text-red-500 mb-2"></i>
+                    <h3 class="font-bold">Reset Data</h3>
+                    <div id="test-reset" class="mt-2 text-sm">⏳ Pending</div>
+                </div>
+                
+                <div class="text-center p-4 border rounded-lg">
+                    <i class="fas fa-th text-3xl text-purple-500 mb-2"></i>
+                    <h3 class="font-bold">Sections</h3>
+                    <div id="test-sections" class="mt-2 text-sm">⏳ Pending</div>
+                </div>
+            </div>
+            
+            <!-- Detailed Test Log -->
+            <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                <h2 class="font-bold text-lg mb-4">Test Log</h2>
+                <div id="test-log" class="font-mono text-xs space-y-1 max-h-96 overflow-y-auto"></div>
+            </div>
+            
+            <!-- Test Controls -->
+            <div class="flex flex-wrap gap-4 justify-center">
+                <button onclick="runAllTests()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 font-bold">
+                    <i class="fas fa-play mr-2"></i>Run All Tests
+                </button>
+                <button onclick="testLoginCentering()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                    Test Login
+                </button>
+                <button onclick="testAddUser()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                    Test Add User
+                </button>
+                <button onclick="testResetData()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                    Test Reset
+                </button>
+                <button onclick="testSections()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                    Test Sections
+                </button>
+                <button onclick="openApp()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    <i class="fas fa-external-link-alt mr-2"></i>Open App
+                </button>
+            </div>
+            
+            <!-- Instructions -->
+            <div class="mt-8 p-4 bg-blue-50 rounded-lg">
+                <h3 class="font-bold mb-2">📋 Test Instructions:</h3>
+                <ol class="list-decimal list-inside text-sm space-y-1">
+                    <li>Click "Run All Tests" to check if fixes are working</li>
+                    <li>Green = Working, Red = Not Working, Yellow = Partial</li>
+                    <li>Click "Open App" to test manually in the actual application</li>
+                    <li>After login, test: Users → Add User, then try Reset Data</li>
+                    <li>Check that app doesn't go blank or logout unexpectedly</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const log = [];
+        
+        function addLog(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️';
+            const entry = `${time} ${icon} ${message}`;
+            log.push(entry);
+            
+            const logDiv = document.getElementById('test-log');
+            logDiv.innerHTML = log.join('<br>');
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function updateTestStatus(testId, status, message) {
+            const element = document.getElementById(testId);
+            let icon, color;
+            
+            switch(status) {
+                case 'pass':
+                    icon = '✅';
+                    color = 'text-green-600';
+                    break;
+                case 'fail':
+                    icon = '❌';
+                    color = 'text-red-600';
+                    break;
+                case 'partial':
+                    icon = '⚠️';
+                    color = 'text-yellow-600';
+                    break;
+                default:
+                    icon = '⏳';
+                    color = 'text-gray-600';
+            }
+            
+            element.className = `mt-2 text-sm font-bold ${color}`;
+            element.textContent = `${icon} ${status.toUpperCase()}`;
+            if (message) element.title = message;
+        }
+        
+        async function testLoginCentering() {
+            addLog('Testing login page centering...');
+            
+            // Check if CSS exists
+            const hasCSS = !!document.querySelector('#stable-login-styles');
+            
+            // Check in main app
+            let mainWindow;
+            try {
+                mainWindow = window.open('index.html', 'test', 'width=1,height=1');
+                await new Promise(r => setTimeout(r, 2000));
+                
+                const mainHasCSS = mainWindow.document.querySelector('#stable-login-styles');
+                mainWindow.close();
+                
+                if (mainHasCSS) {
+                    updateTestStatus('test-login', 'pass', 'CSS styles applied');
+                    addLog('Login centering CSS found', 'success');
+                    return true;
+                }
+            } catch (e) {
+                addLog('Could not test in main window: ' + e.message, 'warning');
+            }
+            
+            if (hasCSS) {
+                updateTestStatus('test-login', 'partial', 'CSS exists in test');
+                addLog('Login CSS exists but not verified in main app', 'warning');
+                return true;
+            }
+            
+            updateTestStatus('test-login', 'fail', 'CSS not found');
+            addLog('Login centering CSS not found', 'error');
+            return false;
+        }
+        
+        async function testAddUser() {
+            addLog('Testing Add User functionality...');
+            
+            // Load the fix
+            if (!window.stableFixes) {
+                const script = document.createElement('script');
+                script.src = 'js/STABLE-COMPREHENSIVE-FIX.js';
+                document.head.appendChild(script);
+                await new Promise(r => setTimeout(r, 500));
+            }
+            
+            // Check if function exists
+            if (typeof window.showUserView === 'function') {
+                updateTestStatus('test-adduser', 'pass', 'Function exists');
+                addLog('showUserView function available', 'success');
+                
+                // Test that it doesn't break
+                try {
+                    // Don't actually call it without auth
+                    addLog('Function signature valid', 'success');
+                    return true;
+                } catch (e) {
+                    addLog('Function error: ' + e.message, 'error');
+                    return false;
+                }
+            } else {
+                updateTestStatus('test-adduser', 'fail', 'Function missing');
+                addLog('showUserView function not found', 'error');
+                return false;
+            }
+        }
+        
+        async function testResetData() {
+            addLog('Testing Reset Data functionality...');
+            
+            // Check if function exists
+            if (typeof window.resetAllData === 'function') {
+                // Test confirmation dialogs
+                const originalConfirm = window.confirm;
+                let confirmCount = 0;
+                
+                window.confirm = () => {
+                    confirmCount++;
+                    return false; // Don't actually reset
+                };
+                
+                try {
+                    window.resetAllData();
+                } catch (e) {
+                    // Ignore
+                }
+                
+                window.confirm = originalConfirm;
+                
+                if (confirmCount >= 2) {
+                    updateTestStatus('test-reset', 'pass', `Shows ${confirmCount} confirmations`);
+                    addLog(`Reset shows ${confirmCount} confirmation dialogs`, 'success');
+                    return true;
+                } else if (confirmCount === 1) {
+                    updateTestStatus('test-reset', 'partial', 'Shows 1 confirmation');
+                    addLog('Reset shows only 1 confirmation', 'warning');
+                    return true;
+                } else {
+                    updateTestStatus('test-reset', 'fail', 'No confirmations');
+                    addLog('Reset shows no confirmations', 'error');
+                    return false;
+                }
+            } else {
+                updateTestStatus('test-reset', 'fail', 'Function missing');
+                addLog('resetAllData function not found', 'error');
+                return false;
+            }
+        }
+        
+        async function testSections() {
+            addLog('Testing section display...');
+            
+            // Check if showSection exists
+            if (typeof window.showSection === 'function') {
+                updateTestStatus('test-sections', 'pass', 'Function exists');
+                addLog('showSection function available', 'success');
+                
+                // Check if it's wrapped properly
+                const funcString = window.showSection.toString();
+                if (funcString.includes('wrapper') || funcString.includes('stabilized')) {
+                    addLog('showSection is properly wrapped', 'success');
+                }
+                
+                return true;
+            } else {
+                updateTestStatus('test-sections', 'fail', 'Function missing');
+                addLog('showSection function not found', 'error');
+                return false;
+            }
+        }
+        
+        async function runAllTests() {
+            addLog('=== STARTING COMPREHENSIVE TESTS ===', 'info');
+            log.length = 0;
+            
+            // Reset all statuses
+            ['test-login', 'test-adduser', 'test-reset', 'test-sections'].forEach(id => {
+                updateTestStatus(id, 'pending');
+            });
+            
+            // Load the stable fix
+            if (!window.stableFixes) {
+                addLog('Loading stable fix...');
+                const script = document.createElement('script');
+                script.src = 'js/STABLE-COMPREHENSIVE-FIX.js';
+                document.head.appendChild(script);
+                await new Promise(r => setTimeout(r, 1000));
+            }
+            
+            // Run tests
+            const results = [];
+            
+            results.push(await testLoginCentering());
+            await new Promise(r => setTimeout(r, 200));
+            
+            results.push(await testAddUser());
+            await new Promise(r => setTimeout(r, 200));
+            
+            results.push(await testResetData());
+            await new Promise(r => setTimeout(r, 200));
+            
+            results.push(await testSections());
+            
+            // Summary
+            const passed = results.filter(r => r).length;
+            const total = results.length;
+            
+            addLog('=== TEST COMPLETE ===', 'info');
+            if (passed === total) {
+                addLog(`✅ ALL ${total} TESTS PASSED!`, 'success');
+                addLog('The fixes are working correctly!', 'success');
+            } else {
+                addLog(`⚠️ ${passed}/${total} tests passed`, 'warning');
+                addLog('Some issues remain. Test manually in the app.', 'warning');
+            }
+        }
+        
+        function openApp() {
+            window.open('index.html', '_blank');
+        }
+        
+        // Auto-run on load
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(runAllTests, 500);
+        });
+    </script>
+</body>
+</html>

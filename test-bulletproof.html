@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulletproof Solution Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8 text-center">Bulletproof Solution Test Suite</h1>
+        
+        <!-- Test Results -->
+        <div id="test-results" class="space-y-4 mb-8"></div>
+        
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <button onclick="testAPI()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                <i class="fas fa-database mr-2"></i>Test API
+            </button>
+            <button onclick="testAuth()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                <i class="fas fa-lock mr-2"></i>Test Auth
+            </button>
+            <button onclick="testUsers()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                <i class="fas fa-users mr-2"></i>Test Users
+            </button>
+            <button onclick="testActivities()" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                <i class="fas fa-chart-line mr-2"></i>Test Activities
+            </button>
+            <button onclick="testGoals()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                <i class="fas fa-bullseye mr-2"></i>Test Goals
+            </button>
+            <button onclick="testBryanMiller()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                <i class="fas fa-user-shield mr-2"></i>Test Bryan
+            </button>
+            <button onclick="clearAllData()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                <i class="fas fa-trash mr-2"></i>Clear All
+            </button>
+            <button onclick="runAllTests()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                <i class="fas fa-play mr-2"></i>Run All Tests
+            </button>
+        </div>
+        
+        <!-- Data Display -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-bold text-lg mb-4">Users</h3>
+                <div id="users-display" class="text-sm space-y-2"></div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-bold text-lg mb-4">Activities</h3>
+                <div id="activities-display" class="text-sm space-y-2"></div>
+            </div>
+            <div class="bg-white rounded-lg shadow p-6">
+                <h3 class="font-bold text-lg mb-4">Goals</h3>
+                <div id="goals-display" class="text-sm space-y-2"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load Bulletproof API -->
+    <script src="js/bulletproof-local-api.js"></script>
+    <script src="js/bulletproof-auth.js"></script>
+    
+    <script>
+        // Test results tracking
+        let testResults = [];
+        
+        function addResult(test, success, message) {
+            testResults.push({ test, success, message, time: new Date().toLocaleTimeString() });
+            displayResults();
+        }
+        
+        function displayResults() {
+            const container = document.getElementById('test-results');
+            container.innerHTML = testResults.map(r => `
+                <div class="flex items-center p-3 rounded ${r.success ? 'bg-green-100' : 'bg-red-100'}">
+                    <i class="fas ${r.success ? 'fa-check-circle text-green-600' : 'fa-times-circle text-red-600'} mr-3"></i>
+                    <div class="flex-1">
+                        <strong>${r.test}:</strong> ${r.message}
+                    </div>
+                    <span class="text-xs text-gray-500">${r.time}</span>
+                </div>
+            `).join('');
+        }
+        
+        // Test API availability
+        async function testAPI() {
+            try {
+                if (!window.API) {
+                    addResult('API Module', false, 'API not found');
+                    return;
+                }
+                
+                // Test initialization
+                if (typeof API.init === 'function') {
+                    API.init();
+                    addResult('API Module', true, 'API initialized successfully');
+                } else {
+                    addResult('API Module', false, 'API.init not found');
+                }
+                
+                // Display current data
+                await displayAllData();
+            } catch (error) {
+                addResult('API Module', false, error.message);
+            }
+        }
+        
+        // Test Authentication
+        async function testAuth() {
+            try {
+                if (!window.Auth) {
+                    addResult('Auth Module', false, 'Auth not found');
+                    return;
+                }
+                
+                // Test auth methods
+                const isAuth = Auth.isAuthenticated();
+                const session = Auth.getSession();
+                
+                addResult('Auth Module', true, `Authenticated: ${isAuth}, Session: ${session ? 'Yes' : 'No'}`);
+            } catch (error) {
+                addResult('Auth Module', false, error.message);
+            }
+        }
+        
+        // Test Users
+        async function testUsers() {
+            try {
+                const result = await API.getUsers();
+                
+                if (result.data && result.data.length > 0) {
+                    addResult('Users Test', true, `Found ${result.data.length} users`);
+                    
+                    // Display users
+                    const usersDiv = document.getElementById('users-display');
+                    usersDiv.innerHTML = result.data.map(u => `
+                        <div class="p-2 bg-gray-50 rounded">
+                            <div class="font-medium">${u.name}</div>
+                            <div class="text-xs text-gray-600">${u.email} • ${u.role.toUpperCase()}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    addResult('Users Test', false, 'No users found');
+                }
+            } catch (error) {
+                addResult('Users Test', false, error.message);
+            }
+        }
+        
+        // Test Activities
+        async function testActivities() {
+            try {
+                const result = await API.getActivities();
+                
+                if (result.data) {
+                    addResult('Activities Test', true, `Found ${result.data.length} activities`);
+                    
+                    // Display summary
+                    const activitiesDiv = document.getElementById('activities-display');
+                    const summary = {};
+                    result.data.forEach(a => {
+                        if (!summary[a.userName]) {
+                            summary[a.userName] = { calls: 0, emails: 0, meetings: 0 };
+                        }
+                        summary[a.userName].calls += a.calls_made || 0;
+                        summary[a.userName].emails += a.emails_sent || 0;
+                        summary[a.userName].meetings += a.meetings_booked || 0;
+                    });
+                    
+                    activitiesDiv.innerHTML = Object.entries(summary).map(([name, stats]) => `
+                        <div class="p-2 bg-gray-50 rounded">
+                            <div class="font-medium">${name}</div>
+                            <div class="text-xs text-gray-600">
+                                📞 ${stats.calls} • ✉️ ${stats.emails} • 📅 ${stats.meetings}
+                            </div>
+                        </div>
+                    `).join('') || '<div class="text-gray-500">No activities</div>';
+                } else {
+                    addResult('Activities Test', false, 'Failed to load activities');
+                }
+            } catch (error) {
+                addResult('Activities Test', false, error.message);
+            }
+        }
+        
+        // Test Goals
+        async function testGoals() {
+            try {
+                const result = await API.getGoals();
+                
+                if (result.data && result.data.length > 0) {
+                    addResult('Goals Test', true, `Found ${result.data.length} goals`);
+                    
+                    // Display goals
+                    const goalsDiv = document.getElementById('goals-display');
+                    goalsDiv.innerHTML = result.data.map(g => `
+                        <div class="p-2 bg-gray-50 rounded">
+                            <div class="font-medium">${g.name || `${g.role?.toUpperCase()} ${g.metric}`}</div>
+                            <div class="text-xs text-gray-600">Target: ${g.target} ${g.period}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    addResult('Goals Test', false, 'No goals found');
+                }
+            } catch (error) {
+                addResult('Goals Test', false, error.message);
+            }
+        }
+        
+        // Test Bryan Miller exists
+        async function testBryanMiller() {
+            try {
+                const result = await API.getUsers();
+                const bryan = result.data?.find(u => u.email === 'bmiller@ascm.org');
+                
+                if (bryan) {
+                    addResult('Bryan Miller Test', true, `Found: ${bryan.name} (${bryan.role})`);
+                } else {
+                    addResult('Bryan Miller Test', false, 'Bryan Miller not found - restoring...');
+                    
+                    // Try to restore
+                    if (API.restoreBryanMiller) {
+                        API.restoreBryanMiller();
+                        addResult('Bryan Miller Restore', true, 'Bryan Miller restored');
+                        await testUsers(); // Refresh users display
+                    }
+                }
+            } catch (error) {
+                addResult('Bryan Miller Test', false, error.message);
+            }
+        }
+        
+        // Clear all data
+        async function clearAllData() {
+            if (confirm('Clear all data and restore defaults?')) {
+                if (API.resetAllData) {
+                    await API.resetAllData();
+                    addResult('Clear Data', true, 'All data cleared and defaults restored');
+                    testResults = [];
+                    await runAllTests();
+                } else {
+                    addResult('Clear Data', false, 'Reset function not available');
+                }
+            }
+        }
+        
+        // Display all current data
+        async function displayAllData() {
+            await testUsers();
+            await testActivities();
+            await testGoals();
+        }
+        
+        // Run all tests
+        async function runAllTests() {
+            testResults = [];
+            await testAPI();
+            await testAuth();
+            await testUsers();
+            await testActivities();
+            await testGoals();
+            await testBryanMiller();
+        }
+        
+        // Auto-run tests on load
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(runAllTests, 500);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance and Access Fixes Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">
+            <i class="fas fa-tools text-indigo-600 mr-3"></i>
+            Performance and Access Fixes Test Suite
+        </h1>
+        
+        <!-- Test Status Dashboard -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Test Results</h2>
+            <div id="test-results" class="space-y-3">
+                <!-- Results will be populated here -->
+            </div>
+        </div>
+        
+        <!-- Configuration Info -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Current Configuration</h2>
+            <div id="config-info" class="space-y-2 text-sm">
+                <!-- Config will be displayed here -->
+            </div>
+        </div>
+        
+        <!-- Performance Metrics -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Performance Metrics</h2>
+            <div id="performance-metrics" class="grid grid-cols-2 gap-4">
+                <!-- Metrics will be displayed here -->
+            </div>
+        </div>
+        
+        <!-- Test Controls -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Test Controls</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="testAPIConnectivity()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    <i class="fas fa-network-wired mr-2"></i>Test API Connectivity
+                </button>
+                <button onclick="testErrorRecovery()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                    <i class="fas fa-shield-alt mr-2"></i>Test Error Recovery
+                </button>
+                <button onclick="testPublicAccess()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    <i class="fas fa-globe mr-2"></i>Test Public Access
+                </button>
+                <button onclick="testInviteOnlyAccess()" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                    <i class="fas fa-lock mr-2"></i>Test Invite-Only Access
+                </button>
+                <button onclick="testPerformance()" class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">
+                    <i class="fas fa-tachometer-alt mr-2"></i>Test Performance
+                </button>
+                <button onclick="testOfflineMode()" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                    <i class="fas fa-wifi-slash mr-2"></i>Test Offline Mode
+                </button>
+                <button onclick="clearAllData()" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                    <i class="fas fa-trash mr-2"></i>Clear All Data
+                </button>
+                <button onclick="runAllTests()" class="bg-teal-600 text-white px-4 py-2 rounded hover:bg-teal-700">
+                    <i class="fas fa-play-circle mr-2"></i>Run All Tests
+                </button>
+            </div>
+        </div>
+        
+        <!-- Console Output -->
+        <div class="bg-gray-900 text-green-400 rounded-lg p-4 mt-6 font-mono text-sm">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-white">Console Output</span>
+                <button onclick="clearConsole()" class="text-gray-400 hover:text-white">
+                    <i class="fas fa-eraser"></i> Clear
+                </button>
+            </div>
+            <div id="console-output" class="h-64 overflow-y-auto">
+                <!-- Console messages will appear here -->
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/app-config.js"></script>
+    <script src="js/error-recovery.js"></script>
+    <script src="js/performance-optimizer.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <script>
+        // Console output capture
+        const consoleOutput = document.getElementById('console-output');
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+            addToConsole('log', args);
+        };
+        
+        console.error = function(...args) {
+            originalError.apply(console, args);
+            addToConsole('error', args);
+        };
+        
+        console.warn = function(...args) {
+            originalWarn.apply(console, args);
+            addToConsole('warn', args);
+        };
+        
+        function addToConsole(type, args) {
+            const message = args.map(arg => 
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+            
+            const line = document.createElement('div');
+            line.className = type === 'error' ? 'text-red-400' : 
+                           type === 'warn' ? 'text-yellow-400' : 'text-green-400';
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            consoleOutput.appendChild(line);
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        function clearConsole() {
+            consoleOutput.innerHTML = '';
+        }
+        
+        // Display configuration
+        function displayConfig() {
+            const configInfo = document.getElementById('config-info');
+            if (typeof APP_CONFIG !== 'undefined') {
+                configInfo.innerHTML = `
+                    <div class="grid grid-cols-2 gap-2">
+                        <span class="font-semibold">Environment:</span>
+                        <span>${APP_CONFIG.environment}</span>
+                        <span class="font-semibold">Access Mode:</span>
+                        <span>${APP_CONFIG.accessMode}</span>
+                        <span class="font-semibold">Public Access:</span>
+                        <span>${APP_CONFIG.publicAccess ? 'Enabled' : 'Disabled'}</span>
+                        <span class="font-semibold">Auth Required:</span>
+                        <span>${APP_CONFIG.requireAuth ? 'Yes' : 'No'}</span>
+                        <span class="font-semibold">Caching:</span>
+                        <span>${APP_CONFIG.enableCaching ? 'Enabled' : 'Disabled'}</span>
+                        <span class="font-semibold">Offline Mode:</span>
+                        <span>${APP_CONFIG.enableOfflineMode ? 'Enabled' : 'Disabled'}</span>
+                    </div>
+                `;
+            } else {
+                configInfo.innerHTML = '<p class="text-red-600">Configuration not loaded!</p>';
+            }
+        }
+        
+        // Test functions
+        async function testAPIConnectivity() {
+            console.log('Testing API connectivity...');
+            const resultDiv = addTestResult('API Connectivity', 'running');
+            
+            try {
+                const response = await fetch('tables/users?limit=1');
+                if (response.ok) {
+                    updateTestResult(resultDiv, 'passed', 'API is accessible');
+                    console.log('✅ API connectivity test passed');
+                } else {
+                    updateTestResult(resultDiv, 'failed', `API returned status ${response.status}`);
+                    console.error('❌ API connectivity test failed:', response.status);
+                }
+            } catch (error) {
+                updateTestResult(resultDiv, 'failed', error.message);
+                console.error('❌ API connectivity test failed:', error);
+            }
+        }
+        
+        async function testErrorRecovery() {
+            console.log('Testing error recovery...');
+            const resultDiv = addTestResult('Error Recovery', 'running');
+            
+            if (typeof ErrorRecovery !== 'undefined') {
+                // Simulate an error
+                try {
+                    await ErrorRecovery.apiCallWithRetry(async () => {
+                        throw new Error('Test error');
+                    });
+                    updateTestResult(resultDiv, 'failed', 'Should have caught error');
+                } catch (error) {
+                    updateTestResult(resultDiv, 'passed', 'Error recovery working');
+                    console.log('✅ Error recovery test passed');
+                }
+            } else {
+                updateTestResult(resultDiv, 'failed', 'ErrorRecovery module not loaded');
+            }
+        }
+        
+        async function testPublicAccess() {
+            console.log('Testing public access mode...');
+            const resultDiv = addTestResult('Public Access', 'running');
+            
+            // Set public access mode
+            localStorage.setItem('public_access', 'true');
+            
+            if (typeof Auth !== 'undefined') {
+                if (Auth.isPublicAccessMode()) {
+                    updateTestResult(resultDiv, 'passed', 'Public access mode detected');
+                    console.log('✅ Public access test passed');
+                } else {
+                    updateTestResult(resultDiv, 'failed', 'Public access not working');
+                }
+            } else {
+                updateTestResult(resultDiv, 'failed', 'Auth module not loaded');
+            }
+            
+            localStorage.removeItem('public_access');
+        }
+        
+        async function testInviteOnlyAccess() {
+            console.log('Testing invite-only access...');
+            const resultDiv = addTestResult('Invite-Only Access', 'running');
+            
+            if (typeof Auth !== 'undefined') {
+                // Clear any existing session
+                Auth.clearSession();
+                
+                if (!Auth.isAuthenticated() && !Auth.isDevelopmentMode()) {
+                    updateTestResult(resultDiv, 'passed', 'Auth required as expected');
+                    console.log('✅ Invite-only access test passed');
+                } else {
+                    updateTestResult(resultDiv, 'warning', 'Running in dev/demo mode');
+                }
+            } else {
+                updateTestResult(resultDiv, 'failed', 'Auth module not loaded');
+            }
+        }
+        
+        async function testPerformance() {
+            console.log('Testing performance optimizations...');
+            const resultDiv = addTestResult('Performance', 'running');
+            
+            const startTime = performance.now();
+            
+            // Test cache
+            if (typeof PerformanceOptimizer !== 'undefined') {
+                // Add test data to cache
+                PerformanceOptimizer.setCache('test', { data: 'test' });
+                const cached = PerformanceOptimizer.getFromCache('test');
+                
+                if (cached && cached.data === 'test') {
+                    const endTime = performance.now();
+                    const loadTime = endTime - startTime;
+                    updateTestResult(resultDiv, 'passed', `Load time: ${loadTime.toFixed(2)}ms`);
+                    console.log(`✅ Performance test passed (${loadTime.toFixed(2)}ms)`);
+                    
+                    // Display performance metrics
+                    displayPerformanceMetrics();
+                } else {
+                    updateTestResult(resultDiv, 'failed', 'Cache not working');
+                }
+            } else {
+                updateTestResult(resultDiv, 'failed', 'PerformanceOptimizer not loaded');
+            }
+        }
+        
+        async function testOfflineMode() {
+            console.log('Testing offline mode...');
+            const resultDiv = addTestResult('Offline Mode', 'running');
+            
+            if (typeof ErrorRecovery !== 'undefined') {
+                // Simulate offline
+                ErrorRecovery.OFFLINE_MODE = true;
+                
+                const result = await ErrorRecovery.handleOfflineApiCall('getUsers', []);
+                if (result) {
+                    updateTestResult(resultDiv, 'passed', 'Offline mode working');
+                    console.log('✅ Offline mode test passed');
+                } else {
+                    updateTestResult(resultDiv, 'failed', 'Offline mode not working');
+                }
+                
+                ErrorRecovery.OFFLINE_MODE = false;
+            } else {
+                updateTestResult(resultDiv, 'failed', 'ErrorRecovery module not loaded');
+            }
+        }
+        
+        function clearAllData() {
+            console.log('Clearing all data...');
+            localStorage.clear();
+            sessionStorage.clear();
+            if (typeof PerformanceOptimizer !== 'undefined') {
+                PerformanceOptimizer.cleanup();
+            }
+            console.log('✅ All data cleared');
+            location.reload();
+        }
+        
+        async function runAllTests() {
+            console.log('Running all tests...');
+            document.getElementById('test-results').innerHTML = '';
+            
+            await testAPIConnectivity();
+            await new Promise(r => setTimeout(r, 500));
+            
+            await testErrorRecovery();
+            await new Promise(r => setTimeout(r, 500));
+            
+            await testPublicAccess();
+            await new Promise(r => setTimeout(r, 500));
+            
+            await testInviteOnlyAccess();
+            await new Promise(r => setTimeout(r, 500));
+            
+            await testPerformance();
+            await new Promise(r => setTimeout(r, 500));
+            
+            await testOfflineMode();
+            
+            console.log('✅ All tests completed');
+        }
+        
+        // Helper functions
+        function addTestResult(name, status) {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'flex items-center justify-between p-3 bg-gray-50 rounded';
+            resultDiv.innerHTML = `
+                <span class="font-medium">${name}</span>
+                <span class="test-status ${getStatusClass(status)}">${getStatusIcon(status)} ${status}</span>
+            `;
+            resultsDiv.appendChild(resultDiv);
+            return resultDiv;
+        }
+        
+        function updateTestResult(div, status, message) {
+            const statusSpan = div.querySelector('.test-status');
+            statusSpan.className = `test-status ${getStatusClass(status)}`;
+            statusSpan.innerHTML = `${getStatusIcon(status)} ${status}${message ? ': ' + message : ''}`;
+        }
+        
+        function getStatusClass(status) {
+            switch(status) {
+                case 'passed': return 'text-green-600';
+                case 'failed': return 'text-red-600';
+                case 'warning': return 'text-yellow-600';
+                case 'running': return 'text-blue-600';
+                default: return 'text-gray-600';
+            }
+        }
+        
+        function getStatusIcon(status) {
+            switch(status) {
+                case 'passed': return '<i class="fas fa-check-circle"></i>';
+                case 'failed': return '<i class="fas fa-times-circle"></i>';
+                case 'warning': return '<i class="fas fa-exclamation-triangle"></i>';
+                case 'running': return '<i class="fas fa-spinner fa-spin"></i>';
+                default: return '<i class="fas fa-circle"></i>';
+            }
+        }
+        
+        function displayPerformanceMetrics() {
+            const metricsDiv = document.getElementById('performance-metrics');
+            
+            if (typeof PerformanceOptimizer !== 'undefined') {
+                const metrics = PerformanceOptimizer.getMetrics();
+                metricsDiv.innerHTML = `
+                    <div class="p-3 bg-gray-50 rounded">
+                        <span class="text-sm text-gray-600">Cache Size</span>
+                        <p class="font-semibold">${metrics.cacheSize} items</p>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded">
+                        <span class="text-sm text-gray-600">Pending Requests</span>
+                        <p class="font-semibold">${metrics.pendingRequests}</p>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded">
+                        <span class="text-sm text-gray-600">Memory Usage</span>
+                        <p class="font-semibold">${typeof metrics.memoryUsage === 'number' ? 
+                            (metrics.memoryUsage / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}</p>
+                    </div>
+                    <div class="p-3 bg-gray-50 rounded">
+                        <span class="text-sm text-gray-600">Page Load Time</span>
+                        <p class="font-semibold">${performance.now().toFixed(0)} ms</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Initialize on load
+        window.addEventListener('load', () => {
+            displayConfig();
+            console.log('Test suite loaded and ready');
+            console.log('Click any test button to begin');
+        });
+    </script>
+</body>
+</html>

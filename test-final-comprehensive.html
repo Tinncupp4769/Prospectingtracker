@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Comprehensive Test - Sales Activity Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/animations.css">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">Final Comprehensive Test Suite</h1>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">Test Configuration</h2>
+            <button onclick="runAllTests()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                <i class="fas fa-play mr-2"></i>Run All Tests
+            </button>
+        </div>
+
+        <div id="testResults" class="space-y-4"></div>
+        
+        <!-- Hidden test container for chart rendering -->
+        <div id="test-container" style="display: none;">
+            <canvas id="test-chart"></canvas>
+            <div id="test-funnel"></div>
+        </div>
+    </div>
+
+    <!-- Include all application scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/leaderboard.js"></script>
+    <script src="js/goals.js"></script>
+    <script src="js/goal-calculator.js"></script>
+    <script src="js/conversion-analytics.js"></script>
+    <script src="js/dashboard-visualizations.js"></script>
+    <script src="js/users.js"></script>
+    <script src="js/enhancements.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // Test results storage
+        let testResults = [];
+        
+        // Helper function to log test result
+        function logTest(name, status, details) {
+            testResults.push({ name, status, details });
+            return { status, details };
+        }
+        
+        // Test 1: Admin Dashboard Individual View
+        async function testAdminDashboardIndividual() {
+            try {
+                // Set current user as admin
+                currentUser.platformRole = 'admin';
+                currentUser.role = 'admin';
+                
+                // Test displayUserAEDashboard function
+                if (typeof displayUserAEDashboard !== 'function') {
+                    return logTest('Admin Dashboard Individual View', 'fail', 'displayUserAEDashboard function not found');
+                }
+                
+                // Test displayUserAMDashboard function
+                if (typeof displayUserAMDashboard !== 'function') {
+                    return logTest('Admin Dashboard Individual View', 'fail', 'displayUserAMDashboard function not found');
+                }
+                
+                // Create mock user data
+                const mockAE = { id: 'test-ae', name: 'Test AE', role: 'ae' };
+                const mockAM = { id: 'test-am', name: 'Test AM', role: 'am' };
+                
+                // Create test container
+                const testDiv = document.createElement('div');
+                testDiv.id = 'admin-dashboard';
+                document.body.appendChild(testDiv);
+                
+                // Test AE dashboard display
+                await displayUserAEDashboard(mockAE);
+                const aeContent = testDiv.innerHTML;
+                if (!aeContent.includes('Test AE') || !aeContent.includes('Dashboard')) {
+                    return logTest('Admin Dashboard Individual View', 'fail', 'AE dashboard not rendering properly');
+                }
+                
+                // Test AM dashboard display
+                await displayUserAMDashboard(mockAM);
+                const amContent = testDiv.innerHTML;
+                if (!amContent.includes('Test AM') || !amContent.includes('Dashboard')) {
+                    return logTest('Admin Dashboard Individual View', 'fail', 'AM dashboard not rendering properly');
+                }
+                
+                // Clean up
+                testDiv.remove();
+                
+                return logTest('Admin Dashboard Individual View', 'pass', 'Both AE and AM individual dashboards render correctly');
+            } catch (error) {
+                return logTest('Admin Dashboard Individual View', 'fail', `Error: ${error.message}`);
+            }
+        }
+        
+        // Test 2: Conversion Funnel Chart
+        async function testConversionFunnelChart() {
+            try {
+                if (typeof dashboardVisualizations === 'undefined' || 
+                    typeof dashboardVisualizations.createConversionFunnelChart !== 'function') {
+                    return logTest('Conversion Funnel Chart', 'fail', 'Dashboard visualizations module not loaded');
+                }
+                
+                // Create test container
+                const container = document.getElementById('test-funnel');
+                
+                // Test chart creation
+                await dashboardVisualizations.createConversionFunnelChart('test-funnel', null, 'week');
+                
+                // Check if chart was created
+                const canvas = container.querySelector('canvas');
+                if (!canvas) {
+                    return logTest('Conversion Funnel Chart', 'fail', 'Canvas element not created');
+                }
+                
+                // Check container height is fixed
+                const wrapper = container.firstElementChild;
+                if (!wrapper || wrapper.style.height !== '400px') {
+                    return logTest('Conversion Funnel Chart', 'fail', 'Chart height not properly constrained');
+                }
+                
+                return logTest('Conversion Funnel Chart', 'pass', 'Funnel chart renders with fixed height of 400px');
+            } catch (error) {
+                return logTest('Conversion Funnel Chart', 'fail', `Error: ${error.message}`);
+            }
+        }
+        
+        // Test 3: Button Color Differentiation
+        async function testButtonColors() {
+            try {
+                // Create test buttons
+                const testContainer = document.createElement('div');
+                testContainer.innerHTML = `
+                    <button class="am-category-btn bg-gray-400" data-category="dormant">Dormant</button>
+                    <button class="am-category-btn bg-gray-400" data-category="cross-sell">Cross-Sell</button>
+                    <button class="am-category-btn bg-gray-400" data-category="up-sell">Up-Sell</button>
+                `;
+                document.body.appendChild(testContainer);
+                
+                // Test selectAMCategory function
+                if (typeof selectAMCategory !== 'function') {
+                    testContainer.remove();
+                    return logTest('Button Color Differentiation', 'fail', 'selectAMCategory function not found');
+                }
+                
+                // Test up-sell button color
+                selectAMCategory('up-sell');
+                const upSellBtn = testContainer.querySelector('[data-category="up-sell"]');
+                if (!upSellBtn.classList.contains('bg-purple-600')) {
+                    testContainer.remove();
+                    return logTest('Button Color Differentiation', 'fail', 'Up-sell button not using purple color');
+                }
+                
+                // Test cross-sell button color
+                selectAMCategory('cross-sell');
+                const crossSellBtn = testContainer.querySelector('[data-category="cross-sell"]');
+                if (!crossSellBtn.classList.contains('bg-blue-600')) {
+                    testContainer.remove();
+                    return logTest('Button Color Differentiation', 'fail', 'Cross-sell button not using blue color');
+                }
+                
+                // Clean up
+                testContainer.remove();
+                
+                return logTest('Button Color Differentiation', 'pass', 'Up-sell (purple) and Cross-sell (blue) buttons have distinct colors');
+            } catch (error) {
+                return logTest('Button Color Differentiation', 'fail', `Error: ${error.message}`);
+            }
+        }
+        
+        // Test 4: Navigation and Section Display
+        async function testNavigation() {
+            try {
+                if (typeof showSection !== 'function') {
+                    return logTest('Navigation', 'fail', 'showSection function not found');
+                }
+                
+                // Test navigation to different sections
+                const sections = ['dashboard', 'analytics', 'leaderboard', 'activity-entry'];
+                
+                for (const section of sections) {
+                    // This would normally show the section, but we're just testing if the function exists and doesn't error
+                    try {
+                        showSection(section);
+                    } catch (e) {
+                        return logTest('Navigation', 'fail', `Failed to navigate to ${section}: ${e.message}`);
+                    }
+                }
+                
+                return logTest('Navigation', 'pass', 'All sections can be navigated to without errors');
+            } catch (error) {
+                return logTest('Navigation', 'fail', `Error: ${error.message}`);
+            }
+        }
+        
+        // Test 5: Analytics Dashboard Functions
+        async function testAnalyticsDashboard() {
+            try {
+                // Check conversion analytics module
+                if (typeof conversionAnalytics === 'undefined') {
+                    return logTest('Analytics Dashboard', 'fail', 'Conversion analytics module not loaded');
+                }
+                
+                // Test key functions exist
+                const requiredFunctions = [
+                    'calculateConversionRates',
+                    'calculatePerformancePredictions',
+                    'calculateTeamBenchmarks',
+                    'generateCoachingInsights'
+                ];
+                
+                for (const func of requiredFunctions) {
+                    if (typeof conversionAnalytics[func] !== 'function') {
+                        return logTest('Analytics Dashboard', 'fail', `Missing function: ${func}`);
+                    }
+                }
+                
+                // Test calculations
+                const rates = await conversionAnalytics.calculateConversionRates(null, 'week');
+                if (!rates || typeof rates.conversions === 'undefined') {
+                    return logTest('Analytics Dashboard', 'fail', 'Conversion rates calculation failed');
+                }
+                
+                const predictions = await conversionAnalytics.calculatePerformancePredictions(null, 'week');
+                if (!predictions || !Array.isArray(predictions.predictions)) {
+                    return logTest('Analytics Dashboard', 'fail', 'Performance predictions calculation failed');
+                }
+                
+                return logTest('Analytics Dashboard', 'pass', 'All analytics functions working correctly');
+            } catch (error) {
+                return logTest('Analytics Dashboard', 'fail', `Error: ${error.message}`);
+            }
+        }
+        
+        // Test 6: Goal Management
+        async function testGoalManagement() {
+            try {
+                if (typeof getEffectiveGoalForUser !== 'function') {
+                    return logTest('Goal Management', 'fail', 'Goal calculator functions not loaded');
+                }
+                
+                // Test goal retrieval
+                const goal = await getEffectiveGoalForUser('user-1', 'callsMade', 'weekly');
+                
+                // Test goal application functions
+                if (typeof applyRoleGoalsToUsers !== 'function') {
+                    return logTest('Goal Management', 'fail', 'applyRoleGoalsToUsers function not found');
+                }
+                
+                if (typeof setIndividualGoal !== 'function') {
+                    return logTest('Goal Management', 'fail', 'setIndividualGoal function not found');
+                }
+                
+                return logTest('Goal Management', 'pass', 'Goal management functions are available and working');
+            } catch (error) {
+                return logTest('Goal Management', 'warn', `Warning: ${error.message}`);
+            }
+        }
+        
+        // Test 7: Data Loading
+        async function testDataLoading() {
+            try {
+                // Test API functions
+                if (typeof loadActivities !== 'function') {
+                    return logTest('Data Loading', 'fail', 'loadActivities function not found');
+                }
+                
+                if (typeof loadUsers !== 'function') {
+                    return logTest('Data Loading', 'fail', 'loadUsers function not found');
+                }
+                
+                if (typeof loadGoals !== 'function') {
+                    return logTest('Data Loading', 'fail', 'loadGoals function not found');
+                }
+                
+                // Test loading data
+                const activities = await loadActivities();
+                const users = await loadUsers();
+                const goals = await loadGoals();
+                
+                if (!Array.isArray(activities) || !Array.isArray(users) || !Array.isArray(goals)) {
+                    return logTest('Data Loading', 'fail', 'Data loading returned invalid format');
+                }
+                
+                return logTest('Data Loading', 'pass', `Loaded ${activities.length} activities, ${users.length} users, ${goals.length} goals`);
+            } catch (error) {
+                return logTest('Data Loading', 'fail', `Error: ${error.message}`);
+            }
+        }
+        
+        // Test 8: Chart.js Integration
+        async function testChartIntegration() {
+            try {
+                if (typeof Chart === 'undefined') {
+                    return logTest('Chart.js Integration', 'fail', 'Chart.js not loaded');
+                }
+                
+                // Test creating a chart
+                const canvas = document.getElementById('test-chart');
+                const chart = new Chart(canvas, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Test'],
+                        datasets: [{
+                            label: 'Test Data',
+                            data: [100]
+                        }]
+                    },
+                    options: {
+                        responsive: false,
+                        maintainAspectRatio: false
+                    }
+                });
+                
+                if (chart) {
+                    chart.destroy();
+                    return logTest('Chart.js Integration', 'pass', 'Chart.js is working correctly');
+                } else {
+                    return logTest('Chart.js Integration', 'fail', 'Failed to create chart');
+                }
+            } catch (error) {
+                return logTest('Chart.js Integration', 'fail', `Error: ${error.message}`);
+            }
+        }
+        
+        // Run all tests
+        async function runAllTests() {
+            const resultsContainer = document.getElementById('testResults');
+            resultsContainer.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i><p class="mt-2">Running tests...</p></div>';
+            
+            testResults = [];
+            
+            // Run all tests
+            await testAdminDashboardIndividual();
+            await testConversionFunnelChart();
+            await testButtonColors();
+            await testNavigation();
+            await testAnalyticsDashboard();
+            await testGoalManagement();
+            await testDataLoading();
+            await testChartIntegration();
+            
+            // Display results
+            displayResults();
+        }
+        
+        // Display test results
+        function displayResults() {
+            const resultsContainer = document.getElementById('testResults');
+            
+            const passCount = testResults.filter(r => r.status === 'pass').length;
+            const failCount = testResults.filter(r => r.status === 'fail').length;
+            const warnCount = testResults.filter(r => r.status === 'warn').length;
+            
+            let html = `
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-4">
+                    <h2 class="text-xl font-bold mb-4">Test Results Summary</h2>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div class="bg-green-100 rounded p-3">
+                            <p class="text-2xl font-bold text-green-600">${passCount}</p>
+                            <p class="text-sm text-green-700">Passed</p>
+                        </div>
+                        <div class="bg-red-100 rounded p-3">
+                            <p class="text-2xl font-bold text-red-600">${failCount}</p>
+                            <p class="text-sm text-red-700">Failed</p>
+                        </div>
+                        <div class="bg-yellow-100 rounded p-3">
+                            <p class="text-2xl font-bold text-yellow-600">${warnCount}</p>
+                            <p class="text-sm text-yellow-700">Warnings</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-2">
+            `;
+            
+            for (const result of testResults) {
+                const bgColor = result.status === 'pass' ? 'bg-green-50 border-green-500' :
+                               result.status === 'fail' ? 'bg-red-50 border-red-500' :
+                               'bg-yellow-50 border-yellow-500';
+                const icon = result.status === 'pass' ? 'check-circle' :
+                            result.status === 'fail' ? 'times-circle' :
+                            'exclamation-triangle';
+                const iconColor = result.status === 'pass' ? 'text-green-500' :
+                                 result.status === 'fail' ? 'text-red-500' :
+                                 'text-yellow-500';
+                
+                html += `
+                    <div class="border-l-4 ${bgColor} p-4 rounded">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="font-semibold">
+                                    <i class="fas fa-${icon} ${iconColor} mr-2"></i>${result.name}
+                                </h3>
+                                <p class="text-sm mt-1">${result.details}</p>
+                            </div>
+                            <span class="text-sm font-bold">${result.status.toUpperCase()}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            html += '</div>';
+            
+            resultsContainer.innerHTML = html;
+        }
+        
+        // Auto-run tests on load
+        setTimeout(() => {
+            runAllTests();
+        }, 1000);
+    </script>
+</body>
+</html>

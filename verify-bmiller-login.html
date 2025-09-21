@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Bryan Miller Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-2xl mx-auto">
+        <h1 class="text-2xl font-bold mb-6">Bryan Miller Login Verification</h1>
+        
+        <!-- Auto Test Status -->
+        <div class="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 class="text-lg font-semibold mb-4">Automatic Test Results</h2>
+            <div id="test-results" class="space-y-3"></div>
+        </div>
+        
+        <!-- Manual Login Form -->
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold mb-4">Manual Login Test</h2>
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Email</label>
+                    <input type="email" id="email" value="bmiller@ascm.org" class="w-full p-2 border rounded" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Password</label>
+                    <input type="password" id="password" placeholder="Enter ANY password" class="w-full p-2 border rounded" />
+                </div>
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                    Test Login
+                </button>
+            </form>
+            <div id="login-result" class="mt-4"></div>
+        </div>
+    </div>
+    
+    <!-- Load dependencies -->
+    <script src="js/config.js"></script>
+    <script src="js/mock-data-provider.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <script>
+        const results = document.getElementById('test-results');
+        
+        function addResult(test, success, message) {
+            const div = document.createElement('div');
+            div.className = `p-3 rounded flex items-center ${success ? 'bg-green-50' : 'bg-red-50'}`;
+            div.innerHTML = `
+                <i class="fas ${success ? 'fa-check text-green-600' : 'fa-times text-red-600'} mr-3"></i>
+                <div>
+                    <div class="font-medium">${test}</div>
+                    <div class="text-sm text-gray-600">${message}</div>
+                </div>
+            `;
+            results.appendChild(div);
+        }
+        
+        async function runTests() {
+            // Test 1: Enable mock mode
+            localStorage.setItem('use_mock_data', 'true');
+            addResult('Mock Mode', true, 'Mock mode enabled successfully');
+            
+            // Test 2: Initialize mock data
+            if (typeof MockDataProvider !== 'undefined') {
+                MockDataProvider.initializeMockData();
+                addResult('Mock Data Provider', true, 'Mock data provider initialized');
+            } else {
+                addResult('Mock Data Provider', false, 'Mock data provider not found');
+                return;
+            }
+            
+            // Test 3: Check if dynamic user creation works
+            MockDataProvider.createDynamicUser('bmiller@ascm.org');
+            const users = JSON.parse(localStorage.getItem('mock_users') || '[]');
+            const bryan = users.find(u => u.email === 'bmiller@ascm.org');
+            
+            if (bryan) {
+                addResult('Dynamic User Creation', true, `User created: ${bryan.name} (${bryan.platformRole})`);
+            } else {
+                addResult('Dynamic User Creation', false, 'Failed to create user');
+            }
+            
+            // Test 4: Test auth login
+            if (typeof Auth !== 'undefined') {
+                try {
+                    const result = await Auth.login('bmiller@ascm.org', 'testpassword123');
+                    if (result.success) {
+                        addResult('Authentication', true, `Login successful! User: ${result.user.name}, Role: ${result.user.platformRole}`);
+                    } else {
+                        addResult('Authentication', false, `Login failed: ${result.error}`);
+                    }
+                } catch (error) {
+                    addResult('Authentication', false, `Error: ${error.message}`);
+                }
+            } else {
+                addResult('Authentication', false, 'Auth module not loaded');
+            }
+            
+            // Test 5: Check session
+            if (typeof Auth !== 'undefined') {
+                const session = Auth.getSession();
+                if (session && session.user) {
+                    addResult('Session', true, `Session active for: ${session.user.email}`);
+                } else {
+                    addResult('Session', false, 'No active session');
+                }
+            }
+        }
+        
+        // Manual login test
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('login-result');
+            
+            try {
+                // Ensure mock mode is active
+                localStorage.setItem('use_mock_data', 'true');
+                
+                if (typeof Auth === 'undefined') {
+                    throw new Error('Auth module not loaded');
+                }
+                
+                const result = await Auth.login(email, password);
+                
+                if (result.success) {
+                    resultDiv.className = 'mt-4 p-4 bg-green-50 border border-green-200 rounded';
+                    resultDiv.innerHTML = `
+                        <div class="font-semibold text-green-900">✅ Login Successful!</div>
+                        <div class="text-sm text-green-700 mt-2">
+                            <div>User: ${result.user.name}</div>
+                            <div>Email: ${result.user.email}</div>
+                            <div>Role: ${result.user.role}</div>
+                            <div>Platform Role: ${result.user.platformRole}</div>
+                            <div>Team: ${result.user.team}</div>
+                        </div>
+                    `;
+                } else {
+                    throw new Error(result.error || 'Login failed');
+                }
+            } catch (error) {
+                resultDiv.className = 'mt-4 p-4 bg-red-50 border border-red-200 rounded';
+                resultDiv.innerHTML = `
+                    <div class="font-semibold text-red-900">❌ Login Failed</div>
+                    <div class="text-sm text-red-700 mt-2">${error.message}</div>
+                `;
+            }
+        });
+        
+        // Run tests on load
+        window.addEventListener('load', () => {
+            setTimeout(runTests, 500); // Give scripts time to load
+        });
+    </script>
+</body>
+</html>

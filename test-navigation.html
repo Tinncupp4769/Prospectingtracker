@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Navigation Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <h1 class="text-2xl font-bold mb-6">Navigation Test</h1>
+    
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-lg font-semibold mb-4">Test Sections</h2>
+        <div class="space-y-4">
+            <button onclick="testShowSection('dashboard')" class="px-4 py-2 bg-blue-600 text-white rounded">
+                Test Dashboard
+            </button>
+            <button onclick="testShowSection('leaderboard')" class="px-4 py-2 bg-green-600 text-white rounded">
+                Test Leaderboard
+            </button>
+            <button onclick="testShowSection('activity-entry')" class="px-4 py-2 bg-purple-600 text-white rounded">
+                Test Activity Entry
+            </button>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-lg font-semibold mb-4">Test Sections</h2>
+        
+        <div id="dashboard-section" class="content-section hidden">
+            <h3 class="text-xl font-bold text-green-600">✓ Dashboard Section Visible</h3>
+            <p>If you can see this, the dashboard section is working correctly.</p>
+        </div>
+        
+        <div id="leaderboard-section" class="content-section hidden">
+            <h3 class="text-xl font-bold text-blue-600">✓ Leaderboard Section Visible</h3>
+            <p>If you can see this, the leaderboard section is working correctly.</p>
+        </div>
+        
+        <div id="activity-entry-section" class="content-section hidden">
+            <h3 class="text-xl font-bold text-purple-600">✓ Activity Entry Section Visible</h3>
+            <p>If you can see this, the activity entry section is working correctly.</p>
+        </div>
+        
+        <div id="status" class="mt-4 p-4 bg-gray-100 rounded">
+            <p>Current Status: <span id="current-status" class="font-semibold">Ready</span></p>
+        </div>
+    </div>
+    
+    <style>
+        .content-section {
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .content-section.hidden {
+            display: none;
+        }
+    </style>
+    
+    <script>
+        function testShowSection(sectionName) {
+            console.log('Showing section:', sectionName);
+            
+            // Hide all sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.classList.add('hidden');
+                console.log('Hiding:', section.id);
+            });
+            
+            // Show selected section
+            const selectedSection = document.getElementById(`${sectionName}-section`);
+            if (selectedSection) {
+                selectedSection.classList.remove('hidden');
+                console.log('Showing:', selectedSection.id);
+                
+                // Update status
+                document.getElementById('current-status').textContent = 
+                    `${sectionName} section is now visible`;
+                
+                // Check if still visible after 1 second
+                setTimeout(() => {
+                    if (!selectedSection.classList.contains('hidden')) {
+                        console.log('✓ Section still visible after 1 second');
+                        document.getElementById('current-status').textContent = 
+                            `✓ ${sectionName} section stable and visible`;
+                    } else {
+                        console.log('✗ Section disappeared!');
+                        document.getElementById('current-status').textContent = 
+                            `✗ ${sectionName} section disappeared!`;
+                    }
+                }, 1000);
+            }
+        }
+    </script>
+</body>
+</html>

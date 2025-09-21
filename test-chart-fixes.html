@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chart Fixes Test - Sales Activity Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-6">Chart Fixes Test Suite</h1>
+        
+        <!-- Test Status -->
+        <div id="test-status" class="mb-6 p-4 bg-blue-50 rounded-lg">
+            <h2 class="text-xl font-semibold mb-2">Test Status</h2>
+            <div id="status-log" class="space-y-2"></div>
+        </div>
+        
+        <!-- Test Controls -->
+        <div class="mb-6 space-x-4">
+            <button onclick="runAllTests()" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                Run All Tests
+            </button>
+            <button onclick="testAECharts()" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                Test AE Charts
+            </button>
+            <button onclick="testAMCharts()" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                Test AM Charts
+            </button>
+            <button onclick="testLeaderboard()" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                Test Leaderboard
+            </button>
+            <button onclick="addTestData()" class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700">
+                Add Test Data
+            </button>
+        </div>
+        
+        <!-- Test Results -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- AE Dashboard Tests -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold mb-4">AE Dashboard Charts</h3>
+                <div id="ae-test-results" class="space-y-2 text-sm">
+                    <div>Activity Chart: <span id="ae-activity-status" class="font-mono">Not tested</span></div>
+                    <div>Trend Chart: <span id="ae-trend-status" class="font-mono">Not tested</span></div>
+                    <div>Goal Chart: <span id="ae-goal-status" class="font-mono">Not tested</span></div>
+                    <div>Pipeline Metric: <span id="ae-pipeline-status" class="font-mono">Not tested</span></div>
+                </div>
+            </div>
+            
+            <!-- AM Dashboard Tests -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold mb-4">AM Dashboard Charts</h3>
+                <div id="am-test-results" class="space-y-2 text-sm">
+                    <div>Dormant Charts: <span id="am-dormant-status" class="font-mono">Not tested</span></div>
+                    <div>Cross-Sell Charts: <span id="am-cross-sell-status" class="font-mono">Not tested</span></div>
+                    <div>Up-Sell Charts: <span id="am-up-sell-status" class="font-mono">Not tested</span></div>
+                    <div>Team Chart: <span id="am-team-status" class="font-mono">Not tested</span></div>
+                </div>
+            </div>
+            
+            <!-- Leaderboard Tests -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold mb-4">Leaderboard Components</h3>
+                <div id="leaderboard-test-results" class="space-y-2 text-sm">
+                    <div>Trend Chart: <span id="lb-trend-status" class="font-mono">Not tested</span></div>
+                    <div>Distribution Chart: <span id="lb-dist-status" class="font-mono">Not tested</span></div>
+                    <div>Rankings Table: <span id="lb-table-status" class="font-mono">Not tested</span></div>
+                    <div>Metric Calculation: <span id="lb-metrics-status" class="font-mono">Not tested</span></div>
+                </div>
+            </div>
+            
+            <!-- Data Verification -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold mb-4">Data Verification</h3>
+                <div id="data-test-results" class="space-y-2 text-sm">
+                    <div>Activity Records: <span id="data-activities-status" class="font-mono">Not tested</span></div>
+                    <div>User Records: <span id="data-users-status" class="font-mono">Not tested</span></div>
+                    <div>Goal Records: <span id="data-goals-status" class="font-mono">Not tested</span></div>
+                    <div>API Connectivity: <span id="data-api-status" class="font-mono">Not tested</span></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chart Test Area -->
+        <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold mb-4">Test Chart 1</h3>
+                <div style="height: 300px;">
+                    <canvas id="test-chart-1"></canvas>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h3 class="text-lg font-semibold mb-4">Test Chart 2</h3>
+                <div style="height: 300px;">
+                    <canvas id="test-chart-2"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/leaderboard.js"></script>
+    
+    <script>
+        // Test functions
+        function log(message, type = 'info') {
+            const statusLog = document.getElementById('status-log');
+            const logEntry = document.createElement('div');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            let iconClass = 'fa-info-circle text-blue-500';
+            if (type === 'success') iconClass = 'fa-check-circle text-green-500';
+            if (type === 'error') iconClass = 'fa-times-circle text-red-500';
+            if (type === 'warning') iconClass = 'fa-exclamation-triangle text-yellow-500';
+            
+            logEntry.innerHTML = `
+                <div class="flex items-center space-x-2">
+                    <i class="fas ${iconClass}"></i>
+                    <span class="text-gray-500 text-xs">${timestamp}</span>
+                    <span class="text-sm">${message}</span>
+                </div>
+            `;
+            statusLog.appendChild(logEntry);
+            statusLog.scrollTop = statusLog.scrollHeight;
+        }
+        
+        function updateStatus(elementId, status, success = null) {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.textContent = status;
+                if (success === true) {
+                    element.className = 'font-mono text-green-600';
+                } else if (success === false) {
+                    element.className = 'font-mono text-red-600';
+                } else {
+                    element.className = 'font-mono text-gray-600';
+                }
+            }
+        }
+        
+        async function testAECharts() {
+            log('Testing AE Dashboard Charts...', 'info');
+            
+            try {
+                // Set up a test user
+                currentUser = {
+                    id: 'test-ae-user',
+                    name: 'Test AE User',
+                    role: 'ae'
+                };
+                
+                // Test if updateAECharts function exists
+                if (typeof updateAECharts === 'function') {
+                    updateStatus('ae-activity-status', 'Function exists', true);
+                    log('✓ updateAECharts function found', 'success');
+                    
+                    // Try to call the function
+                    await updateAECharts();
+                    updateStatus('ae-trend-status', 'Function executed', true);
+                    log('✓ AE charts update executed successfully', 'success');
+                } else {
+                    updateStatus('ae-activity-status', 'Function missing', false);
+                    log('✗ updateAECharts function not found', 'error');
+                }
+                
+                // Check if aeGoalChart is initialized
+                if (typeof aeGoalChart !== 'undefined') {
+                    updateStatus('ae-goal-status', 'Chart initialized', true);
+                    log('✓ AE Goal Chart initialized', 'success');
+                } else {
+                    updateStatus('ae-goal-status', 'Not initialized', false);
+                    log('✗ AE Goal Chart not initialized', 'error');
+                }
+                
+                // Check pipeline metric
+                const response = await API.getActivities();
+                const hasFields = response.data && response.data.length > 0 && 
+                                  'pipelineGenerated' in response.data[0];
+                if (hasFields) {
+                    updateStatus('ae-pipeline-status', 'Field exists', true);
+                    log('✓ Pipeline field exists in data', 'success');
+                } else {
+                    updateStatus('ae-pipeline-status', 'Field missing', false);
+                    log('⚠ Pipeline field may not exist in data yet', 'warning');
+                }
+                
+            } catch (error) {
+                log(`Error testing AE charts: ${error.message}`, 'error');
+                updateStatus('ae-activity-status', 'Error', false);
+            }
+        }
+        
+        async function testAMCharts() {
+            log('Testing AM Dashboard Charts...', 'info');
+            
+            try {
+                // Set up a test user
+                currentUser = {
+                    id: 'test-am-user',
+                    name: 'Test AM User',
+                    role: 'am',
+                    team: 'test-team'
+                };
+                
+                // Test if updateAMCharts function exists
+                if (typeof updateAMCharts === 'function') {
+                    updateStatus('am-dormant-status', 'Function exists', true);
+                    log('✓ updateAMCharts function found', 'success');
+                    
+                    await updateAMCharts();
+                    updateStatus('am-cross-sell-status', 'Function executed', true);
+                    log('✓ AM charts update executed successfully', 'success');
+                } else {
+                    updateStatus('am-dormant-status', 'Function missing', false);
+                    log('✗ updateAMCharts function not found', 'error');
+                }
+                
+                // Test category-specific function
+                if (typeof updateAMCategoryCharts === 'function') {
+                    updateStatus('am-up-sell-status', 'Category function exists', true);
+                    log('✓ updateAMCategoryCharts function found', 'success');
+                    
+                    await updateAMCategoryCharts('dormant');
+                    updateStatus('am-team-status', 'Category charts updated', true);
+                    log('✓ AM category charts updated', 'success');
+                } else {
+                    updateStatus('am-up-sell-status', 'Category function missing', false);
+                    log('✗ updateAMCategoryCharts function not found', 'error');
+                }
+                
+            } catch (error) {
+                log(`Error testing AM charts: ${error.message}`, 'error');
+                updateStatus('am-dormant-status', 'Error', false);
+            }
+        }
+        
+        async function testLeaderboard() {
+            log('Testing Leaderboard Components...', 'info');
+            
+            try {
+                // Test if leaderboard functions exist
+                if (typeof updateLeaderboard === 'function') {
+                    updateStatus('lb-trend-status', 'Update function exists', true);
+                    log('✓ updateLeaderboard function found', 'success');
+                } else {
+                    updateStatus('lb-trend-status', 'Function missing', false);
+                    log('✗ updateLeaderboard function not found', 'error');
+                }
+                
+                if (typeof renderLeaderboardCharts === 'function') {
+                    updateStatus('lb-dist-status', 'Render function exists', true);
+                    log('✓ renderLeaderboardCharts function found', 'success');
+                    
+                    // Test with dummy data
+                    const testUsers = [
+                        { id: '1', name: 'Test User 1', role: 'ae', metrics: { callsMade: 50, emailsSent: 100 }, totalScore: 250 },
+                        { id: '2', name: 'Test User 2', role: 'am', metrics: { callsMade: 40, emailsSent: 80 }, totalScore: 200 }
+                    ];
+                    
+                    await renderLeaderboardCharts(testUsers);
+                    updateStatus('lb-table-status', 'Charts rendered', true);
+                    log('✓ Leaderboard charts rendered', 'success');
+                } else {
+                    updateStatus('lb-dist-status', 'Function missing', false);
+                    log('✗ renderLeaderboardCharts function not found', 'error');
+                }
+                
+                if (typeof calculateUserScore === 'function') {
+                    updateStatus('lb-metrics-status', 'Calculation function exists', true);
+                    log('✓ calculateUserScore function found', 'success');
+                } else {
+                    updateStatus('lb-metrics-status', 'Function missing', false);
+                    log('✗ calculateUserScore function not found', 'error');
+                }
+                
+            } catch (error) {
+                log(`Error testing leaderboard: ${error.message}`, 'error');
+                updateStatus('lb-trend-status', 'Error', false);
+            }
+        }
+        
+        async function testDataConnectivity() {
+            log('Testing Data Connectivity...', 'info');
+            
+            try {
+                // Test API connectivity
+                const apiTest = await API.getActivities();
+                if (apiTest) {
+                    updateStatus('data-api-status', 'Connected', true);
+                    log('✓ API connection successful', 'success');
+                }
+                
+                // Test activities
+                const activities = apiTest.data || [];
+                updateStatus('data-activities-status', `${activities.length} records`, activities.length > 0);
+                log(`Found ${activities.length} activity records`, activities.length > 0 ? 'success' : 'warning');
+                
+                // Test users
+                const users = await API.getUsers();
+                const userCount = (users.data || []).length;
+                updateStatus('data-users-status', `${userCount} records`, userCount > 0);
+                log(`Found ${userCount} user records`, userCount > 0 ? 'success' : 'warning');
+                
+                // Test goals
+                const goals = await API.getGoals();
+                const goalCount = (goals.data || []).length;
+                updateStatus('data-goals-status', `${goalCount} records`, goalCount > 0);
+                log(`Found ${goalCount} goal records`, goalCount > 0 ? 'success' : 'warning');
+                
+            } catch (error) {
+                log(`Error testing data connectivity: ${error.message}`, 'error');
+                updateStatus('data-api-status', 'Error', false);
+            }
+        }
+        
+        async function addTestData() {
+            log('Adding test data...', 'info');
+            
+            try {
+                // Create test user if not exists
+                const testUser = {
+                    name: 'Chart Test User',
+                    email: 'charttest@example.com',
+                    role: 'ae',
+                    team: 'test-team',
+                    platformRole: 'user'
+                };
+                
+                const userResponse = await API.createUser(testUser);
+                log(`Created test user: ${userResponse.id}`, 'success');
+                
+                // Add test activity
+                const testActivity = {
+                    userId: userResponse.id,
+                    userName: testUser.name,
+                    type: 'ae_summary',
+                    week: getCurrentWeek(),
+                    callsMade: Math.floor(Math.random() * 50) + 10,
+                    emailsSent: Math.floor(Math.random() * 100) + 20,
+                    linkedinMessages: Math.floor(Math.random() * 30) + 5,
+                    vidyardVideos: Math.floor(Math.random() * 20) + 2,
+                    meetingsConducted: Math.floor(Math.random() * 10) + 1,
+                    opportunitiesGenerated: Math.floor(Math.random() * 5) + 1,
+                    pipelineGenerated: Math.floor(Math.random() * 100000) + 10000,
+                    referralsGenerated: Math.floor(Math.random() * 3)
+                };
+                
+                const activityResponse = await API.createActivity(testActivity);
+                log(`Created test activity: ${activityResponse.id}`, 'success');
+                
+                // Add test goal
+                const testGoal = {
+                    userId: userResponse.id,
+                    metric: 'calls_made',
+                    target: 50,
+                    type: 'daily',
+                    status: 'active'
+                };
+                
+                const goalResponse = await API.createGoal(testGoal);
+                log(`Created test goal: ${goalResponse.id}`, 'success');
+                
+                log('Test data added successfully!', 'success');
+                
+            } catch (error) {
+                log(`Error adding test data: ${error.message}`, 'error');
+            }
+        }
+        
+        async function runAllTests() {
+            log('Starting comprehensive test suite...', 'info');
+            
+            // Clear previous logs
+            document.getElementById('status-log').innerHTML = '';
+            
+            // Run tests in sequence
+            await testDataConnectivity();
+            await testAECharts();
+            await testAMCharts();
+            await testLeaderboard();
+            
+            log('All tests completed!', 'success');
+        }
+        
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            log('Test suite loaded and ready', 'info');
+            
+            // Create test charts to verify Chart.js is working
+            const ctx1 = document.getElementById('test-chart-1');
+            if (ctx1) {
+                new Chart(ctx1, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Test 1', 'Test 2', 'Test 3'],
+                        datasets: [{
+                            data: [30, 50, 20],
+                            backgroundColor: ['#3B82F6', '#10B981', '#8B5CF6']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+                log('Test chart 1 initialized', 'success');
+            }
+            
+            const ctx2 = document.getElementById('test-chart-2');
+            if (ctx2) {
+                new Chart(ctx2, {
+                    type: 'line',
+                    data: {
+                        labels: ['W1', 'W2', 'W3', 'W4'],
+                        datasets: [{
+                            label: 'Test Data',
+                            data: [10, 25, 15, 30],
+                            borderColor: '#6366F1',
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false
+                    }
+                });
+                log('Test chart 2 initialized', 'success');
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Fixes Test - Sales Activity Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto p-6">
+        <h1 class="text-3xl font-bold mb-6">Admin Feature Tests</h1>
+        
+        <!-- Test Status -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Act As Feature Test -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-user-secret text-indigo-600 mr-2"></i>
+                    Act As Feature Test
+                </h2>
+                
+                <div class="space-y-4">
+                    <div class="border-l-4 border-blue-500 pl-4">
+                        <h3 class="font-semibold">Test Steps:</h3>
+                        <ol class="list-decimal list-inside text-sm text-gray-600 mt-2 space-y-1">
+                            <li>Login as administrator</li>
+                            <li>Go to User Management → Act As</li>
+                            <li>Select an AE or AM user</li>
+                            <li>Click "Act As Selected User"</li>
+                            <li>Verify "Return to Admin" button appears</li>
+                            <li>Verify User Management still visible</li>
+                            <li>Click "Return to Admin"</li>
+                            <li>Verify return to admin view</li>
+                        </ol>
+                    </div>
+                    
+                    <div id="act-as-results" class="space-y-2">
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <span class="text-sm">Platform Role Preserved:</span>
+                            <span id="role-preserved-status" class="text-sm font-mono">❓ Not Tested</span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <span class="text-sm">Return Button Visible:</span>
+                            <span id="return-button-status" class="text-sm font-mono">❓ Not Tested</span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <span class="text-sm">Navigation Accessible:</span>
+                            <span id="nav-accessible-status" class="text-sm font-mono">❓ Not Tested</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="testActAsFeature()" class="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                        Run Act As Test
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Leaderboard Display Test -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">
+                    <i class="fas fa-trophy text-yellow-600 mr-2"></i>
+                    Leaderboard Display Test
+                </h2>
+                
+                <div class="space-y-4">
+                    <div class="border-l-4 border-green-500 pl-4">
+                        <h3 class="font-semibold">Test Criteria:</h3>
+                        <ul class="list-disc list-inside text-sm text-gray-600 mt-2 space-y-1">
+                            <li>AE view shows ALL Account Executives</li>
+                            <li>AM view shows ALL Account Managers</li>
+                            <li>All Sales view shows top 3 only</li>
+                            <li>Dynamic title updates correctly</li>
+                            <li>Grid layout adjusts for user count</li>
+                            <li>Complete rankings shows all users</li>
+                        </ul>
+                    </div>
+                    
+                    <div id="leaderboard-results" class="space-y-2">
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <span class="text-sm">AE Count Display:</span>
+                            <span id="ae-count-status" class="text-sm font-mono">❓ Not Tested</span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <span class="text-sm">AM Count Display:</span>
+                            <span id="am-count-status" class="text-sm font-mono">❓ Not Tested</span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <span class="text-sm">Dynamic Titles:</span>
+                            <span id="titles-status" class="text-sm font-mono">❓ Not Tested</span>
+                        </div>
+                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <span class="text-sm">Complete Table:</span>
+                            <span id="table-status" class="text-sm font-mono">❓ Not Tested</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="testLeaderboardDisplay()" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Run Leaderboard Test
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Data Creation -->
+        <div class="mt-6 bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">
+                <i class="fas fa-database text-purple-600 mr-2"></i>
+                Test Data Management
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <button onclick="createTestUsers(5, 'ae')" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    Create 5 Test AEs
+                </button>
+                <button onclick="createTestUsers(7, 'am')" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                    Create 7 Test AMs
+                </button>
+                <button onclick="clearTestData()" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                    Clear Test Data
+                </button>
+            </div>
+            
+            <div id="test-data-log" class="mt-4 p-4 bg-gray-50 rounded text-sm font-mono h-32 overflow-y-auto">
+                Test data operations will appear here...
+            </div>
+        </div>
+        
+        <!-- Manual Test Checklist -->
+        <div class="mt-6 bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">
+                <i class="fas fa-clipboard-check text-orange-600 mr-2"></i>
+                Manual Test Checklist
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h3 class="font-semibold mb-2">Act As Feature:</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="form-checkbox">
+                            <span class="text-sm">Admin can select and act as AE user</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="form-checkbox">
+                            <span class="text-sm">Admin can select and act as AM user</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="form-checkbox">
+                            <span class="text-sm">"Return to Admin" button is visible and red</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="form-checkbox">
+                            <span class="text-sm">User Management remains in navigation</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="form-checkbox">
+                            <span class="text-sm">Goal Setting remains visible (admin only)</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="form-checkbox">
+                            <span class="text-sm">Clicking "Return to Admin" goes to User Management</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div>
+                    <h3 class="font-semibold mb-2">Leaderboard Display:</h3>
+                    <div class="space-y-2">
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="form-checkbox">
+                            <span class="text-sm">AE view shows all AE users (not just 3)</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="form-checkbox">
+                            <span class="text-sm">AM view shows all AM users (not just 3)</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="form-checkbox">
+                            <span class="text-sm">All Sales view shows only top 3</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="form-checkbox">
+                            <span class="text-sm">Title changes: "All Account Executives Rankings"</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="form-checkbox">
+                            <span class="text-sm">Subtitle shows count: "Showing all 5 Account Executives"</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="checkbox" class="form-checkbox">
+                            <span class="text-sm">Cards display in responsive grid layout</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/api.js"></script>
+    <script>
+        // Test logging function
+        function log(message, elementId = 'test-data-log') {
+            const logDiv = document.getElementById(elementId);
+            if (logDiv) {
+                const timestamp = new Date().toLocaleTimeString();
+                logDiv.innerHTML += `[${timestamp}] ${message}\n`;
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+        }
+        
+        // Test Act As feature
+        async function testActAsFeature() {
+            log('Testing Act As feature...', 'test-data-log');
+            
+            try {
+                // Check if actAsUser function exists
+                if (typeof actAsUser === 'function') {
+                    document.getElementById('role-preserved-status').innerHTML = '✅ Function exists';
+                    log('✓ actAsUser function found', 'test-data-log');
+                } else {
+                    document.getElementById('role-preserved-status').innerHTML = '❌ Function missing';
+                    log('✗ actAsUser function not found', 'test-data-log');
+                }
+                
+                // Check if addStopActingAsButton function exists
+                if (typeof addStopActingAsButton === 'function') {
+                    document.getElementById('return-button-status').innerHTML = '✅ Function exists';
+                    log('✓ addStopActingAsButton function found', 'test-data-log');
+                } else {
+                    document.getElementById('return-button-status').innerHTML = '❌ Function missing';
+                    log('✗ addStopActingAsButton function not found', 'test-data-log');
+                }
+                
+                // Check if navigation update function exists
+                if (typeof updateNavigationVisibility === 'function') {
+                    document.getElementById('nav-accessible-status').innerHTML = '✅ Function exists';
+                    log('✓ updateNavigationVisibility function found', 'test-data-log');
+                } else {
+                    document.getElementById('nav-accessible-status').innerHTML = '❌ Function missing';
+                    log('✗ updateNavigationVisibility function not found', 'test-data-log');
+                }
+                
+                log('Act As feature test completed', 'test-data-log');
+                
+            } catch (error) {
+                log(`Error: ${error.message}`, 'test-data-log');
+            }
+        }
+        
+        // Test Leaderboard display
+        async function testLeaderboardDisplay() {
+            log('Testing Leaderboard display...', 'test-data-log');
+            
+            try {
+                // Get user counts
+                const users = await API.getUsers();
+                const aeCount = users.data.filter(u => u.role === 'ae').length;
+                const amCount = users.data.filter(u => u.role === 'am').length;
+                
+                document.getElementById('ae-count-status').innerHTML = `✅ ${aeCount} AEs found`;
+                document.getElementById('am-count-status').innerHTML = `✅ ${amCount} AMs found`;
+                
+                // Check if displayTop3 function exists and has been updated
+                if (typeof displayTop3 === 'function') {
+                    const funcString = displayTop3.toString();
+                    const hasAllUsersLogic = funcString.includes('currentLeaderboardView');
+                    
+                    if (hasAllUsersLogic) {
+                        document.getElementById('titles-status').innerHTML = '✅ Updated logic';
+                        log('✓ displayTop3 has role-based display logic', 'test-data-log');
+                    } else {
+                        document.getElementById('titles-status').innerHTML = '⚠️ May need update';
+                        log('⚠ displayTop3 may still be using fixed count', 'test-data-log');
+                    }
+                } else {
+                    document.getElementById('titles-status').innerHTML = '❌ Function missing';
+                    log('✗ displayTop3 function not found', 'test-data-log');
+                }
+                
+                // Check if table display function exists
+                if (typeof displayLeaderboardTable === 'function') {
+                    document.getElementById('table-status').innerHTML = '✅ Function exists';
+                    log('✓ displayLeaderboardTable function found', 'test-data-log');
+                } else {
+                    document.getElementById('table-status').innerHTML = '❌ Function missing';
+                    log('✗ displayLeaderboardTable function not found', 'test-data-log');
+                }
+                
+                log(`Leaderboard test completed: ${aeCount} AEs, ${amCount} AMs`, 'test-data-log');
+                
+            } catch (error) {
+                log(`Error: ${error.message}`, 'test-data-log');
+            }
+        }
+        
+        // Create test users
+        async function createTestUsers(count, role) {
+            log(`Creating ${count} test ${role.toUpperCase()} users...`, 'test-data-log');
+            
+            try {
+                for (let i = 1; i <= count; i++) {
+                    const user = {
+                        name: `Test ${role.toUpperCase()} ${i}`,
+                        email: `test${role}${i}@example.com`,
+                        role: role,
+                        team: 'Test Team',
+                        platformRole: 'user'
+                    };
+                    
+                    const response = await API.createUser(user);
+                    log(`Created: ${user.name} (${response.id})`, 'test-data-log');
+                    
+                    // Add some activity data
+                    const activity = {
+                        userId: response.id,
+                        userName: user.name,
+                        type: role === 'ae' ? 'ae_summary' : 'am_dormant_summary',
+                        week: getCurrentWeek(),
+                        callsMade: Math.floor(Math.random() * 50) + 10,
+                        emailsSent: Math.floor(Math.random() * 100) + 20,
+                        linkedinMessages: Math.floor(Math.random() * 30) + 5,
+                        vidyardVideos: Math.floor(Math.random() * 20) + 2,
+                        meetingsConducted: Math.floor(Math.random() * 10) + 1,
+                        opportunitiesGenerated: Math.floor(Math.random() * 5) + 1,
+                        pipelineGenerated: Math.floor(Math.random() * 100000) + 10000
+                    };
+                    
+                    await API.createActivity(activity);
+                }
+                
+                log(`Successfully created ${count} ${role.toUpperCase()} users with activities`, 'test-data-log');
+                
+            } catch (error) {
+                log(`Error creating users: ${error.message}`, 'test-data-log');
+            }
+        }
+        
+        // Clear test data
+        async function clearTestData() {
+            log('Clearing test data...', 'test-data-log');
+            
+            try {
+                const users = await API.getUsers();
+                const testUsers = users.data.filter(u => u.name.startsWith('Test '));
+                
+                for (const user of testUsers) {
+                    await API.deleteUser(user.id);
+                    log(`Deleted: ${user.name}`, 'test-data-log');
+                }
+                
+                log(`Cleared ${testUsers.length} test users`, 'test-data-log');
+                
+            } catch (error) {
+                log(`Error clearing data: ${error.message}`, 'test-data-log');
+            }
+        }
+        
+        // Helper function
+        function getCurrentWeek() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const firstDay = new Date(year, 0, 1);
+            const days = Math.floor((now - firstDay) / (24 * 60 * 60 * 1000));
+            const weekNumber = Math.ceil((days + firstDay.getDay() + 1) / 7);
+            return `${year}-W${weekNumber.toString().padStart(2, '0')}`;
+        }
+        
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            log('Test suite loaded and ready', 'test-data-log');
+        });
+    </script>
+</body>
+</html>

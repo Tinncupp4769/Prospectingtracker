@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Final Initialization Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">
+            <i class="fas fa-rocket text-green-600 mr-3"></i>
+            Final Initialization Test
+        </h1>
+        
+        <!-- Initialization Status -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Initialization Status</h2>
+            <div id="init-status" class="space-y-3"></div>
+        </div>
+        
+        <!-- Module Status -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Module Status</h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="p-3 bg-gray-50 rounded">
+                    <div class="text-sm text-gray-600">API Module</div>
+                    <div id="api-status" class="font-semibold">Checking...</div>
+                </div>
+                <div class="p-3 bg-gray-50 rounded">
+                    <div class="text-sm text-gray-600">Auth Module</div>
+                    <div id="auth-status" class="font-semibold">Checking...</div>
+                </div>
+                <div class="p-3 bg-gray-50 rounded">
+                    <div class="text-sm text-gray-600">Data Restoration</div>
+                    <div id="data-status" class="font-semibold">Checking...</div>
+                </div>
+                <div class="p-3 bg-gray-50 rounded">
+                    <div class="text-sm text-gray-600">App Init</div>
+                    <div id="app-init-status" class="font-semibold">Checking...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Actions</h2>
+            <div class="grid grid-cols-3 gap-4">
+                <button onclick="testInitialization()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    <i class="fas fa-play mr-2"></i>Test Init
+                </button>
+                <button onclick="clearAndTest()" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                    <i class="fas fa-broom mr-2"></i>Clear & Test
+                </button>
+                <button onclick="openApp()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    <i class="fas fa-external-link-alt mr-2"></i>Open App
+                </button>
+            </div>
+            <div id="action-result" class="mt-4"></div>
+        </div>
+    </div>
+    
+    <!-- Load scripts in same order as main app -->
+    <script src="js/app-config.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/data-restoration.js"></script>
+    <script src="js/app-init-final.js"></script>
+    
+    <script>
+        // Check module status
+        function checkModules() {
+            // API
+            const apiStatus = document.getElementById('api-status');
+            if (typeof API !== 'undefined') {
+                apiStatus.innerHTML = '<i class="fas fa-check text-green-600"></i> Loaded';
+            } else {
+                apiStatus.innerHTML = '<i class="fas fa-times text-red-600"></i> Not Found';
+            }
+            
+            // Auth
+            const authStatus = document.getElementById('auth-status');
+            if (typeof Auth !== 'undefined') {
+                authStatus.innerHTML = '<i class="fas fa-check text-green-600"></i> Loaded';
+            } else {
+                authStatus.innerHTML = '<i class="fas fa-times text-red-600"></i> Not Found';
+            }
+            
+            // Data Restoration
+            const dataStatus = document.getElementById('data-status');
+            if (typeof DataRestoration !== 'undefined') {
+                dataStatus.innerHTML = '<i class="fas fa-check text-green-600"></i> Loaded';
+            } else {
+                dataStatus.innerHTML = '<i class="fas fa-times text-red-600"></i> Not Found';
+            }
+            
+            // App Init
+            const appInitStatus = document.getElementById('app-init-status');
+            if (typeof AppInitFinal !== 'undefined') {
+                appInitStatus.innerHTML = '<i class="fas fa-check text-green-600"></i> Loaded';
+            } else {
+                appInitStatus.innerHTML = '<i class="fas fa-times text-red-600"></i> Not Found';
+            }
+        }
+        
+        // Test initialization
+        async function testInitialization() {
+            const statusDiv = document.getElementById('init-status');
+            statusDiv.innerHTML = '';
+            
+            function addStatus(message, success) {
+                const div = document.createElement('div');
+                div.className = `flex items-center ${success ? 'text-green-600' : 'text-red-600'}`;
+                div.innerHTML = `
+                    <i class="fas ${success ? 'fa-check' : 'fa-times'} mr-2"></i>
+                    ${message}
+                `;
+                statusDiv.appendChild(div);
+            }
+            
+            // Test 1: Check if modules are loaded
+            addStatus('Modules loaded', 
+                typeof API !== 'undefined' && 
+                typeof Auth !== 'undefined' && 
+                typeof AppInitFinal !== 'undefined'
+            );
+            
+            // Test 2: Test API
+            try {
+                const users = await API.getUsers();
+                addStatus(`API working: ${users.data ? users.data.length : 0} users`, true);
+            } catch (error) {
+                addStatus(`API error: ${error.message}`, false);
+            }
+            
+            // Test 3: Test Auth
+            try {
+                Auth.clearSession();
+                const isAuth = Auth.isAuthenticated();
+                addStatus(`Auth working: ${isAuth ? 'Session exists' : 'No session'}`, true);
+            } catch (error) {
+                addStatus(`Auth error: ${error.message}`, false);
+            }
+            
+            // Test 4: Test initialization
+            try {
+                const result = await AppInitFinal.initialize();
+                addStatus(`Initialization: ${result ? 'Success' : 'Failed'}`, result);
+            } catch (error) {
+                addStatus(`Init error: ${error.message}`, false);
+            }
+        }
+        
+        // Clear and test
+        function clearAndTest() {
+            if (confirm('Clear all local data and test?')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                location.reload();
+            }
+        }
+        
+        // Open app
+        function openApp() {
+            window.open('index.html', '_blank');
+        }
+        
+        // Check on load
+        window.addEventListener('load', () => {
+            checkModules();
+            
+            // Show initialization state
+            const statusDiv = document.getElementById('init-status');
+            if (window.appInitialized) {
+                statusDiv.innerHTML = '<div class="text-green-600"><i class="fas fa-check mr-2"></i>App is initialized</div>';
+            } else {
+                statusDiv.innerHTML = '<div class="text-yellow-600"><i class="fas fa-info-circle mr-2"></i>App not yet initialized</div>';
+            }
+        });
+    </script>
+</body>
+</html>

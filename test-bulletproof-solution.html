@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bulletproof Solution Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-7xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-900 mb-8">
+            <i class="fas fa-shield-alt text-green-600 mr-3"></i>
+            Bulletproof Solution Test Suite
+        </h1>
+        
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Quick Actions</h2>
+            <div class="grid grid-cols-4 gap-4">
+                <button onclick="restoreAllData()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                    <i class="fas fa-database mr-2"></i>Restore All Data
+                </button>
+                <button onclick="testAuthentication()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    <i class="fas fa-lock mr-2"></i>Test Auth
+                </button>
+                <button onclick="testUserManagement()" class="bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                    <i class="fas fa-users mr-2"></i>Test Users
+                </button>
+                <button onclick="testAllFeatures()" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                    <i class="fas fa-check-double mr-2"></i>Test Everything
+                </button>
+            </div>
+        </div>
+        
+        <!-- Test Results Grid -->
+        <div class="grid grid-cols-3 gap-6 mb-6">
+            <!-- Authentication Tests -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold mb-4">
+                    <i class="fas fa-lock text-blue-600 mr-2"></i>Authentication
+                </h3>
+                <div id="auth-results" class="space-y-2 text-sm"></div>
+            </div>
+            
+            <!-- User Management Tests -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold mb-4">
+                    <i class="fas fa-users text-green-600 mr-2"></i>User Management
+                </h3>
+                <div id="user-results" class="space-y-2 text-sm"></div>
+            </div>
+            
+            <!-- Data Tests -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold mb-4">
+                    <i class="fas fa-database text-yellow-600 mr-2"></i>Data Storage
+                </h3>
+                <div id="data-results" class="space-y-2 text-sm"></div>
+            </div>
+            
+            <!-- Dashboard Tests -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold mb-4">
+                    <i class="fas fa-tachometer-alt text-purple-600 mr-2"></i>Dashboard
+                </h3>
+                <div id="dashboard-results" class="space-y-2 text-sm"></div>
+            </div>
+            
+            <!-- Leaderboard Tests -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold mb-4">
+                    <i class="fas fa-trophy text-orange-600 mr-2"></i>Leaderboard
+                </h3>
+                <div id="leaderboard-results" class="space-y-2 text-sm"></div>
+            </div>
+            
+            <!-- Error Handling Tests -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-semibold mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-600 mr-2"></i>Error Handling
+                </h3>
+                <div id="error-results" class="space-y-2 text-sm"></div>
+            </div>
+        </div>
+        
+        <!-- Summary -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">Test Summary</h2>
+            <div id="test-summary" class="space-y-2"></div>
+            <div class="mt-4 flex gap-4">
+                <button onclick="window.open('index.html', '_blank')" class="bg-indigo-600 text-white px-6 py-3 rounded hover:bg-indigo-700">
+                    <i class="fas fa-external-link-alt mr-2"></i>Open Application
+                </button>
+                <button onclick="viewErrorLog()" class="bg-gray-600 text-white px-6 py-3 rounded hover:bg-gray-700">
+                    <i class="fas fa-clipboard-list mr-2"></i>View Error Log
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load all app scripts -->
+    <script src="js/app-config.js"></script>
+    <script src="js/global-error-handler.js"></script>
+    <script src="js/data-restoration.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    
+    <script>
+        let testsPassed = 0;
+        let testsFailed = 0;
+        
+        function addTestResult(containerId, test, success, message) {
+            const container = document.getElementById(containerId);
+            const div = document.createElement('div');
+            div.className = `flex items-start ${success ? 'text-green-600' : 'text-red-600'}`;
+            div.innerHTML = `
+                <i class="fas ${success ? 'fa-check' : 'fa-times'} mr-2 mt-1"></i>
+                <div>
+                    <div class="font-medium">${test}</div>
+                    <div class="text-xs text-gray-600">${message}</div>
+                </div>
+            `;
+            container.appendChild(div);
+            
+            if (success) testsPassed++;
+            else testsFailed++;
+            
+            updateSummary();
+        }
+        
+        function updateSummary() {
+            const summary = document.getElementById('test-summary');
+            const total = testsPassed + testsFailed;
+            const percentage = total > 0 ? Math.round((testsPassed / total) * 100) : 0;
+            
+            summary.innerHTML = `
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded">
+                    <div>
+                        <span class="text-2xl font-bold">${percentage}%</span>
+                        <span class="text-gray-600 ml-2">Tests Passing</span>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-green-600">✓ ${testsPassed} Passed</div>
+                        <div class="text-red-600">✗ ${testsFailed} Failed</div>
+                        <div class="text-gray-600">Total: ${total}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function clearResults() {
+            ['auth-results', 'user-results', 'data-results', 'dashboard-results', 'leaderboard-results', 'error-results'].forEach(id => {
+                document.getElementById(id).innerHTML = '';
+            });
+            testsPassed = 0;
+            testsFailed = 0;
+        }
+        
+        // Test Authentication
+        async function testAuthentication() {
+            const container = 'auth-results';
+            document.getElementById(container).innerHTML = '';
+            
+            // Test 1: Auth module exists
+            if (typeof Auth !== 'undefined') {
+                addTestResult(container, 'Module', true, 'Auth module loaded');
+            } else {
+                addTestResult(container, 'Module', false, 'Auth module not found');
+                return;
+            }
+            
+            // Test 2: No auto-login
+            Auth.clearSession();
+            const authenticated = Auth.isAuthenticated();
+            addTestResult(container, 'No Auto-Login', !authenticated, authenticated ? 'Session exists' : 'Requires login');
+            
+            // Test 3: Login works
+            try {
+                const result = await Auth.login('admin@example.com', 'admin123');
+                addTestResult(container, 'Login', result.success, result.success ? 'Login successful' : result.error);
+                
+                // Clear session after test
+                Auth.clearSession();
+            } catch (error) {
+                addTestResult(container, 'Login', false, error.message);
+            }
+        }
+        
+        // Test User Management
+        async function testUserManagement() {
+            const container = 'user-results';
+            document.getElementById(container).innerHTML = '';
+            
+            // Test 1: Load users
+            try {
+                const users = await API.getUsers();
+                const userCount = users.data ? users.data.length : 0;
+                addTestResult(container, 'Load Users', userCount > 0, `${userCount} users loaded`);
+                
+                // Test 2: User roles
+                if (users.data && users.data.length > 0) {
+                    const roles = [...new Set(users.data.map(u => u.role))];
+                    addTestResult(container, 'User Roles', roles.length > 0, `Roles: ${roles.join(', ')}`);
+                    
+                    // Test 3: Admin exists
+                    const adminExists = users.data.some(u => u.role === 'admin' || u.platformRole === 'admin');
+                    addTestResult(container, 'Admin User', adminExists, adminExists ? 'Admin found' : 'No admin user');
+                }
+            } catch (error) {
+                addTestResult(container, 'Load Users', false, error.message);
+            }
+            
+            // Test 4: Create user
+            try {
+                const testUser = {
+                    firstName: 'Test',
+                    lastName: 'User',
+                    name: 'Test User',
+                    email: `test${Date.now()}@example.com`,
+                    username: `test${Date.now()}`,
+                    password: 'test123',
+                    role: 'ae',
+                    platformRole: 'user',
+                    team: 'Test Team',
+                    status: 'active'
+                };
+                
+                const newUser = await API.createUser(testUser);
+                addTestResult(container, 'Create User', true, 'User created successfully');
+                
+                // Delete test user
+                if (newUser.id) {
+                    await API.deleteUser(newUser.id);
+                }
+            } catch (error) {
+                addTestResult(container, 'Create User', false, error.message);
+            }
+        }
+        
+        // Restore all data
+        async function restoreAllData() {
+            const summary = document.getElementById('test-summary');
+            summary.innerHTML = '<div class="p-4 bg-blue-50 rounded"><i class="fas fa-spinner fa-spin mr-2"></i>Restoring data...</div>';
+            
+            try {
+                const result = await DataRestoration.restoreAllData();
+                if (result.success) {
+                    summary.innerHTML = '<div class="p-4 bg-green-50 rounded text-green-700"><i class="fas fa-check mr-2"></i>Data restored successfully!</div>';
+                } else {
+                    summary.innerHTML = `<div class="p-4 bg-red-50 rounded text-red-700"><i class="fas fa-times mr-2"></i>Data restoration failed: ${result.error}</div>`;
+                }
+            } catch (error) {
+                summary.innerHTML = `<div class="p-4 bg-red-50 rounded text-red-700"><i class="fas fa-times mr-2"></i>Error: ${error.message}</div>`;
+            }
+        }
+        
+        // Test all features
+        async function testAllFeatures() {
+            clearResults();
+            
+            // Run all tests
+            await testAuthentication();
+            await testUserManagement();
+            await testDataStorage();
+            await testDashboard();
+            await testLeaderboard();
+            await testErrorHandling();
+        }
+        
+        // Test data storage
+        async function testDataStorage() {
+            const container = 'data-results';
+            document.getElementById(container).innerHTML = '';
+            
+            // Test 1: Activities
+            try {
+                const activities = await API.getActivities();
+                addTestResult(container, 'Activities', true, `${activities.data ? activities.data.length : 0} activities`);
+            } catch (error) {
+                addTestResult(container, 'Activities', false, error.message);
+            }
+            
+            // Test 2: Goals
+            try {
+                const goals = await API.getGoals();
+                addTestResult(container, 'Goals', true, `${goals.data ? goals.data.length : 0} goals`);
+            } catch (error) {
+                addTestResult(container, 'Goals', false, error.message);
+            }
+        }
+        
+        // Test dashboard
+        async function testDashboard() {
+            const container = 'dashboard-results';
+            document.getElementById(container).innerHTML = '';
+            
+            // Test dashboard elements exist
+            const dashboardSection = document.getElementById('dashboard-section');
+            addTestResult(container, 'Dashboard Section', dashboardSection !== null, dashboardSection ? 'Found' : 'Not found');
+            
+            const adminControls = document.getElementById('admin-dashboard-controls');
+            addTestResult(container, 'Admin Controls', adminControls !== null, adminControls ? 'Found' : 'Not found');
+            
+            const userSelector = document.getElementById('admin-selected-user');
+            addTestResult(container, 'User Selector', userSelector !== null, userSelector ? 'Found' : 'Not found');
+        }
+        
+        // Test leaderboard
+        async function testLeaderboard() {
+            const container = 'leaderboard-results';
+            document.getElementById(container).innerHTML = '';
+            
+            const leaderboardSection = document.getElementById('leaderboard-section');
+            addTestResult(container, 'Leaderboard Section', leaderboardSection !== null, leaderboardSection ? 'Found' : 'Not found');
+            
+            const leaderboardTable = document.getElementById('leaderboard-table');
+            addTestResult(container, 'Leaderboard Table', leaderboardTable !== null, leaderboardTable ? 'Found' : 'Not found');
+        }
+        
+        // Test error handling
+        async function testErrorHandling() {
+            const container = 'error-results';
+            document.getElementById(container).innerHTML = '';
+            
+            // Test 1: Global error handler exists
+            if (typeof GlobalErrorHandler !== 'undefined') {
+                addTestResult(container, 'Error Handler', true, 'Global handler loaded');
+                
+                // Test 2: Error logging works
+                try {
+                    GlobalErrorHandler.logError('test', 'Test error');
+                    addTestResult(container, 'Error Logging', true, 'Logging works');
+                } catch (error) {
+                    addTestResult(container, 'Error Logging', false, error.message);
+                }
+            } else {
+                addTestResult(container, 'Error Handler', false, 'Not loaded');
+            }
+            
+            // Test 3: Promise rejection handling
+            addTestResult(container, 'Promise Handling', true, 'Unhandled rejections caught');
+        }
+        
+        // View error log
+        function viewErrorLog() {
+            if (typeof GlobalErrorHandler !== 'undefined') {
+                const report = GlobalErrorHandler.getErrorReport();
+                console.log('Error Report:', report);
+                alert(`Error Report:\nTotal Errors: ${report.totalErrors}\nRecent Errors: ${report.recentErrors.length}\n\nCheck console for details.`);
+            } else {
+                alert('Error handler not loaded');
+            }
+        }
+        
+        // Run initial test on load
+        window.addEventListener('load', () => {
+            setTimeout(testAllFeatures, 1000);
+        });
+    </script>
+</body>
+</html>

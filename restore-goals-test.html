@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goal Restoration Test - Sales Prospecting Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .log-entry {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            padding: 2px 0;
+        }
+        .log-success { color: #10b981; }
+        .log-error { color: #ef4444; }
+        .log-warning { color: #f59e0b; }
+        .log-info { color: #3b82f6; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                <i class="fas fa-tools text-indigo-600 mr-3"></i>
+                Goal Restoration Tool
+            </h1>
+            <p class="text-gray-600">
+                This tool will restore the default goals that were accidentally deleted.
+            </p>
+        </div>
+
+        <!-- Current Status -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                Current System Status
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <div class="text-sm text-blue-600 font-medium">Total Goals</div>
+                    <div id="total-goals" class="text-2xl font-bold text-blue-800">Loading...</div>
+                </div>
+                <div class="bg-green-50 rounded-lg p-4">
+                    <div class="text-sm text-green-600 font-medium">Active Users</div>
+                    <div id="active-users" class="text-2xl font-bold text-green-800">Loading...</div>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-4">
+                    <div class="text-sm text-purple-600 font-medium">Role Goals</div>
+                    <div id="role-goals" class="text-2xl font-bold text-purple-800">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-play-circle text-green-600 mr-2"></i>
+                Restoration Actions
+            </h2>
+            
+            <div class="space-y-4">
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <button onclick="checkCurrentGoals()" 
+                            class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-search mr-2"></i>
+                        Check Current Goals
+                    </button>
+                    
+                    <button onclick="performGoalRestoration()" 
+                            class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                        <i class="fas fa-undo mr-2"></i>
+                        Restore Default Goals
+                    </button>
+                    
+                    <button onclick="verifyAllUserGoals()" 
+                            class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        Verify User Goals
+                    </button>
+                </div>
+                
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p class="text-sm text-yellow-800">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <strong>Note:</strong> The restoration process will only create missing goals. 
+                        Existing goals and individual overrides will be preserved.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Console Output -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-terminal text-gray-600 mr-2"></i>
+                Console Output
+            </h2>
+            
+            <div id="console-output" class="bg-gray-900 text-gray-100 rounded-lg p-4 h-96 overflow-y-auto">
+                <div class="log-entry log-info">System ready. Click a button above to start.</div>
+            </div>
+            
+            <div class="mt-4 flex justify-between">
+                <button onclick="clearConsole()" 
+                        class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors">
+                    <i class="fas fa-eraser mr-2"></i>
+                    Clear Console
+                </button>
+                
+                <button onclick="downloadLog()" 
+                        class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors">
+                    <i class="fas fa-download mr-2"></i>
+                    Download Log
+                </button>
+            </div>
+        </div>
+
+        <!-- Return to Main App -->
+        <div class="mt-6 text-center">
+            <a href="index.html" class="inline-flex items-center text-indigo-600 hover:text-indigo-800">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Return to Main Application
+            </a>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/goal-calculator.js"></script>
+    <script src="js/restore-goals.js"></script>
+    
+    <script>
+        let logContent = [];
+        
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadSystemStatus();
+        });
+        
+        // Load current system status
+        async function loadSystemStatus() {
+            try {
+                const goals = await API.getGoals();
+                const users = await API.getUsers();
+                
+                const totalGoals = goals.data ? goals.data.length : 0;
+                const activeUsers = users.data ? users.data.filter(u => u.isActive).length : 0;
+                const roleGoals = goals.data ? goals.data.filter(g => g.type === 'role').length : 0;
+                
+                document.getElementById('total-goals').textContent = totalGoals;
+                document.getElementById('active-users').textContent = activeUsers;
+                document.getElementById('role-goals').textContent = roleGoals;
+                
+                addLog(`System Status: ${totalGoals} goals, ${activeUsers} active users, ${roleGoals} role-based goals`, 'info');
+                
+            } catch (error) {
+                addLog('Error loading system status: ' + error.message, 'error');
+            }
+        }
+        
+        // Check current goals
+        async function checkCurrentGoals() {
+            addLog('Checking current goals in the system...', 'info');
+            
+            try {
+                const goals = await API.getGoals();
+                const goalData = goals.data || [];
+                
+                addLog(`Found ${goalData.length} total goals`, 'info');
+                
+                // Group by type
+                const roleGoals = goalData.filter(g => g.type === 'role');
+                const individualGoals = goalData.filter(g => g.type === 'individual');
+                const otherGoals = goalData.filter(g => g.type !== 'role' && g.type !== 'individual');
+                
+                addLog(`  - Role-based goals: ${roleGoals.length}`, 'info');
+                addLog(`  - Individual overrides: ${individualGoals.length}`, 'info');
+                if (otherGoals.length > 0) {
+                    addLog(`  - Other goals: ${otherGoals.length}`, 'warning');
+                }
+                
+                // Check for missing role goals
+                const requiredMetrics = {
+                    ae: ['calls_made', 'emails_sent', 'linkedin_messages', 'meetings_booked', 'pipeline_generated'],
+                    am: ['calls_made', 'emails_sent', 'accounts_targeted', 'meetings_booked', 'pipeline_generated']
+                };
+                
+                let missingGoals = [];
+                
+                for (const role of ['ae', 'am']) {
+                    for (const period of ['weekly', 'monthly']) {
+                        for (const metric of requiredMetrics[role]) {
+                            const exists = roleGoals.some(g => 
+                                g.role === role && 
+                                g.period === period && 
+                                g.metric === metric
+                            );
+                            
+                            if (!exists) {
+                                missingGoals.push(`${role}-${period}-${metric}`);
+                            }
+                        }
+                    }
+                }
+                
+                if (missingGoals.length > 0) {
+                    addLog(`Found ${missingGoals.length} missing role-based goals:`, 'warning');
+                    missingGoals.forEach(goal => addLog(`  - ${goal}`, 'warning'));
+                } else {
+                    addLog('All essential role-based goals are present ✅', 'success');
+                }
+                
+                await loadSystemStatus();
+                
+            } catch (error) {
+                addLog('Error checking goals: ' + error.message, 'error');
+            }
+        }
+        
+        // Perform goal restoration
+        async function performGoalRestoration() {
+            if (!confirm('This will restore all missing default goals. Continue?')) {
+                return;
+            }
+            
+            addLog('Starting goal restoration process...', 'info');
+            addLog('===============================', 'info');
+            
+            try {
+                // Override console.log to capture output
+                const originalLog = console.log;
+                const originalError = console.error;
+                
+                console.log = function(...args) {
+                    const message = args.join(' ');
+                    if (message.includes('✅')) {
+                        addLog(message, 'success');
+                    } else if (message.includes('❌')) {
+                        addLog(message, 'error');
+                    } else if (message.includes('⏭️')) {
+                        addLog(message, 'warning');
+                    } else {
+                        addLog(message, 'info');
+                    }
+                    originalLog.apply(console, args);
+                };
+                
+                console.error = function(...args) {
+                    addLog(args.join(' '), 'error');
+                    originalError.apply(console, args);
+                };
+                
+                // Perform restoration
+                const result = await restoreDefaultGoals();
+                
+                // Restore original console
+                console.log = originalLog;
+                console.error = originalError;
+                
+                addLog('===============================', 'info');
+                addLog('Goal restoration completed!', 'success');
+                addLog(`Summary: ${result.restoredCount} restored, ${result.skippedCount} skipped, ${result.errorCount} errors`, 'info');
+                
+                // Reload status
+                await loadSystemStatus();
+                
+            } catch (error) {
+                addLog('Error during restoration: ' + error.message, 'error');
+            }
+        }
+        
+        // Verify all user goals
+        async function verifyAllUserGoals() {
+            addLog('Verifying goals for all users...', 'info');
+            addLog('===============================', 'info');
+            
+            try {
+                // Override console.log to capture output
+                const originalLog = console.log;
+                
+                console.log = function(...args) {
+                    const message = args.join(' ');
+                    if (message.includes('✅')) {
+                        addLog(message, 'success');
+                    } else if (message.includes('❌')) {
+                        addLog(message, 'error');
+                    } else {
+                        addLog(message, 'info');
+                    }
+                    originalLog.apply(console, args);
+                };
+                
+                // Perform verification
+                const result = await verifyGoalsForAllUsers();
+                
+                // Restore original console
+                console.log = originalLog;
+                
+                addLog('===============================', 'info');
+                
+                if (result.usersWithoutGoals.length === 0) {
+                    addLog('All users have goals configured ✅', 'success');
+                } else {
+                    addLog(`Warning: ${result.usersWithoutGoals.length} users without goals`, 'warning');
+                }
+                
+            } catch (error) {
+                addLog('Error during verification: ' + error.message, 'error');
+            }
+        }
+        
+        // Add log entry
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}`;
+            logContent.push(logEntry);
+            
+            const consoleOutput = document.getElementById('console-output');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log-entry log-${type}`;
+            logDiv.textContent = logEntry;
+            consoleOutput.appendChild(logDiv);
+            
+            // Auto-scroll to bottom
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+        
+        // Clear console
+        function clearConsole() {
+            document.getElementById('console-output').innerHTML = '';
+            logContent = [];
+            addLog('Console cleared', 'info');
+        }
+        
+        // Download log
+        function downloadLog() {
+            const content = logContent.join('\n');
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `goal-restoration-log-${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            addLog('Log downloaded', 'success');
+        }
+    </script>
+</body>
+</html>

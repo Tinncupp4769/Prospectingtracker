@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASCM Sales Prospecting Tracker — Sign In</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <script src="js/theme.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#006B36',
+            accent: '#21C0DB',
+            dark: '#000002'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    :root{ --ascm-green:#006B36; --ascm-green-dark:#003726; --ascm-green-primary:#3BB14A; --ascm-green-light:#82C341; --ascm-white:#FFFFFF; --ascm-muted:#495965; }
+    /* Hide top header on login to match mockup */
+    header.brand-gradient{ display:none; }
+    /* Full-canvas background with subtle blur and diagonal growth arrow */
+    .login-canvas{ position:relative; min-height:100vh; display:grid; place-items:center; padding:4rem 1rem; background: linear-gradient(160deg, rgba(0,107,54,0.08) 0%, rgba(130,195,65,0.06) 100%), #f5f7f8; overflow:hidden; z-index:0; }
+    .login-canvas::before{ content:""; position:absolute; inset:0; background: radial-gradient(1200px 600px at 10% -10%, rgba(0,107,54,0.10), transparent 55%), radial-gradient(1000px 520px at 110% 10%, rgba(0,55,38,0.10), transparent 55%); filter: blur(0.2px); z-index:0; }
+    .login-canvas::after{ content:""; position:absolute; left:-30%; bottom:-22%; width:220%; height:68%; background: linear-gradient(90deg, rgba(130,195,65,0.55) 0%, rgba(59,177,74,0.55) 100%); box-shadow: 0 28px 68px rgba(0,0,0,0.20), 0 10px 28px rgba(0,0,0,0.12); transform: rotate(12deg); transform-origin:left bottom; clip-path: polygon(0% 54%, 84% 54%, 91% 40%, 100% 50%, 91% 78%, 84% 78%, 0% 78%); -webkit-clip-path: polygon(0% 54%, 84% 54%, 91% 40%, 100% 50%, 91% 78%, 84% 78%, 0% 78%); z-index:1; pointer-events:none; will-change: transform; }
+
+    /* Center wrapper */
+    .login-center{ width:100%; max-width: 520px; }
+
+    /* ASCM Card */
+    .ascm-card{ position:relative; z-index:2; background: linear-gradient(180deg, var(--ascm-green) 0%, var(--ascm-green-dark) 100%); border-radius:16px; padding: 28px; box-shadow: 0 18px 42px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.06); color: var(--ascm-white); }
+    .ascm-tag{ display:inline-block; padding:6px 10px; border:1px solid rgba(255,255,255,0.28); border-radius:6px; font-weight:800; letter-spacing:.04em; background: rgba(255,255,255,0.06); margin-bottom:14px; }
+    .ascm-headline{ font-size: 1.5rem; font-weight: 800; line-height:1.2; margin-bottom: 8px; }
+    .ascm-subtext{ font-size:.9rem; color: rgba(255,255,255,0.85); margin-bottom:16px; }
+
+    /* Inputs */
+    .ascm-input{ width:100%; background:#fff; border:1px solid #D1D5DB; border-radius:12px; padding:10px 12px; color:#0f172a; }
+    .ascm-input::placeholder{ color:#7a8794; }
+
+    /* Buttons */
+    .ascm-btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; border-radius:12px; padding: 12px 16px; font-weight:600; transition: transform .06s ease, box-shadow .12s ease, background .12s ease; }
+    .ascm-btn:active{ transform: translateY(1px); }
+    .ascm-btn-primary{ background: var(--ascm-green-primary); color:#fff; box-shadow: 0 6px 16px rgba(59,177,74,.28); }
+    .ascm-btn-primary:hover{ filter: brightness(.96); }
+    .ascm-btn-secondary{ background: var(--ascm-green-light); color:#fff; box-shadow: 0 6px 16px rgba(130,195,65,.25); }
+    .ascm-btn-secondary:hover{ filter: brightness(.97); }
+
+    /* Links */
+    .ascm-link{ color: var(--ascm-green); text-decoration:none; }
+    .ascm-link:hover{ text-decoration:underline; }
+
+    /* Spacing helpers */
+    .cta-divider{ height: 12px; }
+
+    /* Hide messaging column on login to center card */
+    .login-messaging{ display:none; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50">
+  <script src="js/shims.js"></script>
+  <!-- Top Banner -->
+  <header class="brand-gradient text-white">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-white/10 grid place-items-center">
+          <i class="fas fa-diagram-project text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-bold">ASCM Sales Prospecting Tracker</h1>
+          <p class="text-xs text-white/80">Multi-user activity tracking for sales performance</p>
+        </div>
+      </div>
+      
+    </div>
+  </header>
+
+  <!-- Optional Debug Banner (visible when ?debug=1) -->
+  <div id="debug-banner" class="hidden text-xs px-4 py-2 bg-yellow-100 text-yellow-900 border-b border-yellow-300"></div>
+
+  <!-- Login Canvas -->
+  <section class="login-canvas">
+    <div class="login-center">
+      <!-- Messaging hidden (reserved) -->
+      <div class="login-messaging"></div>
+
+      <!-- Auth Card (ASCM Gradient) -->
+      <div class="ascm-card">
+        <div class="ascm-tag">ASCM</div>
+        <h2 class="ascm-headline">Turn Outreach Into Outcomes</h2>
+        <p class="ascm-subtext">Track calls, emails, meetings, and visualize your sales prospecting efforts.</p>
+        <!-- Hidden stubs so existing JS switchTab() works safely -->
+        <div id="tab-signin" class="hidden" aria-selected="true"></div>
+        <div id="tab-create" class="hidden" aria-selected="false"></div>
+
+        <!-- Alerts -->
+        <div id="alert" class="hidden rounded-md p-3 text-sm bg-white/10 text-white"></div>
+
+        <!-- Sign In Form -->
+        <form id="form-signin" class="space-y-4" aria-labelledby="tab-signin">
+          <div>
+            <label for="si-email" class="block text-sm font-medium text-white">Email</label>
+            <input id="si-email" type="email" class="ascm-input" placeholder="Email" autocomplete="email" required>
+          </div>
+          <div>
+            <label for="si-password" class="block text-sm font-medium text-white">Password</label>
+            <input id="si-password" type="password" class="ascm-input" placeholder="Password" autocomplete="current-password" required>
+          </div>
+          <div class="flex items-center justify-between">
+            <label class="inline-flex items-center gap-2 text-sm text-white/90">
+              <input id="remember" type="checkbox" class="rounded border-slate-300"> Remember me
+            </label>
+            <a href="#" id="resetLink" class="ascm-link text-sm">Forgot Password?</a>
+          </div>
+          <button class="ascm-btn ascm-btn-primary w-full" type="submit">Sign In</button>
+        </form>
+        <div class="cta-divider"></div>
+        <div class="text-center text-white text-sm mb-2">Don't have an Account?</div>
+        <button type="button" id="cta-create" class="ascm-btn ascm-btn-secondary w-full" onclick="switchTab('create')">Create Account Now</button>
+
+        <!-- Create Account Form -->
+        <form id="form-create" class="space-y-4 hidden" aria-labelledby="tab-create">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="ca-name" class="block text-sm font-medium text-white">Full Name</label>
+              <input id="ca-name" type="text" class="ascm-input" required>
+            </div>
+            <div>
+              <label for="ca-email" class="block text-sm font-medium text-white">Email</label>
+              <input id="ca-email" type="email" class="ascm-input" autocomplete="email" required>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="ca-password" class="block text-sm font-medium text-white">Password</label>
+              <input id="ca-password" type="password" class="ascm-input" minlength="8" autocomplete="new-password" required>
+              <p class="text-xs text-white/80 mt-1">Min 8 chars. Use letters, numbers, and symbols.</p>
+            </div>
+            <div>
+              <label for="ca-password2" class="block text-sm font-medium text-white">Confirm Password</label>
+              <input id="ca-password2" type="password" class="ascm-input" autocomplete="new-password" required>
+            </div>
+          </div>
+          <button class="ascm-btn ascm-btn-secondary w-full" type="submit">Create Account Now</button>
+          <p class="text-xs text-white/80">By creating an account you agree to our Terms and Privacy Policy.</p>
+        </form>
+
+        <p class="mt-4 text-xs text-slate-500">Note: This demo uses client-side hashing and a browser-exposed RESTful Table API. For production, implement server-side authentication and secure password storage.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Reset Password Modal -->
+  <div id="resetModal" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="resetTitle" aria-hidden="true">
+    <div id="resetOverlay" class="absolute inset-0 bg-black/40"></div>
+    <div class="relative mx-auto mt-24 w-[90%] max-w-md rounded-xl bg-white shadow-lg">
+      <div class="flex items-center justify-between border-b border-slate-200 px-5 py-3">
+        <h3 id="resetTitle" class="text-base font-semibold text-slate-900">Reset your password</h3>
+        <button id="resetClose" class="text-slate-500 hover:text-slate-700" aria-label="Close reset password modal">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <form id="resetForm" class="px-5 py-4 space-y-4">
+        <p class="text-sm text-slate-600">Enter your account email and a new password. This demo updates your password immediately.</p>
+        <div>
+          <label for="reset-email" class="block text-sm font-medium text-slate-700">Email</label>
+          <input id="reset-email" type="email" class="input w-full rounded-md px-3 py-2" placeholder="you@company.com" autocomplete="email" required>
+        </div>
+        <div>
+          <label for="reset-password1" class="block text-sm font-medium text-slate-700">New Password</label>
+          <input id="reset-password1" type="password" class="input w-full rounded-md px-3 py-2" minlength="8" placeholder="••••••••" autocomplete="new-password" required>
+        </div>
+        <div>
+          <label for="reset-password2" class="block text-sm font-medium text-slate-700">Confirm New Password</label>
+          <input id="reset-password2" type="password" class="input w-full rounded-md px-3 py-2" minlength="8" placeholder="••••••••" autocomplete="new-password" required>
+          <p class="text-xs text-slate-500 mt-1">Min 8 characters. Use letters, numbers, and symbols.</p>
+        </div>
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" id="resetCancel" class="btn-outline rounded-md px-4 py-2">Cancel</button>
+          <button type="submit" class="btn-primary rounded-md px-4 py-2 font-semibold">Update Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="mt-auto border-t border-slate-200 bg-white">
+    <div class="max-w-6xl mx-auto px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <p class="text-sm footer">© 2025 ASCM — Sales Prospecting Tracker</p>
+      <nav class="text-sm flex gap-4">
+        <a href="#" class="link">Security</a>
+        <a href="#" class="link">Support</a>
+      </nav>
+    </div>
+  </footer>
+
+  <script>
+    // Capability note: We cannot build real server-side auth here. We'll use the RESTful Table API and localStorage for a demo-only flow.
+
+    const alertBox = document.getElementById('alert');
+    const signinForm = document.getElementById('form-signin');
+    const createForm = document.getElementById('form-create');
+
+    // Tabs
+    const tabSignIn = document.getElementById('tab-signin');
+    const tabCreate = document.getElementById('tab-create');
+    tabSignIn.addEventListener('click', () => switchTab('signin'));
+    tabCreate.addEventListener('click', () => switchTab('create'));
+    function switchTab(tab) {
+      if (tab === 'signin') {
+        tabSignIn.classList.add('bg-slate-100','font-medium');
+        tabCreate.classList.remove('bg-slate-100','font-medium');
+        signinForm.classList.remove('hidden');
+        createForm.classList.add('hidden');
+      } else {
+        tabCreate.classList.add('bg-slate-100','font-medium');
+        tabSignIn.classList.remove('bg-slate-100','font-medium');
+        createForm.classList.remove('hidden');
+        signinForm.classList.add('hidden');
+      }
+      clearAlert();
+    }
+
+    function showAlert(message, type='info') {
+      alertBox.className = 'alert rounded-md p-3 text-sm mt-2';
+      if (type === 'error') alertBox.classList.add('error');
+      if (type === 'warn') alertBox.classList.add('warn');
+      alertBox.textContent = message;
+      alertBox.classList.remove('hidden');
+    }
+    function clearAlert(){ alertBox.className = 'hidden'; alertBox.textContent = ''; }
+
+    async function sha256(str) {
+      const enc = new TextEncoder().encode(str);
+      const hash = await crypto.subtle.digest('SHA-256', enc);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // Admin auto-assignment (support multiple seed admin emails)
+    const ADMIN_SEEDS = ['bmiller@ascm.org','admin@example.com'];
+    function isAdminEmail(email){ const e=(email||'').toString().normalize('NFKC').trim().toLowerCase(); return ADMIN_SEEDS.includes(e); }
+
+    // Local Users Fallback (for environments where POST to tables/users is blocked)
+    function normEmail(e){ return (e||'').toString().normalize('NFKC').trim().toLowerCase(); }
+    function loadLocalUsers(){ try { return JSON.parse(localStorage.getItem('ascm_local_users')||'[]'); } catch { return []; } }
+    function saveLocalUsers(list){ try { localStorage.setItem('ascm_local_users', JSON.stringify(list)); } catch {} }
+    function findLocalUserByEmail(email){ const u = normEmail(email); return loadLocalUsers().find(x => normEmail(x.email)===u) || null; }
+    function upsertLocalUser(user){ const list = loadLocalUsers(); const i = list.findIndex(x=>x.id===user.id || normEmail(x.email)===normEmail(user.email)); if (i>=0) list[i]=user; else list.push(user); saveLocalUsers(list); return user; }
+    function genLocalId(email){ return 'local:'+ (Date.now().toString(36)) + ':' + Math.random().toString(36).slice(2,8); }
+    function isChallengeText(t=''){ const s=t.toLowerCase(); return s.includes('just a moment') || s.includes('<html') || s.includes('cloudflare'); }
+
+    // Robust API helpers to handle Cloudflare challenge blocks in production
+    async function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+    function looksLikeHtml(res){ const ct = (res.headers.get('content-type')||'').toLowerCase(); return ct.includes('text/html'); }
+
+    // Resolve API base prefix in published environments (tables/ vs /tables/)
+    let API_BASE = 'tables/';
+    const API_BASE_CANDIDATES = ['tables/','/tables/'];
+    function normalizePath(p){
+      if (/^https?:\/\//i.test(p)) return p;
+      if (p.startsWith('tables/')) return API_BASE + p.slice('tables/'.length);
+      if (p.startsWith('/tables/')) return API_BASE + p.slice('/tables/'.length);
+      return p;
+    }
+    async function resolveApiBase(){
+      for (const base of API_BASE_CANDIDATES){
+        try {
+          const r = await fetch(`${base}users?limit=1`, { cache:'no-store', credentials:'same-origin' });
+          const ct = (r.headers.get('content-type')||'').toLowerCase();
+          if (r.ok && ct.includes('application/json')) { API_BASE = base; break; }
+        } catch {}
+      }
+    }
+    // Kick off base detection (non-blocking)
+    resolveApiBase();
+
+    async function apiRequest(method, path, body, tries = 3) {
+      let lastText = '';
+      for (let i = 0; i < tries; i++) {
+        const url = normalizePath(path);
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: body != null ? JSON.stringify(body) : undefined,
+          cache: 'no-store',
+          credentials: 'same-origin'
+        });
+        if (res.status === 403 || res.status === 401 || looksLikeHtml(res)) {
+          try { lastText = await res.text(); } catch {}
+          // Warm up the Cloudflare challenge by hitting a safe GET, then retry
+          try { await fetch(normalizePath('tables/users?limit=1'), { cache: 'no-store', credentials: 'same-origin' }); } catch {}
+          await sleep(1200);
+          continue;
+        }
+        return res;
+      }
+      throw new Error(`API request blocked or failed after ${tries} attempts. ${lastText.slice(0,200)}`);
+    }
+    async function apiJson(method, path, body, tries = 3){
+      const res = await apiRequest(method, path, body, tries);
+      if (!res.ok) {
+        let t = '';
+        try { t = await res.text(); } catch {}
+        throw new Error(`${method} ${normalizePath(path)} failed: ${res.status} ${res.statusText} ${t.slice(0,200)}`);
+      }
+      return await res.json();
+    }
+
+    // Proactive warmup on load (best-effort)
+    (async function warmup(){ try { await fetch(normalizePath('tables/users?limit=1'), { cache: 'no-store', credentials: 'same-origin' }); } catch {} })();
+
+    async function createUser({name, email, password, role='ae'}) {
+      const password_hash = await sha256(password);
+      let roleFinal = role;
+      if (isAdminEmail(email)) roleFinal = 'admin';
+      const payload = { name, email: normEmail(email), password_hash, role: roleFinal, is_active: true, last_login: Date.now() };
+      try {
+        console.log('[Auth] Attempting POST tables/users with payload', payload);
+        const data = await apiJson('POST', 'tables/users', payload, 3);
+        return data;
+      } catch (err) {
+        const msg = (err && err.message) ? err.message : '';
+        console.warn('[Auth] POST tables/users failed → considering local fallback', msg);
+        // Fallback: if POST is blocked by CDN challenge, create a local-only user so login can proceed
+        if (/(403|405)|blocked|failed|method not allowed/i.test(msg) || isChallengeText(msg)) {
+          const localUser = { id: genLocalId(email), ...payload, _local: true };
+          upsertLocalUser(localUser);
+          return localUser;
+        }
+        throw err;
+      }
+    }
+
+    async function findUserByEmail(email) {
+      const normalized = normEmail(email);
+      // Check local store first for speed
+      const local = findLocalUserByEmail(normalized);
+      if (local) return local;
+      // 1) Server-side search (if supported)
+      try {
+        const res = await apiRequest('GET', `tables/users?search=${encodeURIComponent(normalized)}&limit=100`);
+        if (res.ok) {
+          const data = await res.json();
+          const found = (data.data || []).find(u => normEmail(u.email) === normalized);
+          if (found) return found;
+        }
+      } catch (e) { console.warn('Search users failed, will try list.', e); }
+      // 2) Try large list and filter client-side
+      try {
+        const data = await apiJson('GET', 'tables/users?limit=1000');
+        const found = (data.data || []).find(u => normEmail(u.email) === normalized);
+        if (found) return found;
+      } catch (e) { console.warn('List users failed, will try fallback.', e); }
+      // 3) Paged fallback
+      try {
+        let page = 1; const limit = 100; let total = 0; let seen = 0;
+        do {
+          const j = await apiJson('GET', `tables/users?page=${page}&limit=${limit}`);
+          total = j.total || 0; seen += (j.data||[]).length;
+          const foundP = (j.data || []).find(u => normEmail(u.email) === normalized);
+          if (foundP) return foundP;
+          page++;
+        } while (seen < total);
+      } catch (e) { console.error('Paged search failed', e); }
+      // 4) Local fallback if server unreachable
+      return findLocalUserByEmail(normalized);
+    }
+
+    async function updateLastLogin(id) {
+      if ((id||'').startsWith('local:')) {
+        const list = loadLocalUsers();
+        const i = list.findIndex(x=>x.id===id);
+        if (i>=0){ list[i].last_login = Date.now(); saveLocalUsers(list); }
+        return;
+      }
+      await apiJson('PATCH', `tables/users/${id}`, { last_login: Date.now() });
+    }
+
+    async function setPasswordHash(id, password_hash){
+      if ((id||'').startsWith('local:')) {
+        const list = loadLocalUsers();
+        const i = list.findIndex(x=>x.id===id);
+        if (i>=0){ list[i].password_hash = password_hash; saveLocalUsers(list); }
+        return;
+      }
+      await apiJson('PATCH', `tables/users/${id}`, { password_hash });
+    }
+
+    // Audit login attempts (especially for admin emails)
+    async function auditLoginAttempt(email, ok, reason){
+      try {
+        const payload = { action:'auth_login', details:{ email: normEmail(email), ok: !!ok, reason: reason||'' }, target_table:'users', target_id:'*', actor_email: normEmail(email), timestamp: Date.now() };
+        await apiJson('POST', 'tables/audit_logs', payload);
+      } catch (e) { /* no-op */ }
+    }
+
+    // Ensure admin role for designated email
+    async function ensureAdminRole(user){
+      try {
+        if (!user) return user;
+        const email = (user.email||'').toString().normalize('NFKC').trim().toLowerCase();
+        if (!isAdminEmail(email)) return user;
+        if ((user.role||'').toLowerCase() === 'admin') return user;
+        if ((user.id||'').startsWith('local:')){
+          const list = loadLocalUsers();
+          const i = list.findIndex(x=>x.id===user.id);
+          if (i>=0){ list[i].role = 'admin'; saveLocalUsers(list); user.role = 'admin'; }
+          return user;
+        }
+        const updated = await apiJson('PATCH', `tables/users/${user.id}`, { role: 'admin' });
+        user.role = (updated?.role)||'admin';
+        return user;
+      } catch(e){ return user; }
+    }
+
+    function setSession(user) {
+      const session = { id: user.id, email: user.email, name: user.name, role: user.role, ts: Date.now(), auth: (user && (user._local || (user.id||'').startsWith('local:'))) ? 'local' : 'server' };
+      localStorage.setItem('ascm_session', JSON.stringify(session));
+    }
+
+    function gotoApp() { window.location.href = 'app.html'; }
+
+    // Handle Create Account
+    createForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAlert();
+      const name = document.getElementById('ca-name').value.trim();
+      const email = document.getElementById('ca-email').value.trim();
+      const pwd = document.getElementById('ca-password').value;
+      const pwd2 = document.getElementById('ca-password2').value;
+
+      if (pwd !== pwd2) { showAlert('Passwords do not match', 'error'); return; }
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { showAlert('Enter a valid email address', 'error'); return; }
+
+      try {
+        const existing = await findUserByEmail(email);
+        if (existing) { showAlert('An account with this email already exists. Please sign in.', 'warn'); switchTab('signin'); return; }
+        // Make the very first created user an Admin for setup convenience
+        let role = 'ae';
+        try {
+          const metaRes = await fetch('tables/users?limit=1');
+          const meta = await metaRes.json();
+          if ((meta.total||0) === 0) role = 'admin';
+        } catch {}
+        const created = await createUser({ name, email, password: pwd, role });
+        if (created?._local) {
+          setSession(created);
+          showAlert('Account created locally due to server restrictions. Ask your admin to allow POST on /tables/users or review Deployment Diagnostics. Proceeding…', 'warn');
+          setTimeout(gotoApp, 900);
+          return;
+        }
+        // Some environments may not echo full record; refetch by email if id missing
+        let user = created;
+        if (!created?.id) {
+          user = await findUserByEmail(email);
+        }
+        if (!user?.id) throw new Error('User created but could not be retrieved.');
+        setSession(user);
+        gotoApp();
+      } catch (err) {
+        console.error(err);
+        const msg = (err && err.message) ? err.message : 'Could not create account. Please try again.';
+        // Handle likely duplicate scenario gracefully
+        if (/duplicate|exists|unique/i.test(msg)) {
+          showAlert('An account with this email already exists. Please sign in.', 'warn');
+          switchTab('signin');
+        } else {
+          showAlert(msg, 'error');
+        }
+      }
+    });
+
+    const ENABLE_AUTO_PROVISION = true; // Auto-create account on first sign-in if not found
+
+    // Handle Sign In
+    signinForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAlert();
+      const email = document.getElementById('si-email').value.trim();
+      if (!validateEmailFormat(email)) { showAlert('Enter a valid email address', 'error'); return; }
+      const pwd = document.getElementById('si-password').value;
+      try {
+        let user = await findUserByEmail(email);
+        if (!user) {
+          if (ENABLE_AUTO_PROVISION) {
+            try {
+              const created = await createUser({ name: email.split('@')[0], email, password: pwd, role: 'ae' });
+              if (created?._local) {
+                setSession(created);
+                showAlert('Account created locally due to server restrictions. Ask your admin to allow POST on /tables/users or review Deployment Diagnostics. Proceeding…', 'warn');
+                setTimeout(gotoApp, 900);
+                return;
+              }
+              user = created?.id ? created : await findUserByEmail(email);
+              if (!user) throw new Error('Auto-provision failed.');
+            } catch (e) {
+              console.error('Auto-provision failed', e);
+              showAlert('No account found and could not create one automatically. Please try Create Account.', 'error');
+              return;
+            }
+          } else {
+            showAlert('No account found for this email', 'error');
+            return;
+          }
+        }
+        if (user.is_active === false) { showAlert('Account is inactive. Contact an administrator.', 'warn'); return; }
+        // Normalize stored fields for consistency
+        user.email = (user.email||'').toString().trim().toLowerCase();
+        if (user.password_hash) user.password_hash = user.password_hash.toString().trim().toLowerCase();
+        const hash = await sha256(pwd);
+        let storedHash = (user.password_hash||'').toString().trim().toLowerCase();
+        let matchesHash = storedHash && storedHash === hash.toLowerCase();
+        // Backward-compat: if legacy plain-text password field exists, allow it for now
+        const matchesPlain = user.password && user.password === pwd;
+        // Admin recovery: accept bmiller@ascm.org or admin@example.com with password br53mi22 and migrate to SHA-256
+        const adminRecovery = isAdminEmail(user.email) && pwd === 'br53mi22';
+        if (!matchesHash && !matchesPlain && !adminRecovery) {
+          // Demo-only convenience: if no password set yet, set it now to what the user entered
+          if (!storedHash && !user.password) {
+            await setPasswordHash(user.id, hash);
+            user.password_hash = hash;
+            storedHash = hash;
+            matchesHash = true;
+          } else if (storedHash && storedHash.length < 64 && user.password && user.password === pwd) {
+            // Migrate legacy plain-text password to hash
+            await setPasswordHash(user.id, hash);
+            user.password_hash = hash;
+            matchesHash = true;
+          } else {
+            showAlert('Incorrect password', 'error');
+            if (isAdminEmail(user.email)) { try { await auditLoginAttempt(user.email, false, 'incorrect_password'); } catch {} }
+            return;
+          }
+        }
+        if (adminRecovery) { try { await setPasswordHash(user.id, hash); user.password_hash = hash; await auditLoginAttempt(user.email, true, 'admin_recovery_migrated'); } catch {} }
+        user = await ensureAdminRole(user);
+        await updateLastLogin(user.id);
+        setSession(user);
+        if (isAdminEmail(user.email)) { try { await auditLoginAttempt(user.email, true, 'signin_success'); } catch {} }
+        if (document.getElementById('remember').checked) localStorage.setItem('ascm_remember', user.email);
+        gotoApp();
+      } catch (err) {
+        console.error(err);
+        try {
+          const email = (document.getElementById('si-email')?.value||'').toString();
+          if (isAdminEmail(email)) await auditLoginAttempt(email, false, 'exception');
+        } catch {}
+        showAlert('Sign in failed. Please try again.', 'error');
+      }
+    });
+
+    // Prefill remembered email
+    (function(){
+      const remembered = localStorage.getItem('ascm_remember');
+      if (remembered) document.getElementById('si-email').value = remembered;
+      // Handle invite deep link: ?invite=1&email=&name=&temp=
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('invite') === '1') {
+        switchTab('create');
+        const email = params.get('email');
+        const name = params.get('name');
+        const temp = params.get('temp');
+        if (email) document.getElementById('ca-email').value = decodeURIComponent(email);
+        if (name) document.getElementById('ca-name').value = decodeURIComponent(name);
+        if (temp) {
+          document.getElementById('ca-password').value = temp;
+          document.getElementById('ca-password2').value = temp;
+        }
+      }
+    })();
+
+    // Email format validation helper (shared)
+    function validateEmailFormat(email){
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((email||'').trim());
+    }
+
+    // Enhance Sign In with email format validation
+    (function(){
+      const siEmail = document.getElementById('si-email');
+      if (siEmail) {
+        // no-op; inline validation occurs on submit
+      }
+    })();
+
+    // Reset Password Modal logic
+    (function(){
+      const resetLink = document.getElementById('resetLink');
+      const modal = document.getElementById('resetModal');
+      const overlay = document.getElementById('resetOverlay');
+      const btnClose = document.getElementById('resetClose');
+      const btnCancel = document.getElementById('resetCancel');
+      const form = document.getElementById('resetForm');
+      const emailInput = document.getElementById('reset-email');
+      const p1 = document.getElementById('reset-password1');
+      const p2 = document.getElementById('reset-password2');
+
+      function openResetModal(prefillEmail){
+        if (prefillEmail) emailInput.value = prefillEmail;
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        setTimeout(() => emailInput.focus(), 0);
+      }
+      function closeResetModal(){
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        form.reset();
+      }
+
+      if (resetLink) resetLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        const current = (document.getElementById('si-email')?.value || '').trim();
+        openResetModal(current);
+      });
+      if (overlay) overlay.addEventListener('click', closeResetModal);
+      if (btnClose) btnClose.addEventListener('click', closeResetModal);
+      if (btnCancel) btnCancel.addEventListener('click', closeResetModal);
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeResetModal(); });
+
+      if (form) form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearAlert();
+        const email = (emailInput.value||'').trim();
+        const new1 = p1.value;
+        const new2 = p2.value;
+        if (!validateEmailFormat(email)) { showAlert('Enter a valid email address', 'error'); return; }
+        if (new1.length < 8) { showAlert('Password must be at least 8 characters', 'error'); return; }
+        if (new1 !== new2) { showAlert('Passwords do not match', 'error'); return; }
+        try {
+          const user = await findUserByEmail(email);
+          if (!user) { showAlert('No account found for this email', 'error'); return; }
+          if (user.is_active === false) { showAlert('Account is inactive. Contact an administrator.', 'warn'); return; }
+          const hash = await sha256(new1);
+          await setPasswordHash(user.id, hash);
+          showAlert('Password updated. Please sign in with your new password.', 'info');
+          closeResetModal();
+          // Switch to Sign In and prefill email
+          if (typeof switchTab === 'function') switchTab('signin');
+          const siEmailEl = document.getElementById('si-email');
+          const siPwdEl = document.getElementById('si-password');
+          if (siEmailEl) siEmailEl.value = email;
+          if (siPwdEl) siPwdEl.value = '';
+        } catch (err) {
+          console.error(err);
+          showAlert('Could not update password. Please try again.', 'error');
+        }
+      });
+    })();
+    
+    /* --- Debug & Environment Instrumentation (enabled with ?debug=1) --- */
+    (function(){
+      const DEBUG = new URLSearchParams(location.search).get('debug') === '1';
+      if (!DEBUG) return;
+      const banner = document.getElementById('debug-banner');
+      function showBanner(msg){ if (banner){ banner.textContent = msg; banner.classList.remove('hidden'); } }
+
+      let API_BASE = 'tables/';
+      function normalizePath(p){
+        if (/^https?:\/\//i.test(p)) return p;
+        if (p.startsWith('tables/')) return API_BASE + p.slice('tables/'.length);
+        if (p.startsWith('/tables/')) return API_BASE + p.slice('/tables/'.length);
+        return p;
+      }
+      async function resolveApiBase(){
+        const candidates = ['tables/','/tables/'];
+        for (const base of candidates){
+          try {
+            const r = await fetch(`${base}users?limit=1`, { cache:'no-store', credentials:'same-origin' });
+            const ct = (r.headers.get('content-type')||'').toLowerCase();
+            if (r.ok && ct.includes('application/json')) { API_BASE = base; break; }
+          } catch {}
+        }
+        showBanner(`Env: ${location.origin}${location.pathname} | API Base: ${API_BASE} | Warmup: pending`);
+      }
+
+      const origApiRequest = window.apiRequest;
+      window.apiRequest = async function(method, path, body, tries=3){
+        let lastText = '';
+        for (let i=0;i<tries;i++){
+          const url = normalizePath(path);
+          console.log(`[DEBUG] API attempt ${i+1}/${tries}:`, method, url, body ? '(with body)' : '');
+          const res = await fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: body != null ? JSON.stringify(body) : undefined,
+            cache: 'no-store',
+            credentials: 'same-origin'
+          });
+          const ct = (res.headers.get('content-type')||'').toLowerCase();
+          console.log(`[DEBUG] → status ${res.status}, ct=${ct}`);
+          if (res.status === 403 || res.status === 401 || ct.includes('text/html')){
+            try { lastText = await res.text(); } catch {}
+            console.warn('[DEBUG] Block/HTML detected. Snippet:', (lastText||'').slice(0,120));
+            try {
+              const w = await fetch(normalizePath('tables/users?limit=1'), { cache:'no-store', credentials:'same-origin' });
+              console.log('[DEBUG] Warmup GET status:', w.status);
+            } catch(e){ console.warn('[DEBUG] Warmup GET failed', e); }
+            await new Promise(r=>setTimeout(r,1200));
+            continue;
+          }
+          return res;
+        }
+        throw new Error(`API request blocked or failed after ${tries} attempts. ${lastText.slice(0,200)}`);
+      };
+
+      // Override findUserByEmail to ensure normalized paths and rich logging
+      window.findUserByEmail = async function(email){
+        const normalized = (email||'').toString().normalize('NFKC').trim().toLowerCase();
+        console.log('[DEBUG] findUserByEmail →', normalized);
+        // 1) search
+        try {
+          const res = await window.apiRequest('GET', `tables/users?search=${encodeURIComponent(normalized)}&limit=100`);
+          if (res.ok){
+            const data = await res.json();
+            console.log('[DEBUG] search results:', (data.data||[]).length, 'total:', data.total);
+            const found = (data.data||[]).find(u => ((u.email||'')+'').normalize('NFKC').trim().toLowerCase() === normalized);
+            if (found) return found;
+          }
+        } catch(e){ console.warn('[DEBUG] Search users failed → fallback to list.', e); }
+        // 2) list 1000
+        try {
+          const data = await window.apiJson('GET', 'tables/users?limit=1000');
+          console.log('[DEBUG] list-1000 count:', (data.data||[]).length, 'total:', data.total);
+          const found = (data.data||[]).find(u => ((u.email||'')+'').normalize('NFKC').trim().toLowerCase() === normalized);
+          if (found) return found;
+        } catch(e){ console.warn('[DEBUG] List users failed → fallback to paged.', e); }
+        // 3) paged
+        try {
+          let page=1, limit=100, total=0, seen=0;
+          do {
+            const j = await window.apiJson('GET', `tables/users?page=${page}&limit=${limit}`);
+            total = j.total||0; seen += (j.data||[]).length;
+            console.log(`[DEBUG] page ${page} seen ${seen}/${total}`);
+            const foundP = (j.data||[]).find(u => ((u.email||'')+'').normalize('NFKC').trim().toLowerCase() === normalized);
+            if (foundP) return foundP;
+            page++;
+          } while (seen < total);
+        } catch(e){ console.error('[DEBUG] Paged search failed', e); }
+        console.warn('[DEBUG] No account found for', normalized);
+        return null;
+      };
+
+      // Resolve base and perform a banner warmup
+      (async function(){
+        await resolveApiBase();
+        try {
+          const r = await fetch(normalizePath('tables/users?limit=1'), { cache:'no-store', credentials:'same-origin' });
+          showBanner(`Env: ${location.origin}${location.pathname} | API Base: ${API_BASE} | Warmup: ${r.status}`);
+        } catch {
+          showBanner(`Env: ${location.origin}${location.pathname} | API Base: ${API_BASE} | Warmup: failed`);
+        }
+      })();
+    })();
+  </script>
+</body>
+</html>

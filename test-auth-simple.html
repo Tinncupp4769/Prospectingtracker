@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Auth Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <!-- Login Page -->
+    <div id="login-page" style="display: none;"></div>
+    
+    <!-- Main App -->
+    <div id="main-app" style="display: none;">
+        <div class="container mx-auto p-8">
+            <h1 class="text-3xl font-bold mb-4">Welcome to the App!</h1>
+            <p class="mb-4">You are successfully logged in.</p>
+            <div id="user-info" class="bg-white p-4 rounded shadow mb-4"></div>
+            <button onclick="Auth.logout()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">
+                Logout
+            </button>
+        </div>
+    </div>
+    
+    <!-- Status Display -->
+    <div id="status" class="fixed top-4 right-4 bg-white p-4 rounded shadow-lg">
+        <h3 class="font-bold mb-2">Debug Status:</h3>
+        <div id="debug-info"></div>
+    </div>
+    
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/auth-setup.js"></script>
+    
+    <script>
+        function updateDebugInfo(message) {
+            const debugDiv = document.getElementById('debug-info');
+            const timestamp = new Date().toLocaleTimeString();
+            debugDiv.innerHTML += `<div class="text-xs">[${timestamp}] ${message}</div>`;
+        }
+        
+        // Override showAlert if not defined
+        if (typeof showAlert === 'undefined') {
+            window.showAlert = function(message, type) {
+                console.log(`Alert [${type}]: ${message}`);
+                updateDebugInfo(`Alert [${type}]: ${message}`);
+            };
+        }
+        
+        document.addEventListener('DOMContentLoaded', async function() {
+            updateDebugInfo('DOM loaded');
+            
+            // Wait for API to be ready
+            if (typeof API === 'undefined') {
+                updateDebugInfo('ERROR: API not loaded');
+                return;
+            }
+            
+            updateDebugInfo('API loaded');
+            
+            // Setup default users
+            try {
+                await setupDefaultUsers();
+                updateDebugInfo('Default users setup complete');
+            } catch (error) {
+                updateDebugInfo('Error setting up users: ' + error.message);
+            }
+            
+            // Create login page
+            updateDebugInfo('Creating login page...');
+            Auth.createLoginPage();
+            
+            // Initialize auth
+            updateDebugInfo('Initializing auth...');
+            Auth.init();
+            
+            // Check authentication
+            updateDebugInfo('Checking authentication...');
+            const isAuth = Auth.isAuthenticated();
+            updateDebugInfo('Is authenticated: ' + isAuth);
+            
+            if (isAuth) {
+                updateDebugInfo('Showing main app...');
+                Auth.showMainApp();
+                
+                const session = Auth.getSession();
+                if (session && session.user) {
+                    document.getElementById('user-info').innerHTML = `
+                        <p><strong>Name:</strong> ${session.user.name}</p>
+                        <p><strong>Email:</strong> ${session.user.email}</p>
+                        <p><strong>Role:</strong> ${session.user.role}</p>
+                        <p><strong>Platform Role:</strong> ${session.user.platformRole}</p>
+                    `;
+                }
+            } else {
+                updateDebugInfo('Showing login page...');
+                Auth.showLoginPage();
+            }
+            
+            updateDebugInfo('Initialization complete');
+        });
+        
+        // Make handleLogin available globally
+        window.handleLogin = async function(event) {
+            event.preventDefault();
+            updateDebugInfo('Login attempt...');
+            
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            const result = await Auth.login(email, password);
+            
+            if (result.success) {
+                updateDebugInfo('Login successful!');
+                Auth.showMainApp();
+                
+                const session = Auth.getSession();
+                if (session && session.user) {
+                    document.getElementById('user-info').innerHTML = `
+                        <p><strong>Name:</strong> ${session.user.name}</p>
+                        <p><strong>Email:</strong> ${session.user.email}</p>
+                        <p><strong>Role:</strong> ${session.user.role}</p>
+                        <p><strong>Platform Role:</strong> ${session.user.platformRole}</p>
+                    `;
+                }
+            } else {
+                updateDebugInfo('Login failed: ' + result.error);
+            }
+            
+            return false;
+        };
+        
+        // Toggle password visibility
+        window.togglePasswordVisibility = function(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = event.currentTarget.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        };
+        
+        // Show forgot password
+        window.showForgotPassword = function() {
+            alert('Please contact your administrator to reset your password.');
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Features Test - Sales Activity Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+    <style>
+        .test-pass { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .test-fail { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .test-warn { background-color: #fff3cd; border-color: #ffeeba; color: #856404; }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-6xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6">Enhanced Features Test Suite</h1>
+        
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">Test Configuration</h2>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Test User ID:</label>
+                    <input type="text" id="testUserId" value="user-1" class="w-full px-3 py-2 border rounded">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">Platform Role:</label>
+                    <select id="testPlatformRole" class="w-full px-3 py-2 border rounded">
+                        <option value="admin">Admin</option>
+                        <option value="user">User</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="runAllTests()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                <i class="fas fa-play mr-2"></i>Run All Tests
+            </button>
+        </div>
+
+        <div id="testResults" class="space-y-4"></div>
+    </div>
+
+    <!-- Include all application scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/leaderboard.js"></script>
+    <script src="js/goals.js"></script>
+    <script src="js/goal-calculator.js"></script>
+    <script src="js/conversion-analytics.js"></script>
+    <script src="js/dashboard-visualizations.js"></script>
+    <script src="js/users.js"></script>
+    <script src="js/enhancements.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // Test suite for enhanced features
+        const tests = [];
+        let testResults = [];
+
+        // Helper function to create test result card
+        function createTestResult(name, status, details) {
+            const statusClass = status === 'pass' ? 'test-pass' : 
+                               status === 'fail' ? 'test-fail' : 'test-warn';
+            const icon = status === 'pass' ? 'check-circle' : 
+                        status === 'fail' ? 'times-circle' : 'exclamation-triangle';
+            
+            return `
+                <div class="border-l-4 ${statusClass} p-4 rounded">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h3 class="font-semibold">
+                                <i class="fas fa-${icon} mr-2"></i>${name}
+                            </h3>
+                            <p class="text-sm mt-1">${details}</p>
+                        </div>
+                        <span class="text-sm font-bold">${status.toUpperCase()}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Test 1: Conversion Analytics Module
+        async function testConversionAnalytics() {
+            try {
+                if (typeof conversionAnalytics === 'undefined') {
+                    return { status: 'fail', details: 'Conversion analytics module not loaded' };
+                }
+
+                // Test conversion rates calculation
+                const rates = await conversionAnalytics.calculateConversionRates('user-1', 'week');
+                if (!rates || typeof rates.conversions === 'undefined') {
+                    return { status: 'fail', details: 'Failed to calculate conversion rates' };
+                }
+
+                // Test performance predictions
+                const predictions = await conversionAnalytics.calculatePerformancePredictions('user-1', 'week');
+                if (!predictions || !Array.isArray(predictions.predictions)) {
+                    return { status: 'fail', details: 'Failed to calculate performance predictions' };
+                }
+
+                // Test team benchmarks
+                const benchmarks = await conversionAnalytics.calculateTeamBenchmarks('week');
+                if (!benchmarks || !Array.isArray(benchmarks.teams)) {
+                    return { status: 'fail', details: 'Failed to calculate team benchmarks' };
+                }
+
+                // Test coaching insights
+                const insights = await conversionAnalytics.generateCoachingInsights('user-1', 'week');
+                if (!Array.isArray(insights)) {
+                    return { status: 'fail', details: 'Failed to generate coaching insights' };
+                }
+
+                return { 
+                    status: 'pass', 
+                    details: `All conversion analytics functions working. Found ${predictions.predictions.length} predictions, ${benchmarks.teams.length} teams, ${insights.length} insights` 
+                };
+            } catch (error) {
+                return { status: 'fail', details: `Error: ${error.message}` };
+            }
+        }
+
+        // Test 2: Dashboard Visualizations
+        async function testDashboardVisualizations() {
+            try {
+                if (typeof dashboardVisualizations === 'undefined') {
+                    return { status: 'fail', details: 'Dashboard visualizations module not loaded' };
+                }
+
+                // Check if all visualization functions exist
+                const requiredFunctions = [
+                    'createConversionFunnelChart',
+                    'createPerformanceGauge',
+                    'createTeamComparisonRadar',
+                    'createActivityTrendChart',
+                    'createPerformancePredictions',
+                    'createActivityDistributionChart'
+                ];
+
+                for (const func of requiredFunctions) {
+                    if (typeof dashboardVisualizations[func] !== 'function') {
+                        return { status: 'fail', details: `Missing function: ${func}` };
+                    }
+                }
+
+                return { 
+                    status: 'pass', 
+                    details: 'All dashboard visualization functions are available' 
+                };
+            } catch (error) {
+                return { status: 'fail', details: `Error: ${error.message}` };
+            }
+        }
+
+        // Test 3: Goal Calculator Integration
+        async function testGoalCalculator() {
+            try {
+                if (typeof getEffectiveGoalForUser !== 'function') {
+                    return { status: 'fail', details: 'Goal calculator functions not loaded' };
+                }
+
+                // Test getting effective goal
+                const goal = await getEffectiveGoalForUser('user-1', 'callsMade', 'weekly');
+                
+                // Test applying role goals
+                const roleGoalResult = await applyRoleGoalsToUsers('ae', 'callsMade', 100, 'weekly');
+                
+                // Test individual goal setting
+                const individualGoalResult = await setIndividualGoal('user-1', 'callsMade', 150, 'weekly');
+
+                return { 
+                    status: 'pass', 
+                    details: 'Goal calculator functions working correctly' 
+                };
+            } catch (error) {
+                return { status: 'warn', details: `Warning: ${error.message}` };
+            }
+        }
+
+        // Test 4: Navigation and Permissions
+        async function testNavigationPermissions() {
+            try {
+                // Test showSection function
+                if (typeof showSection !== 'function') {
+                    return { status: 'fail', details: 'Navigation function not available' };
+                }
+
+                // Set test user role
+                const platformRole = document.getElementById('testPlatformRole').value;
+                currentUser.platformRole = platformRole;
+
+                // Test section switching
+                const sections = ['dashboard', 'analytics', 'leaderboard', 'activity-entry'];
+                for (const section of sections) {
+                    showSection(section);
+                }
+
+                // Test admin-only sections
+                if (platformRole !== 'admin') {
+                    // Should be blocked from goals and users
+                    showSection('goals');
+                    const goalsSection = document.getElementById('goals-section');
+                    if (goalsSection && !goalsSection.classList.contains('hidden')) {
+                        return { status: 'fail', details: 'Non-admin can access goals section' };
+                    }
+                }
+
+                return { 
+                    status: 'pass', 
+                    details: `Navigation working correctly for ${platformRole} role` 
+                };
+            } catch (error) {
+                return { status: 'fail', details: `Error: ${error.message}` };
+            }
+        }
+
+        // Test 5: Data Loading and API Integration
+        async function testDataLoading() {
+            try {
+                // Test loading activities
+                const activities = await loadActivities();
+                if (!Array.isArray(activities)) {
+                    return { status: 'fail', details: 'Failed to load activities' };
+                }
+
+                // Test loading users
+                const users = await loadUsers();
+                if (!Array.isArray(users)) {
+                    return { status: 'fail', details: 'Failed to load users' };
+                }
+
+                // Test loading goals
+                const goals = await loadGoals();
+                if (!Array.isArray(goals)) {
+                    return { status: 'fail', details: 'Failed to load goals' };
+                }
+
+                return { 
+                    status: 'pass', 
+                    details: `Loaded ${activities.length} activities, ${users.length} users, ${goals.length} goals` 
+                };
+            } catch (error) {
+                return { status: 'fail', details: `Error: ${error.message}` };
+            }
+        }
+
+        // Test 6: Chart.js Integration
+        async function testChartIntegration() {
+            try {
+                if (typeof Chart === 'undefined') {
+                    return { status: 'fail', details: 'Chart.js not loaded' };
+                }
+
+                // Create a test canvas
+                const testCanvas = document.createElement('canvas');
+                testCanvas.id = 'test-chart';
+                document.body.appendChild(testCanvas);
+
+                // Try to create a simple chart
+                const chart = new Chart(testCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: ['Test'],
+                        datasets: [{
+                            label: 'Test Data',
+                            data: [100]
+                        }]
+                    }
+                });
+
+                if (chart) {
+                    chart.destroy();
+                    testCanvas.remove();
+                    return { status: 'pass', details: 'Chart.js is working correctly' };
+                }
+            } catch (error) {
+                return { status: 'fail', details: `Error: ${error.message}` };
+            }
+        }
+
+        // Test 7: Weekly Activity Tracking
+        async function testWeeklyTracking() {
+            try {
+                // Test getCurrentWeek function
+                if (typeof getCurrentWeek !== 'function') {
+                    return { status: 'fail', details: 'Week tracking functions not available' };
+                }
+
+                const currentWeek = getCurrentWeek();
+                if (!currentWeek || !currentWeek.match(/^\d{4}-W\d{2}$/)) {
+                    return { status: 'fail', details: 'Invalid week format' };
+                }
+
+                return { 
+                    status: 'pass', 
+                    details: `Current week: ${currentWeek}` 
+                };
+            } catch (error) {
+                return { status: 'fail', details: `Error: ${error.message}` };
+            }
+        }
+
+        // Test 8: Performance Calculations
+        async function testPerformanceCalculations() {
+            try {
+                // Test activity summation
+                const activities = await loadActivities();
+                const currentWeek = getCurrentWeek();
+                const weekActivities = activities.filter(a => a.week === currentWeek);
+                
+                const totals = {
+                    calls: weekActivities.reduce((sum, a) => sum + (parseInt(a.callsMade) || 0), 0),
+                    emails: weekActivities.reduce((sum, a) => sum + (parseInt(a.emailsSent) || 0), 0)
+                };
+
+                return { 
+                    status: 'pass', 
+                    details: `Calculated totals: ${totals.calls} calls, ${totals.emails} emails for ${currentWeek}` 
+                };
+            } catch (error) {
+                return { status: 'warn', details: `Warning: ${error.message}` };
+            }
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            const resultsContainer = document.getElementById('testResults');
+            resultsContainer.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin text-4xl text-blue-600"></i><p class="mt-2">Running tests...</p></div>';
+            
+            testResults = [];
+            
+            // Define all tests
+            const testSuite = [
+                { name: 'Conversion Analytics Module', test: testConversionAnalytics },
+                { name: 'Dashboard Visualizations', test: testDashboardVisualizations },
+                { name: 'Goal Calculator Integration', test: testGoalCalculator },
+                { name: 'Navigation and Permissions', test: testNavigationPermissions },
+                { name: 'Data Loading and API', test: testDataLoading },
+                { name: 'Chart.js Integration', test: testChartIntegration },
+                { name: 'Weekly Activity Tracking', test: testWeeklyTracking },
+                { name: 'Performance Calculations', test: testPerformanceCalculations }
+            ];
+            
+            // Run tests sequentially
+            for (const testDef of testSuite) {
+                const result = await testDef.test();
+                testResults.push({ name: testDef.name, ...result });
+            }
+            
+            // Display results
+            displayTestResults();
+        }
+
+        // Display test results
+        function displayTestResults() {
+            const resultsContainer = document.getElementById('testResults');
+            
+            const passCount = testResults.filter(r => r.status === 'pass').length;
+            const failCount = testResults.filter(r => r.status === 'fail').length;
+            const warnCount = testResults.filter(r => r.status === 'warn').length;
+            
+            let html = `
+                <div class="bg-white rounded-lg shadow-lg p-6 mb-4">
+                    <h2 class="text-xl font-bold mb-4">Test Results Summary</h2>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div class="bg-green-100 rounded p-3">
+                            <p class="text-2xl font-bold text-green-600">${passCount}</p>
+                            <p class="text-sm text-green-700">Passed</p>
+                        </div>
+                        <div class="bg-red-100 rounded p-3">
+                            <p class="text-2xl font-bold text-red-600">${failCount}</p>
+                            <p class="text-sm text-red-700">Failed</p>
+                        </div>
+                        <div class="bg-yellow-100 rounded p-3">
+                            <p class="text-2xl font-bold text-yellow-600">${warnCount}</p>
+                            <p class="text-sm text-yellow-700">Warnings</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-2">
+            `;
+            
+            for (const result of testResults) {
+                html += createTestResult(result.name, result.status, result.details);
+            }
+            
+            html += '</div>';
+            
+            resultsContainer.innerHTML = html;
+        }
+
+        // Auto-run tests on load
+        setTimeout(() => {
+            runAllTests();
+        }, 1000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Admin Reset - Sales Prospecting Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .success-bg { background-color: #d4edda; }
+        .error-bg { background-color: #f8d7da; }
+        .warning-bg { background-color: #fff3cd; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex items-center justify-center px-4">
+        <div class="max-w-2xl w-full">
+            <!-- Emergency Header -->
+            <div class="bg-red-600 text-white rounded-t-lg p-4 text-center">
+                <i class="fas fa-exclamation-triangle text-3xl mb-2"></i>
+                <h1 class="text-2xl font-bold">Emergency Administrator Access Recovery</h1>
+                <p class="text-sm mt-2">This tool allows you to regain admin access when locked out</p>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="bg-white rounded-b-lg shadow-xl p-8">
+                <!-- Status Alert -->
+                <div id="status-alert" class="hidden mb-6 p-4 rounded-lg">
+                    <div class="flex items-center">
+                        <i id="status-icon" class="fas fa-info-circle mr-3"></i>
+                        <div id="status-message"></div>
+                    </div>
+                </div>
+
+                <!-- Step 1: Find Admin Account -->
+                <div class="mb-8 p-6 bg-gray-50 rounded-lg">
+                    <h2 class="text-xl font-semibold mb-4">
+                        <span class="bg-blue-600 text-white px-3 py-1 rounded-full text-sm mr-2">1</span>
+                        Find Administrator Account
+                    </h2>
+                    <p class="text-gray-600 mb-4">First, let's identify the administrator account in the system.</p>
+                    <button onclick="findAdminAccount()" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-search mr-2"></i>Find Admin Account
+                    </button>
+                    <div id="admin-info" class="mt-4 hidden">
+                        <div class="bg-white p-4 rounded border border-gray-200">
+                            <h3 class="font-semibold mb-2">Administrator Account Found:</h3>
+                            <div id="admin-details"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Reset Password -->
+                <div class="mb-8 p-6 bg-gray-50 rounded-lg">
+                    <h2 class="text-xl font-semibold mb-4">
+                        <span class="bg-green-600 text-white px-3 py-1 rounded-full text-sm mr-2">2</span>
+                        Reset Administrator Password
+                    </h2>
+                    <p class="text-gray-600 mb-4">Reset the admin password to regain access.</p>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">New Password:</label>
+                            <div class="flex space-x-2">
+                                <input type="password" id="new-password" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Enter new password">
+                                <button onclick="togglePassword('new-password')" class="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password:</label>
+                            <div class="flex space-x-2">
+                                <input type="password" id="confirm-password" class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Confirm new password">
+                                <button onclick="togglePassword('confirm-password')" class="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-4">
+                            <button onclick="resetAdminPassword()" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors">
+                                <i class="fas fa-key mr-2"></i>Reset Password
+                            </button>
+                            <button onclick="setDefaultPassword()" class="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors">
+                                <i class="fas fa-undo mr-2"></i>Use Default (admin123)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Create Emergency Session -->
+                <div class="mb-8 p-6 bg-gray-50 rounded-lg">
+                    <h2 class="text-xl font-semibold mb-4">
+                        <span class="bg-purple-600 text-white px-3 py-1 rounded-full text-sm mr-2">3</span>
+                        Create Emergency Login Session
+                    </h2>
+                    <p class="text-gray-600 mb-4">Bypass login and create a direct admin session.</p>
+                    <button onclick="createEmergencySession()" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Create Emergency Session & Login
+                    </button>
+                </div>
+
+                <!-- Alternative: Create New Admin -->
+                <div class="p-6 bg-yellow-50 rounded-lg border-2 border-yellow-200">
+                    <h2 class="text-xl font-semibold mb-4 text-yellow-800">
+                        <i class="fas fa-user-plus mr-2"></i>Alternative: Create New Administrator
+                    </h2>
+                    <p class="text-gray-700 mb-4">If the existing admin account is corrupted, create a new one.</p>
+                    
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Name:</label>
+                                <input type="text" id="new-admin-name" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="Admin Name" value="System Administrator">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Email:</label>
+                                <input type="email" id="new-admin-email" class="w-full px-3 py-2 border border-gray-300 rounded-lg" placeholder="admin@company.com" value="admin@example.com">
+                            </div>
+                        </div>
+                        
+                        <button onclick="createNewAdmin()" class="px-6 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors">
+                            <i class="fas fa-user-shield mr-2"></i>Create New Administrator Account
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Instructions -->
+                <div class="mt-8 p-4 bg-blue-50 rounded-lg">
+                    <h3 class="font-semibold text-blue-900 mb-2">
+                        <i class="fas fa-info-circle mr-2"></i>Instructions:
+                    </h3>
+                    <ol class="list-decimal list-inside text-sm text-blue-800 space-y-1">
+                        <li>Click "Find Admin Account" to locate the administrator</li>
+                        <li>Reset the password using a new password or the default</li>
+                        <li>Click "Create Emergency Session" to bypass login and access the app</li>
+                        <li>Alternatively, create a new administrator account if needed</li>
+                    </ol>
+                </div>
+
+                <!-- Return to App -->
+                <div class="mt-6 text-center">
+                    <a href="index.html" class="inline-flex items-center text-blue-600 hover:text-blue-800">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Return to Application
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    
+    <script>
+        let adminUser = null;
+        
+        // Show status message
+        function showStatus(message, type = 'info') {
+            const alert = document.getElementById('status-alert');
+            const icon = document.getElementById('status-icon');
+            const msg = document.getElementById('status-message');
+            
+            alert.classList.remove('hidden', 'success-bg', 'error-bg', 'warning-bg');
+            
+            switch(type) {
+                case 'success':
+                    alert.classList.add('success-bg');
+                    icon.className = 'fas fa-check-circle mr-3 text-green-700';
+                    break;
+                case 'error':
+                    alert.classList.add('error-bg');
+                    icon.className = 'fas fa-times-circle mr-3 text-red-700';
+                    break;
+                case 'warning':
+                    alert.classList.add('warning-bg');
+                    icon.className = 'fas fa-exclamation-triangle mr-3 text-yellow-700';
+                    break;
+                default:
+                    icon.className = 'fas fa-info-circle mr-3 text-blue-700';
+            }
+            
+            msg.textContent = message;
+        }
+        
+        // Find admin account
+        async function findAdminAccount() {
+            try {
+                showStatus('Searching for administrator account...', 'info');
+                
+                const response = await API.getUsers();
+                const users = response.data || [];
+                
+                // Find admin user (platformRole = 'admin' or email contains 'admin')
+                adminUser = users.find(u => 
+                    u.platformRole === 'admin' || 
+                    u.email.toLowerCase().includes('admin')
+                );
+                
+                if (adminUser) {
+                    const adminInfo = document.getElementById('admin-info');
+                    const adminDetails = document.getElementById('admin-details');
+                    
+                    adminDetails.innerHTML = `
+                        <p><strong>Name:</strong> ${adminUser.name}</p>
+                        <p><strong>Email:</strong> ${adminUser.email}</p>
+                        <p><strong>ID:</strong> ${adminUser.id}</p>
+                        <p><strong>Platform Role:</strong> ${adminUser.platformRole}</p>
+                        <p><strong>Status:</strong> ${adminUser.isActive ? 'Active' : 'Inactive'}</p>
+                        <p><strong>Current Password:</strong> ${adminUser.password || 'admin123 (default)'}</p>
+                    `;
+                    
+                    adminInfo.classList.remove('hidden');
+                    showStatus('Administrator account found!', 'success');
+                } else {
+                    showStatus('No administrator account found. Create a new one below.', 'warning');
+                }
+                
+            } catch (error) {
+                showStatus('Error finding admin account: ' + error.message, 'error');
+            }
+        }
+        
+        // Toggle password visibility
+        function togglePassword(fieldId) {
+            const field = document.getElementById(fieldId);
+            field.type = field.type === 'password' ? 'text' : 'password';
+        }
+        
+        // Reset admin password
+        async function resetAdminPassword() {
+            const newPassword = document.getElementById('new-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            if (!adminUser) {
+                showStatus('Please find the admin account first', 'error');
+                return;
+            }
+            
+            if (!newPassword) {
+                showStatus('Please enter a new password', 'error');
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showStatus('Passwords do not match', 'error');
+                return;
+            }
+            
+            try {
+                showStatus('Resetting administrator password...', 'info');
+                
+                // Update the admin user's password
+                adminUser.password = newPassword;
+                await API.updateUser(adminUser.id, adminUser);
+                
+                showStatus(`Password successfully reset to: ${newPassword}`, 'success');
+                
+                // Clear password fields
+                document.getElementById('new-password').value = '';
+                document.getElementById('confirm-password').value = '';
+                
+            } catch (error) {
+                showStatus('Error resetting password: ' + error.message, 'error');
+            }
+        }
+        
+        // Set default password
+        async function setDefaultPassword() {
+            if (!adminUser) {
+                showStatus('Please find the admin account first', 'error');
+                return;
+            }
+            
+            try {
+                showStatus('Setting default password...', 'info');
+                
+                // Update the admin user's password to default
+                adminUser.password = 'admin123';
+                await API.updateUser(adminUser.id, adminUser);
+                
+                showStatus('Password successfully reset to: admin123', 'success');
+                
+            } catch (error) {
+                showStatus('Error setting default password: ' + error.message, 'error');
+            }
+        }
+        
+        // Create emergency session
+        async function createEmergencySession() {
+            if (!adminUser) {
+                showStatus('Please find the admin account first', 'error');
+                return;
+            }
+            
+            try {
+                showStatus('Creating emergency session...', 'info');
+                
+                // Create a session directly in localStorage
+                const session = {
+                    user: {
+                        id: adminUser.id,
+                        name: adminUser.name,
+                        email: adminUser.email,
+                        role: adminUser.role || 'admin',
+                        platformRole: 'admin',
+                        team: adminUser.team || 'Management'
+                    },
+                    loginTime: Date.now(),
+                    lastActivity: Date.now(),
+                    expiresAt: Date.now() + (30 * 60 * 1000) // 30 minutes
+                };
+                
+                // Set the session
+                localStorage.setItem('spt_session', JSON.stringify(session));
+                
+                showStatus('Emergency session created! Redirecting to application...', 'success');
+                
+                // Redirect to main app after 2 seconds
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+                
+            } catch (error) {
+                showStatus('Error creating session: ' + error.message, 'error');
+            }
+        }
+        
+        // Create new admin account
+        async function createNewAdmin() {
+            const name = document.getElementById('new-admin-name').value;
+            const email = document.getElementById('new-admin-email').value;
+            
+            if (!name || !email) {
+                showStatus('Please enter name and email for new admin', 'error');
+                return;
+            }
+            
+            try {
+                showStatus('Creating new administrator account...', 'info');
+                
+                // Create new admin user
+                const newAdmin = {
+                    name: name,
+                    email: email,
+                    username: email.split('@')[0],
+                    password: 'admin123',
+                    role: 'admin',
+                    platformRole: 'admin',
+                    team: 'Management',
+                    isActive: true,
+                    status: 'active',
+                    createdAt: new Date().toISOString()
+                };
+                
+                const result = await API.createUser(newAdmin);
+                
+                if (result && result.id) {
+                    adminUser = result;
+                    showStatus(`New administrator created! Email: ${email}, Password: admin123`, 'success');
+                    
+                    // Update the admin info display
+                    const adminInfo = document.getElementById('admin-info');
+                    const adminDetails = document.getElementById('admin-details');
+                    
+                    adminDetails.innerHTML = `
+                        <p><strong>Name:</strong> ${adminUser.name}</p>
+                        <p><strong>Email:</strong> ${adminUser.email}</p>
+                        <p><strong>ID:</strong> ${adminUser.id}</p>
+                        <p><strong>Platform Role:</strong> admin</p>
+                        <p><strong>Status:</strong> Active</p>
+                        <p><strong>Password:</strong> admin123</p>
+                    `;
+                    
+                    adminInfo.classList.remove('hidden');
+                } else {
+                    showStatus('Failed to create administrator account', 'error');
+                }
+                
+            } catch (error) {
+                showStatus('Error creating admin: ' + error.message, 'error');
+            }
+        }
+        
+        // Auto-find admin on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(findAdminAccount, 500);
+        });
+    </script>
+</body>
+</html>

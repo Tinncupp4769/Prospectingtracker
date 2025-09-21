@@ -1,0 +1,214 @@
+/* Performance Optimizations CSS */
+
+/* Use GPU acceleration for animations */
+.animate-fadeIn,
+.transition-all,
+.animate-spin {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* Optimize large lists */
+.data-table,
+.leaderboard-list,
+.activity-list {
+    contain: strict;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Virtual scrolling container */
+.virtual-scroll {
+    position: relative;
+    overflow-y: auto;
+    contain: strict;
+}
+
+.virtual-scroll-item {
+    position: absolute;
+    width: 100%;
+    contain: layout style;
+}
+
+/* Reduce repaints for fixed elements */
+.fixed,
+nav,
+aside {
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+/* Optimize charts container */
+canvas {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+}
+
+.chart-container {
+    contain: layout style paint;
+    position: relative;
+}
+
+/* Loading states */
+.loading {
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Skeleton screens */
+.skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    border-radius: 4px;
+}
+
+@keyframes loading {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.skeleton-text {
+    height: 12px;
+    margin-bottom: 8px;
+    border-radius: 4px;
+}
+
+.skeleton-text:last-child {
+    width: 80%;
+}
+
+.skeleton-box {
+    height: 100px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Progressive image loading */
+img {
+    background-color: #f0f0f0;
+    background-image: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+}
+
+img.loaded {
+    background: none;
+}
+
+/* Optimize form inputs */
+input,
+select,
+textarea {
+    will-change: border-color, box-shadow;
+}
+
+/* Reduce paint areas */
+.card,
+.modal,
+.dropdown {
+    contain: layout style;
+}
+
+/* Font loading optimization */
+.font-loading body {
+    opacity: 0;
+}
+
+.fonts-loaded body {
+    opacity: 1;
+    transition: opacity 0.3s;
+}
+
+/* Critical CSS for above-the-fold content */
+.critical {
+    /* Ensures this content loads first */
+    contain: none;
+}
+
+/* Defer non-critical animations */
+.defer-animation {
+    animation-play-state: paused;
+}
+
+.defer-animation.ready {
+    animation-play-state: running;
+}
+
+/* Memory optimization for hidden content */
+.hidden,
+.content-section.hidden {
+    content-visibility: hidden;
+    contain-intrinsic-size: 1px 500px;
+}
+
+.content-section:not(.hidden) {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 500px;
+}
+
+/* Optimize hover effects */
+@media (hover: hover) {
+    .hover\:bg-gray-100:hover,
+    .hover\:bg-gray-800:hover,
+    .hover\:text-white:hover {
+        transition: background-color 0.15s ease-in-out, color 0.15s ease-in-out;
+    }
+}
+
+/* Touch optimization for mobile */
+@media (pointer: coarse) {
+    button,
+    a,
+    .clickable {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* Print optimization */
+@media print {
+    .no-print,
+    nav,
+    aside,
+    .modal,
+    .dropdown,
+    button {
+        display: none !important;
+    }
+    
+    .print-break {
+        page-break-after: always;
+    }
+}
