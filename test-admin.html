@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Test - Sales Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="p-8">
+        <h1 class="text-2xl font-bold mb-4">Admin Function Test</h1>
+        
+        <div class="space-y-4">
+            <button onclick="testGoals()" class="px-4 py-2 bg-blue-600 text-white rounded">
+                Test Goals Loading
+            </button>
+            
+            <button onclick="testUsers()" class="px-4 py-2 bg-green-600 text-white rounded">
+                Test Users Loading
+            </button>
+            
+            <button onclick="testAPI()" class="px-4 py-2 bg-purple-600 text-white rounded">
+                Test API Connection
+            </button>
+        </div>
+        
+        <div id="output" class="mt-8 p-4 bg-gray-100 rounded">
+            <pre id="result">Click a button to test...</pre>
+        </div>
+    </div>
+    
+    <script>
+        // Mock currentUser as admin
+        let currentUser = {
+            id: 'admin-1',
+            name: 'Admin User',
+            role: 'admin',
+            platformRole: 'admin',
+            team: 'Management',
+            email: 'admin@company.com',
+            username: 'admin'
+        };
+        
+        async function testAPI() {
+            const result = document.getElementById('result');
+            try {
+                // Test users table
+                const response = await fetch('tables/users');
+                const data = await response.json();
+                result.textContent = 'API Test Success!\n\nUsers found: ' + (data.data ? data.data.length : 0) + '\n\n' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                result.textContent = 'API Error: ' + error.message;
+            }
+        }
+        
+        async function testGoals() {
+            const result = document.getElementById('result');
+            try {
+                // Test goals table
+                const response = await fetch('tables/goals');
+                const data = await response.json();
+                result.textContent = 'Goals API Success!\n\nGoals found: ' + (data.data ? data.data.length : 0) + '\n\n' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                result.textContent = 'Goals API Error: ' + error.message;
+            }
+        }
+        
+        async function testUsers() {
+            const result = document.getElementById('result');
+            try {
+                // Create a test user
+                const testUser = {
+                    firstName: 'Test',
+                    lastName: 'User',
+                    name: 'Test User',
+                    email: 'test@example.com',
+                    username: 'tuser',
+                    role: 'ae',
+                    platformRole: 'user',
+                    status: 'active'
+                };
+                
+                const response = await fetch('tables/users', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(testUser)
+                });
+                const data = await response.json();
+                result.textContent = 'User Creation Success!\n\nCreated user:\n' + JSON.stringify(data, null, 2);
+            } catch (error) {
+                result.textContent = 'User Creation Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>

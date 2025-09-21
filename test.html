@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Activity Entry</title>
+    <script>
+        // Simple test to verify the save functionality works
+        console.log('Test Page Loaded');
+        
+        function testSaveWeek() {
+            console.log('Testing Save Week functionality...');
+            
+            // Test scenario:
+            // 1. User enters data
+            // 2. Clicks Save Week
+            // 3. Form should reset to 0
+            // 4. Summary should show saved totals
+            
+            console.log('✓ Test page is ready');
+            console.log('✓ To test: Open index.html and follow these steps:');
+            console.log('  1. Select Activity Entry from menu');
+            console.log('  2. Enter some values in the fields');
+            console.log('  3. Click "Save Week"');
+            console.log('  4. Verify fields reset to 0');
+            console.log('  5. Verify summary still shows totals');
+        }
+        
+        window.onload = testSaveWeek;
+    </script>
+</head>
+<body>
+    <h1>Activity Entry Test Instructions</h1>
+    <ol>
+        <li>Open <a href="index.html" target="_blank">index.html</a></li>
+        <li>Navigate to "Activity Entry" section</li>
+        <li>Enter test values (e.g., Calls: 10, Emails: 20)</li>
+        <li>Click "Save Week" button</li>
+        <li>✅ Verify: All input fields should reset to 0</li>
+        <li>✅ Verify: Weekly Summary should still show totals (30 activities)</li>
+        <li>Switch role to "Account Manager" and repeat test</li>
+    </ol>
+    
+    <h2>Expected Behavior:</h2>
+    <ul>
+        <li><strong>After Save Week:</strong> Form fields = 0, Summary = saved totals</li>
+        <li><strong>After Add to Total:</strong> Form fields = 0, Summary = updated totals</li>
+        <li><strong>After Reset:</strong> Form fields = 0, Summary = 0, Data deleted</li>
+    </ul>
+</body>
+</html>

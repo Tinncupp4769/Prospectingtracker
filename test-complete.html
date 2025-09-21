@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Function Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto p-8">
+        <h1 class="text-3xl font-bold mb-8">Sales Tracker - Complete Function Test</h1>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Test Goals -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">Goal Management Test</h2>
+                <div class="space-y-3">
+                    <button onclick="testLoadGoals()" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Load All Goals
+                    </button>
+                    <button onclick="testCreateGoal()" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Create Test Goal
+                    </button>
+                    <button onclick="testUpdateGoal()" class="w-full px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700">
+                        Update First Goal
+                    </button>
+                </div>
+                <div id="goals-output" class="mt-4 p-3 bg-gray-50 rounded text-sm max-h-64 overflow-y-auto">
+                    <pre>Ready for goals test...</pre>
+                </div>
+            </div>
+            
+            <!-- Test Users -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">User Management Test</h2>
+                <div class="space-y-3">
+                    <button onclick="testLoadUsers()" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Load All Users
+                    </button>
+                    <button onclick="testCreateUser()" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Create Test User
+                    </button>
+                    <button onclick="testActAsUser()" class="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                        Test Act As User
+                    </button>
+                </div>
+                <div id="users-output" class="mt-4 p-3 bg-gray-50 rounded text-sm max-h-64 overflow-y-auto">
+                    <pre>Ready for users test...</pre>
+                </div>
+            </div>
+            
+            <!-- Test Leaderboard -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">Leaderboard Test</h2>
+                <div class="space-y-3">
+                    <button onclick="testLeaderboardAE()" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Test AE Leaderboard
+                    </button>
+                    <button onclick="testLeaderboardAM()" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Test AM Leaderboard
+                    </button>
+                    <button onclick="testLeaderboardAll()" class="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                        Test All Sales Leaderboard
+                    </button>
+                </div>
+                <div id="leaderboard-output" class="mt-4 p-3 bg-gray-50 rounded text-sm max-h-64 overflow-y-auto">
+                    <pre>Ready for leaderboard test...</pre>
+                </div>
+            </div>
+            
+            <!-- Test Activities -->
+            <div class="bg-white rounded-lg shadow p-6">
+                <h2 class="text-xl font-semibold mb-4">Activity Test</h2>
+                <div class="space-y-3">
+                    <button onclick="testCreateActivity()" class="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                        Create Test Activity
+                    </button>
+                    <button onclick="testLoadActivities()" class="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Load Activities
+                    </button>
+                </div>
+                <div id="activity-output" class="mt-4 p-3 bg-gray-50 rounded text-sm max-h-64 overflow-y-auto">
+                    <pre>Ready for activity test...</pre>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Current User Info -->
+        <div class="mt-8 bg-white rounded-lg shadow p-6">
+            <h2 class="text-xl font-semibold mb-4">Current User Context</h2>
+            <div id="current-user" class="bg-gray-50 p-4 rounded">
+                <pre id="user-context">Loading...</pre>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/api.js"></script>
+    <script>
+        // Set current user as admin for testing
+        let currentUser = {
+            id: 'admin-1',
+            name: 'Admin User',
+            role: 'admin',
+            platformRole: 'admin',
+            team: 'Management',
+            email: 'admin@company.com',
+            username: 'admin'
+        };
+        
+        // Display current user
+        document.getElementById('user-context').textContent = JSON.stringify(currentUser, null, 2);
+        
+        // Goals Tests
+        async function testLoadGoals() {
+            const output = document.getElementById('goals-output');
+            try {
+                const goals = await API.getGoals();
+                output.innerHTML = `<pre>Goals loaded: ${goals.data.length}\n\n${JSON.stringify(goals.data.slice(0, 3), null, 2)}</pre>`;
+            } catch (error) {
+                output.innerHTML = `<pre class="text-red-600">Error: ${error.message}</pre>`;
+            }
+        }
+        
+        async function testCreateGoal() {
+            const output = document.getElementById('goals-output');
+            try {
+                const newGoal = {
+                    type: 'role',
+                    role: 'ae',
+                    userId: null,
+                    metric: 'meetings_booked',
+                    target: 10,
+                    period: 'weekly',
+                    category: 'all',
+                    effectiveDate: new Date().toISOString(),
+                    createdBy: currentUser.id,
+                    notes: 'Test goal creation'
+                };
+                const result = await API.createGoal(newGoal);
+                output.innerHTML = `<pre class="text-green-600">Goal created successfully!\n\n${JSON.stringify(result, null, 2)}</pre>`;
+            } catch (error) {
+                output.innerHTML = `<pre class="text-red-600">Error: ${error.message}</pre>`;
+            }
+        }
+        
+        async function testUpdateGoal() {
+            const output = document.getElementById('goals-output');
+            try {
+                const goals = await API.getGoals();
+                if (goals.data && goals.data.length > 0) {
+                    const firstGoal = goals.data[0];
+                    const updated = await API.updateGoal(firstGoal.id, {
+                        target: firstGoal.target + 5,
+                        notes: 'Updated via test'
+                    });
+                    output.innerHTML = `<pre class="text-green-600">Goal updated!\n\n${JSON.stringify(updated, null, 2)}</pre>`;
+                } else {
+                    output.innerHTML = `<pre class="text-yellow-600">No goals to update</pre>`;
+                }
+            } catch (error) {
+                output.innerHTML = `<pre class="text-red-600">Error: ${error.message}</pre>`;
+            }
+        }
+        
+        // Users Tests
+        async function testLoadUsers() {
+            const output = document.getElementById('users-output');
+            try {
+                const users = await API.getUsers();
+                output.innerHTML = `<pre>Users loaded: ${users.data.length}\n\n${JSON.stringify(users.data.slice(0, 3), null, 2)}</pre>`;
+            } catch (error) {
+                output.innerHTML = `<pre class="text-red-600">Error: ${error.message}</pre>`;
+            }
+        }
+        
+        async function testCreateUser() {
+            const output = document.getElementById('users-output');
+            try {
+                const timestamp = Date.now();
+                const newUser = {
+                    firstName: 'Test',
+                    lastName: `User${timestamp}`,
+                    name: `Test User${timestamp}`,
+                    email: `test${timestamp}@example.com`,
+                    phone: '555-0000',
+                    username: `tuser${timestamp}`,
+                    password: 'temp123',
+                    role: 'ae',
+                    platformRole: 'user',
+                    team: 'Test Team',
+                    status: 'active',
+                    invitedAt: new Date().toISOString()
+                };
+                const result = await API.createUser(newUser);
+                output.innerHTML = `<pre class="text-green-600">User created!\n\n${JSON.stringify(result, null, 2)}</pre>`;
+            } catch (error) {
+                output.innerHTML = `<pre class="text-red-600">Error: ${error.message}</pre>`;
+            }
+        }
+        
+        async function testActAsUser() {
+            const output = document.getElementById('users-output');
+            try {
+                const users = await API.getUsers();
+                if (users.data && users.data.length > 1) {
+                    const targetUser = users.data[1];
+                    output.innerHTML = `<pre class="text-blue-600">Acting as: ${targetUser.name}\n\nIn real app, this would switch the current user context.\n\n${JSON.stringify(targetUser, null, 2)}</pre>`;
+                } else {
+                    output.innerHTML = `<pre class="text-yellow-600">Need more users to test Act As feature</pre>`;
+                }
+            } catch (error) {
+                output.innerHTML = `<pre class="text-red-600">Error: ${error.message}</pre>`;
+            }
+        }
+        
+        // Leaderboard Tests
+        async function testLeaderboardAE() {
+            const output = document.getElementById('leaderboard-output');
+            try {
+                const users = await API.getUsers();
+                const aeUsers = users.data.filter(u => u.role === 'ae');
+                output.innerHTML = `<pre>AE Leaderboard\n\nAE Users: ${aeUsers.length}\n\n${JSON.stringify(aeUsers.map(u => ({name: u.name, role: u.role})), null, 2)}</pre>`;
+            } catch (error) {
+                output.innerHTML = `<pre class="text-red-600">Error: ${error.message}</pre>`;
+            }
+        }
+        
+        async function testLeaderboardAM() {
+            const output = document.getElementById('leaderboard-output');
+            try {
+                const users = await API.getUsers();
+                const amUsers = users.data.filter(u => u.role === 'am');
+                output.innerHTML = `<pre>AM Leaderboard\n\nAM Users: ${amUsers.length}\n\n${JSON.stringify(amUsers.map(u => ({name: u.name, role: u.role})), null, 2)}</pre>`;
+            } catch (error) {
+                output.innerHTML = `<pre class="text-red-600">Error: ${error.message}</pre>`;
+            }
+        }
+        
+        async function testLeaderboardAll() {
+            const output = document.getElementById('leaderboard-output');
+            try {
+                const users = await API.getUsers();
+                const salesUsers = users.data.filter(u => u.role === 'ae' || u.role === 'am');
+                output.innerHTML = `<pre>All Sales Leaderboard\n\nTotal Sales Users: ${salesUsers.length}\n\n${JSON.stringify(salesUsers.map(u => ({name: u.name, role: u.role})), null, 2)}</pre>`;
+            } catch (error) {
+                output.innerHTML = `<pre class="text-red-600">Error: ${error.message}</pre>`;
+            }
+        }
+        
+        // Activity Tests
+        async function testCreateActivity() {
+            const output = document.getElementById('activity-output');
+            try {
+                const newActivity = {
+                    userId: currentUser.id,
+                    type: 'ae_summary',
+                    weekYear: '2024-W03',
+                    calls_made: 50,
+                    emails_sent: 100,
+                    meetings_booked: 5,
+                    opportunities_created: 2
+                };
+                const result = await API.createActivity(newActivity);
+                output.innerHTML = `<pre class="text-green-600">Activity created!\n\n${JSON.stringify(result, null, 2)}</pre>`;
+            } catch (error) {
+                output.innerHTML = `<pre class="text-red-600">Error: ${error.message}</pre>`;
+            }
+        }
+        
+        async function testLoadActivities() {
+            const output = document.getElementById('activity-output');
+            try {
+                const activities = await API.getActivities();
+                output.innerHTML = `<pre>Activities loaded: ${activities.data.length}\n\n${JSON.stringify(activities.data.slice(0, 2), null, 2)}</pre>`;
+            } catch (error) {
+                output.innerHTML = `<pre class="text-red-600">Error: ${error.message}</pre>`;
+            }
+        }
+    </script>
+</body>
+</html>
