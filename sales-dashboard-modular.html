@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales Prospecting Dashboard (Modular)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <script src="js/theme.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts-gl@2/dist/echarts-gl.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <style>
+    :root {
+      --kpi-activities: #21C0DB;
+      --kpi-results:    #82C341;
+      --kpi-financial:  #006B36;
+      --kpi-abm:        #F59E0B;
+      --ui-scale:       1; /* UI scale multiplier; persisted in localStorage as ascm_ui_scale */
+    }
+    html { font-size: calc(16px * var(--ui-scale)); }
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+    .kpi-card { background:#fff; border:1px solid var(--ascm-border); border-radius:16px; padding:16px; box-shadow:0 10px 24px rgba(0,0,0,.06); }
+    .chart-container { position:relative; height:320px; width:100%; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <header class="brand-gradient text-white" id="header">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-white/10 grid place-items-center"><i class="fa-solid fa-chart-line text-white"></i></div>
+        <div>
+          <h1 class="text-base font-bold">Sales Prospecting Dashboard (Modular)</h1>
+          <p class="text-xs text-white/80">Real-time KPIs, goals, and activities</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="hidden md:inline-flex items-center gap-2"><span class="text-xs text-white/90" id="sdUserName"></span><span id="sdUserAvatar"></span></span>
+        <a id="home-button" href="app.html" class="btn-outline px-3 py-2 rounded-md text-sm" data-hide-embed><i class="fa-solid fa-house mr-2"></i>Home</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6">
+    <!-- Top controls -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
+      <div class="flex items-center gap-3 flex-wrap">
+        <div class="inline-flex bg-slate-100 rounded-lg p-1" role="tablist" aria-label="Period">
+          <button class="px-3 py-1.5 rounded-md text-sm font-medium" data-period="week" id="f_week">Week</button>
+          <button class="px-3 py-1.5 rounded-md text-sm font-medium" data-period="month" id="f_month">Month</button>
+          <button class="px-3 py-1.5 rounded-md text-sm font-medium" data-period="7days" id="f_7days">Last 7 Days</button>
+          <button class="px-3 py-1.5 rounded-md text-sm font-medium" data-period="all" id="f_all">All Time</button>
+        </div>
+        <button id="refreshBtn" class="btn-outline px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-rotate mr-2"></i>Refresh</button>
+        <span id="statusChip" class="px-2 py-1 text-xs rounded border bg-slate-100 border-slate-200 text-slate-600" title="Data source status">Checking…</span>
+        <span id="syncChip" class="px-2 py-1 text-xs rounded border bg-slate-100 border-slate-200 text-slate-600" title="Last sync">—</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <div class="inline-flex items-center gap-1" aria-label="Text size">
+          <button id="fontDec" class="btn-outline px-2 py-1 rounded-md text-xs" title="Decrease text size">A-</button>
+          <button id="fontInc" class="btn-outline px-2 py-1 rounded-md text-xs" title="Increase text size">A+</button>
+        </div>
+        <div id="adminControls" class="hidden items-center gap-2">
+          <label for="userSelector" class="text-sm text-slate-600">View user</label>
+          <select id="userSelector" class="input rounded-md px-3 py-2 text-sm min-w-[260px]"></select>
+          <button id="clearUserFilter" class="btn-outline px-2 py-1 rounded-md text-xs" title="Show my data">Reset</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Loading overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-white/60 backdrop-blur-sm hidden z-40">
+      <div class="absolute inset-0 flex items-center justify-center">
+        <div class="animate-spin h-8 w-8 border-4 border-emerald-500 border-t-transparent rounded-full" aria-label="Loading"></div>
+      </div>
+    </div>
+
+    <!-- Goals warning -->
+    <div id="goalsWarning" class="hidden bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg mb-4 flex items-start gap-3">
+      <i class="fa-solid fa-triangle-exclamation mt-0.5"></i>
+      <div>
+        <div class="font-semibold text-sm">KPI goals missing</div>
+        <div class="text-sm">Some KPI goals are not set. KPI updates are disabled until goals are configured.</div>
+      </div>
+    </div>
+
+    <!-- Gamified Progress -->
+    <section id="gamifyBar" class="card p-4 bg-white border rounded-xl mb-6">
+      <div class="flex items-center justify-between gap-3">
+        <div>
+          <div class="font-semibold">Weekly Progress</div>
+          <div class="text-xs text-slate-500">Gamified badges unlock as you approach your goal</div>
+        </div>
+        <div class="flex items-center gap-2" id="badgeRow"></div>
+      </div>
+      <div class="mt-3">
+        <div class="w-full h-3 bg-slate-200 rounded-full overflow-hidden" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Weekly goal progress">
+          <div id="progressBar" class="h-3 bg-emerald-500" style="width:0%"></div>
+        </div>
+        <div id="progressLabel" class="text-xs text-slate-600 mt-1">0% of weekly goal</div>
+      </div>
+    </section>
+
+    <!-- Primary KPI groups -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="kpiGroups">
+      <div class="card p-4 bg-white border rounded-xl">
+        <h3 class="font-semibold mb-2">Activities</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" id="kpiActivities"></div>
+      </div>
+      <div class="card p-4 bg-white border rounded-xl">
+        <h3 class="font-semibold mb-2">Results</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" id="kpiResults"></div>
+      </div>
+      <div class="card p-4 bg-white border rounded-xl">
+        <h3 class="font-semibold mb-2">Financials</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" id="kpiFinancials"></div>
+      </div>
+      <div class="card p-4 bg-white border rounded-xl" id="abmCard" style="display:none">
+        <h3 class="font-semibold mb-2">ABM Campaigns</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3" id="kpiABM"></div>
+      </div>
+    </section>
+
+    <!-- Charts and Goals Overview -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+      <div class="card p-4 bg-white border rounded-xl">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-semibold">KPI Completion Distribution</h3>
+          <span class="text-xs text-slate-500">Current period</span>
+        </div>
+        <div class="chart-container"><canvas id="distChart"></canvas></div>
+      </div>
+      <div class="card p-4 bg-white border rounded-xl">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-semibold">Goals Overview (Read-only)</h3>
+          <span class="text-xs text-slate-500" id="goalsMeta">—</span>
+        </div>
+        <div id="recentBody" class="overflow-x-auto hidden md:block">
+          <table class="min-w-full text-sm">
+            <thead class="bg-slate-50 text-slate-700 text-xs">
+              <tr>
+                <th class="px-4 py-2 text-left">Metric</th>
+                <th class="px-4 py-2 text-left">Period</th>
+                <th class="px-4 py-2 text-left">Target</th>
+              </tr>
+            </thead>
+            <tbody id="goalsOverviewBody"></tbody>
+          </table>
+          <div id="goalsOverviewEmpty" class="hidden p-6 text-center text-slate-500 text-sm">No goals found for the current month.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Trend chart separate row for layout balance -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+      <div class="card p-4 bg-white border rounded-xl lg:col-span-2">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-semibold">Metric Trend</h3>
+          <select id="trendMetric" class="input rounded-md px-2 py-1 text-sm"></select>
+        </div>
+        <div class="chart-container" style="height:360px"><canvas id="trendChart"></canvas></div>
+      </div>
+    </section>
+
+    <!-- 3D Activity Heatmap -->
+    <section class="grid grid-cols-1 mt-6">
+      <div class="card p-4 bg-white border rounded-xl">
+        <div class="flex items-center justify-between mb-2">
+          <div>
+            <h3 class="font-semibold">Activity Heatmap</h3>
+            <span class="text-xs text-slate-500">Day of Week × Hour × Volume</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="heatStatusChip" class="px-2 py-1 text-xs rounded border bg-slate-100 border-slate-200 text-slate-600" title="Heatmap rendering mode">Detecting…</span>
+            <div class="inline-flex bg-slate-100 rounded-lg p-1" role="tablist" aria-label="Heatmap mode">
+              <button id="heatMode2D" class="px-2 py-1.5 rounded-md text-xs font-medium" title="Use 2D heatmap">2D</button>
+              <button id="heatMode3D" class="px-2 py-1.5 rounded-md text-xs font-medium" title="Use 3D WebGL heatmap">3D</button>
+            </div>
+            <button id="heatHelpBtn" class="btn-outline px-2 py-1 rounded-md text-xs">Help</button>
+          </div>
+        </div>
+        <div id="heat3d" style="height:360px;"></div>
+        <div id="heatHelp" class="mt-2 hidden text-xs text-slate-600">
+          <details class="p-2 bg-slate-50 border rounded">
+            <summary class="cursor-pointer">WebGL help and diagnostics</summary>
+            <div class="mt-2 space-y-1">
+              <div>Support: <span id="glSupport">—</span></div>
+              <div id="glRendererRow" class="hidden">Renderer: <span id="glRenderer">—</span></div>
+              <div class="mt-1">Enable WebGL:</div>
+              <ul class="list-disc ml-5">
+                <li>Chrome/Edge: visit chrome://gpu (or edge://gpu) and ensure WebGL is enabled; see <a class="text-sky-600 underline" href="https://developer.chrome.com/blog/hardware-accelerated-graphics" target="_blank" rel="noopener">Chrome GPU docs</a></li>
+                <li>Firefox: open about:support → Graphics → WebGL; see <a class="text-sky-600 underline" href="https://support.mozilla.org/en-US/kb/webgl-error-messages" target="_blank" rel="noopener">Firefox WebGL help</a></li>
+                <li>Safari (macOS): Safari → Settings → Advanced → Show Develop menu; ensure WebGL is enabled; see <a class="text-sky-600 underline" href="https://developer.apple.com/library/archive/documentation/InternetWeb/Conceptual/SafariVisualEffectsProgGuide/UsingWebGL/UsingWebGL.html" target="_blank" rel="noopener">Safari WebGL guide</a></li>
+              </ul>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- Recent activities -->
+    <section class="mt-6 card p-4 bg-white border rounded-xl">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="font-semibold">Recent Activities</h3>
+        <div class="flex items-center gap-2"><button id="toggleRecent" class="btn-outline px-2 py-1 rounded-md text-xs">Details</button><span id="recentCount" class="text-xs text-slate-500"></span></div>
+      </div>
+      <div class="flex items-center gap-2 mb-3" aria-label="Filter categories">
+        <button id="flt_all" class="btn-outline px-2 py-1 rounded-md text-xs" title="Show all">All</button>
+        <button id="flt_Activities" class="btn-outline px-2 py-1 rounded-md text-xs">Activities</button>
+        <button id="flt_Results" class="btn-outline px-2 py-1 rounded-md text-xs">Results</button>
+        <button id="flt_Financials" class="btn-outline px-2 py-1 rounded-md text-xs">Financials</button>
+        <button id="flt_ABM" class="btn-outline px-2 py-1 rounded-md text-xs">ABM</button>
+      </div>
+      <div class="flex items-center gap-3 mb-2">
+        <div id="recentPager" class="hidden items-center gap-2">
+          <button id="recentPrev" class="btn-outline px-2 py-1 rounded-md text-xs" title="Previous page">&larr;</button>
+          <span id="recentPageInfo" class="text-xs text-slate-500">Page 1 / 1</span>
+          <button id="recentNext" class="btn-outline px-2 py-1 rounded-md text-xs" title="Next page">&rarr;</button>
+          <label class="text-xs text-slate-500 ml-2">Page size</label>
+          <select id="recentPageSize" class="input rounded-md px-2 py-1 text-xs">
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="100">100</option>
+          </select>
+        </div>
+      </div>
+      <div id="recentBody" class="overflow-x-auto hidden md:block">
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-50 text-slate-700 text-xs">
+            <tr>
+              <th class="px-4 py-2 text-left">Date</th>
+              <th class="px-4 py-2 text-left">Group</th>
+              <th class="px-4 py-2 text-left">Summary</th>
+            </tr>
+          </thead>
+          <tbody id="recentTbody"></tbody>
+        </table>
+        <div id="recentEmpty" class="hidden p-6 text-center text-slate-500 text-sm">No entries found for the selected period.</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="max-w-7xl mx-auto px-6 py-6">
+    <div class="flex items-center justify-between gap-3">
+      <span id="apiStatus" class="px-2 py-1 text-xs rounded border bg-slate-100 border-slate-200 text-slate-600" title="API Status">Checking…</span>
+      <button id="reloadBtn" class="btn-outline px-3 py-2 rounded-md text-sm">Force Reload</button>
+    </div>
+  </footer>
+  <script>
+    (function(){ try{ const url=new URL(location.href); if (url.searchParams.get('embed')==='1'){ var h=document.getElementById('header'); if(h) h.style.display='none'; var hb=document.getElementById('home-button'); if(hb) hb.style.display='none'; } }catch{} })();
+  </script>
+
+  <script src="js/metrics-config.js"></script>
+  <script src="js/telemetry.js"></script>
+  <script src="js/avatars.js"></script>
+  <script>
+    // Inject user name + avatar in header
+    (function(){ try{ const s=JSON.parse(localStorage.getItem('ascm_session')||'null'); if(s){ const n=document.getElementById('sdUserName'); const av=document.getElementById('sdUserAvatar'); if(n) n.textContent = s.name||s.email||'User'; if(av && window.Avatars){ av.innerHTML = Avatars.img2x(s, 24, 'rounded-full'); } } window.addEventListener('storage', (e)=>{ if(e.key==='ascm_session'){ try{ const s=JSON.parse(e.newValue||'null'); const n=document.getElementById('sdUserName'); const av=document.getElementById('sdUserAvatar'); if(n) n.textContent = s?.name||s?.email||'User'; if(av && window.Avatars){ av.innerHTML = Avatars.img2x(s, 24, 'rounded-full'); } }catch{} } }); }catch{} })();
+    // KPI tooltips
+    window.KPI_INFO = {
+      callsMade: 'Number of outbound calls placed.',
+      emailsSent: 'Number of outbound emails sent.',
+      linkedinMessages: 'LinkedIn messages sent to prospects.',
+      vidyardVideos: 'Vidyard videos created/sent.',
+      abmCampaigns: 'Total ABM campaigns (for AE this may be informational).',
+      meetingsBooked: 'Prospect meetings scheduled during the period.',
+      successfulContacts: 'Conversations that reached a decision-maker.',
+      meetingsConducted: 'Meetings actually conducted in the period.',
+      opportunitiesGenerated: 'New opportunities created from prospecting.',
+      referralsGenerated: 'Referrals generated from outreach efforts.',
+      pipelineGenerated: 'Pipeline value attributed to prospecting for the selected period.',
+      revenueClosed: 'Revenue closed from opportunities attributed to prospecting.',
+      accountsTargeted: 'Target accounts you engaged (AM).',
+      generalAbmCampaigns: 'General ABM campaigns (AM).',
+      crossSellAbmCampaigns: 'Cross-sell ABM campaigns (AM).',
+      upSellAbmCampaigns: 'Up-sell ABM campaigns (AM).',
+      dormantAbmCampaigns: 'Dormant account reactivation ABM campaigns (AM).'
+    };
+  </script>
+  <script src="js/shims.js"></script>
+  <script type="module" src="js/salesDashboard.js"></script>
+</body>
+</html>

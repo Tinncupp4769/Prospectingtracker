@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sandbox Data Seeder — ASCM</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../ascm/css/theme.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <style>
+    body { font-family:'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background:#f8fafc; }
+    .card{ background:#fff; border:1px solid #e5e7eb; border-radius:16px; box-shadow:0 10px 24px rgba(0,0,0,.06); }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+<body>
+  <header class="brand-gradient text-white">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-white/10 grid place-items-center"><i class="fa-solid fa-database text-white"></i></div>
+        <div>
+          <h1 class="text-base font-bold">Sandbox Data Seeder</h1>
+          <p class="text-xs text-white/80">Generate realistic test data across users, roles, and weeks</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="../app.html" class="btn-outline px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-house mr-2"></i>Home</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6 space-y-4">
+    <div class="card p-4">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <div class="font-bold">Controls</div>
+          <div class="text-sm text-slate-600">Admin-only. Writes to tables/activities and tables/goals_snapshots. Broadcasts updates to dashboards.</div>
+        </div>
+        <span id="apiBaseChip" class="px-2 py-1 text-xs rounded border bg-slate-50 text-slate-700">Detecting…</span>
+      </div>
+      <div class="grid md:grid-cols-3 gap-4 mt-3">
+        <div>
+          <div class="text-sm font-semibold mb-1">Users</div>
+          <div class="flex items-center gap-2 mb-2">
+            <label class="text-sm inline-flex items-center gap-2"><input id="allUsers" type="checkbox" class="rounded"> Use all active users</label>
+            <button id="reloadUsers" class="btn-outline px-2 py-1 rounded-md text-xs">Reload</button>
+          </div>
+          <select id="userList" multiple size="8" class="w-full border rounded p-2 text-sm"></select>
+          <div class="text-xs text-slate-500 mt-1">Tip: Ctrl/Cmd-click to multi-select</div>
+        </div>
+        <div>
+          <div class="text-sm font-semibold mb-1">Volumes</div>
+          <label class="text-sm">Weeks back (1–12)</label>
+          <input id="weeksBack" type="range" min="1" max="12" value="8" class="w-full">
+          <div class="text-xs text-slate-600 mb-2"><span id="weeksBackLabel">8</span> weeks</div>
+          <label class="text-sm">Avg days with activity/week (1–7)</label>
+          <input id="daysPerWeek" type="range" min="1" max="7" value="4" class="w-full">
+          <div class="text-xs text-slate-600 mb-2"><span id="daysPerWeekLabel">4</span> days</div>
+          <label class="text-sm">Avg activities per active day</label>
+          <input id="avgAct" type="number" min="1" max="60" value="20" class="input rounded px-3 py-2 text-sm w-full">
+          <div class="text-xs text-slate-600">Randomized around the average for realism</div>
+        </div>
+        <div>
+          <div class="text-sm font-semibold mb-1">Goals Snapshot</div>
+          <label class="text-sm">Weeks in month</label>
+          <input id="weeksInMonth" type="number" min="4" max="5" value="4" class="input rounded px-3 py-2 text-sm w-full mb-2">
+          <label class="text-sm">Weekly goal (AE total)</label>
+          <input id="goalAeWeek" type="number" min="20" max="400" value="120" class="input rounded px-3 py-2 text-sm w-full mb-2">
+          <label class="text-sm">Weekly goal (AM total)</label>
+          <input id="goalAmWeek" type="number" min="20" max="400" value="100" class="input rounded px-3 py-2 text-sm w-full">
+        </div>
+      </div>
+      <div class="mt-4 flex items-center gap-2 flex-wrap">
+        <button id="btnSeedActivities" class="btn-primary px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-seedling mr-2"></i>Seed Activities</button>
+        <button id="btnSeedGoals" class="btn-outline px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-bullseye mr-2"></i>Seed Goals Snapshot</button>
+        <button id="btnClearSeeded" class="btn-outline px-3 py-2 rounded-md text-sm text-red-700 border-red-300"><i class="fa-solid fa-trash mr-2"></i>Clear Seeded (batch)</button>
+        <span id="seedStatus" class="px-2 py-1 text-xs rounded border bg-slate-100 border-slate-200 text-slate-600">Idle</span>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-4">
+      <div class="card p-4">
+        <div class="font-bold mb-2">Coverage Summary</div>
+        <div class="grid grid-cols-2 gap-3 text-sm">
+          <div class="p-3 bg-slate-50 border rounded"><div class="text-xs text-slate-500">Users seeded</div><div class="text-lg font-bold" id="covUsers">0</div></div>
+          <div class="p-3 bg-slate-50 border rounded"><div class="text-xs text-slate-500">Activities created</div><div class="text-lg font-bold" id="covActs">0</div></div>
+          <div class="p-3 bg-slate-50 border rounded"><div class="text-xs text-slate-500">Weeks covered</div><div class="text-lg font-bold" id="covWeeks">0</div></div>
+          <div class="p-3 bg-slate-50 border rounded"><div class="text-xs text-slate-500">Goals snapshot</div><div class="text-lg font-bold" id="covGoals">—</div></div>
+        </div>
+        <div class="mt-4">
+          <div class="text-sm font-semibold mb-1">Day × Hour Heatmap (seed preview)</div>
+          <div id="covHeat" style="height:260px"></div>
+        </div>
+      </div>
+      <div class="card p-4">
+        <div class="font-bold mb-2">Logs</div>
+        <pre id="logOut" class="mono text-xs bg-slate-50 border rounded p-3 overflow-auto" style="max-height:340px"></pre>
+        <div class="mt-2 flex items-center gap-2">
+          <button id="btnExportLog" class="btn-outline px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-file-export mr-2"></i>Export JSON</button>
+          <button id="btnClearLog" class="btn-outline px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-eraser mr-2"></i>Clear Log</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="ascm_toast" class="ascm-toast info" role="status" aria-live="polite"></div>
+
+  <script>
+    // Admin gate
+    (function(){ try{ const s=JSON.parse(localStorage.getItem('ascm_session')||'null'); if (!s || String((s.role||'').toLowerCase())!=='admin'){ alert('Admins only.'); location.replace('../index.html'); } }catch{} })();
+
+    const UI = (sel)=> document.querySelector(sel);
+    function toast(msg,type){ const el=UI('#ascm_toast'); if(!el) return; el.className='ascm-toast '+(type||'info'); el.innerHTML='<span>'+msg+'</span><button class="close" aria-label="Dismiss">×</button>'; const b=el.querySelector('.close'); if(b) b.onclick=()=> el.classList.remove('show'); el.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=> el.classList.remove('show'), 4000); }
+
+    // Resilient API
+    const API=(function(){
+      let BASE='tables/'; const CAND=['tables/','/tables/'];
+      function looksHtml(res){ return (res.headers.get('content-type')||'').toLowerCase().includes('text/html'); }
+      function fetchWithTimeout(url, options={}, timeoutMs=15000){ const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(), timeoutMs); const opts={ ...options, signal:ctrl.signal, cache:'no-store', credentials:'same-origin' }; return fetch(url, opts).finally(()=> clearTimeout(t)); }
+      async function resolveBase(){ for (const b of CAND){ try{ const r=await fetchWithTimeout(`${b}users?limit=1`,{method:'GET'},8000); const ct=(r.headers.get('content-type')||'').toLowerCase(); if (r.ok && ct.includes('application/json')){ BASE=b; break; } }catch{} } UI('#apiBaseChip').textContent = (BASE==='tables/'?'tables/':'/tables/'); return BASE; }
+      function npath(p){ if (/^https?:/i.test(p)) return p; if (p.startsWith('tables/')) return BASE + p.slice(7); if (p.startsWith('/tables/')) return BASE + p.slice(8); return BASE + p; }
+      async function req(method, path, body, tries=6){ await resolveBase(); let last=''; for(let i=0;i<tries;i++){ try{ let url=npath(path); url += (url.includes('?')?'&':'?')+`cb=${Date.now()}_${i}`; const r=await fetchWithTimeout(url,{ method, headers:{'Content-Type':'application/json'}, body: body!=null? JSON.stringify(body):undefined }, 18000); const ct=(r.headers.get('content-type')||'').toLowerCase(); if(!r.ok || looksHtml(r) || (r.status!==204 && !ct.includes('application/json'))){ try{ const wu=npath('tables/users?limit=1'); const sep=wu.includes('?')?'&':'?'; await fetchWithTimeout(`${wu}${sep}cb=${Date.now()}`,{method:'GET'},6000); }catch{} const jitter=Math.floor(Math.random()*250); await new Promise(z=> setTimeout(z, 500*Math.pow(1.6,i)+jitter)); continue; } return r; }catch(e){ last=String(e?.message||e); const jitter=Math.floor(Math.random()*250); await new Promise(z=> setTimeout(z, 500*Math.pow(1.6,i)+jitter)); } } throw new Error('API blocked '+last); }
+      async function json(method, path, body, tries=6){ const r=await req(method,path,body,tries); if (r.status===204) return {}; try{ return await r.json(); }catch{ return {}; } }
+      return { json, npath, resolveBase };
+    })();
+
+    function getUsersCache(){ try{ return JSON.parse(localStorage.getItem('users')||'[]'); }catch{ return []; } }
+    async function loadUsers(){ let rows=[]; try{ const j=await API.json('GET','tables/users?limit=2000'); rows=j.data||[]; }catch{} if(!rows.length){ rows=getUsersCache(); } rows=(rows||[]).filter(u=> !u.deleted && u.is_active!==false && u.id); rows.sort((a,b)=> String(a.name||a.email||'').localeCompare(String(b.name||b.email||''))); return rows; }
+
+    function pick(arr, n){ const out=[]; const a=[...arr]; while(out.length<Math.min(n,a.length)){ const i=Math.floor(Math.random()*a.length); out.push(a.splice(i,1)[0]); } return out; }
+    function rndAround(avg, spread=0.4){ const min=Math.max(0, Math.round(avg*(1-spread))); const max=Math.round(avg*(1+spread)); return Math.floor(min + Math.random()*(max-min+1)); }
+    function isoDate(d){ const x=new Date(d); x.setHours(12,0,0,0); return x.toISOString(); }
+
+    function logLine(obj){ try{ const box=UI('#logOut'); const arr=JSON.parse(box.dataset.json||'[]'); arr.push(obj); box.dataset.json=JSON.stringify(arr); box.textContent = JSON.stringify(arr, null, 2); }catch{} }
+    function resetLog(){ const box=UI('#logOut'); box.dataset.json='[]'; box.textContent='[]'; }
+
+    function buildActivity(user, date, role, avg){
+      // Distribute across metrics based on role
+      const isAM = role==='am';
+      const calls = rndAround(avg*0.4, 0.6);
+      const emails = rndAround(avg*0.35, 0.6);
+      const linkedin = rndAround(avg*0.15, 0.7);
+      const vidyard = rndAround(avg*0.1, 0.8);
+      const meetingsBooked = rndAround(avg*0.05, 0.8);
+      const successfulContacts = rndAround(avg*0.06, 0.8);
+      const pipeline = rndAround(avg*100, 1.0) * (isAM? 2.0 : 1.0);
+      const revenue = rndAround(avg*60, 1.0) * (isAM? 1.5 : 0.8);
+      const abmGeneral = isAM? rndAround(avg*0.05,0.9):0;
+      const abmCross = isAM? rndAround(avg*0.03,0.9):0;
+      const abmUp = isAM? rndAround(avg*0.03,0.9):0;
+      const abmDormant = isAM? rndAround(avg*0.02,0.9):0;
+      return {
+        userId: user.id, userName: user.name||user.email||user.id, role,
+        date: isoDate(date), submitted: true,
+        accountsTargeted: isAM? rndAround(avg*0.06,0.8):0,
+        callsMade: calls, emailsSent: emails, linkedinMessages: linkedin, vidyardVideos: vidyard,
+        meetingsBooked, successfulContacts, meetingsConducted: Math.max(0, meetingsBooked - rndAround(1,1)), opportunitiesGenerated: rndAround(avg*0.02,1.2), referralsGenerated: rndAround(avg*0.01,1.2),
+        pipelineGenerated: pipeline, revenueClosed: revenue,
+        generalAbmCampaigns: abmGeneral, crossSellAbmCampaigns: abmCross, upSellAbmCampaigns: abmUp, dormantAbmCampaigns: abmDormant,
+        _seedBatchId: localStorage.getItem('ascm_seed_batch')||''
+      };
+    }
+
+    async function seedActivities(){
+      await API.resolveBase();
+      const batch = 'seed_'+Date.now(); localStorage.setItem('ascm_seed_batch', batch);
+      const avg = Math.max(1, parseInt(UI('#avgAct').value||'20',10));
+      const weeks = Math.max(1, parseInt(UI('#weeksBack').value||'8',10));
+      const dpw = Math.max(1, parseInt(UI('#daysPerWeek').value||'4',10));
+      const allUsers = UI('#allUsers').checked;
+      const sel = Array.from(UI('#userList').selectedOptions).map(o=> o.value);
+      const users = await loadUsers();
+      const targets = allUsers? users : users.filter(u=> sel.includes(String(u.id)));
+      if (!targets.length){ toast('Select at least one user','error'); return; }
+      logLine({ type:'seed_start', batch, users: targets.length, weeks, dpw, avg, at: Date.now() });
+      let created=0;
+      // Loop per user over weeks and random days
+      for (const u of targets){
+        const role = String((u.role||'ae')).toLowerCase()==='am' ? 'am' : 'ae';
+        for (let w=0; w<weeks; w++){
+          const start = new Date(); start.setDate(start.getDate() - w*7); // this week - w
+          // choose dpw unique days within week [0..6]
+          const days = pick([0,1,2,3,4,5,6], Math.min(7, dpw));
+          for (const d of days){
+            const dt = new Date(start); const dow=dt.getDay(); dt.setDate(dt.getDate() - dow + d); // move to that weekday
+            const payload = buildActivity(u, dt, role, avg);
+            try{
+              const res = await API.json('POST','tables/activities', payload);
+              created++;
+            }catch(e){ logLine({ type:'error', step:'post_activity', user:u.id, error:String(e.message||e) }); }
+          }
+        }
+      }
+      // Broadcast
+      try{ localStorage.setItem('ascm_activities_updated', String(Date.now())); }catch{}
+      try{ new BroadcastChannel('ascm_sync').postMessage({ type:'activities_updated', at: Date.now() }); }catch{}
+      UI('#seedStatus').textContent = `Seeded ${created} activities`;
+      logLine({ type:'seed_done', batch, created, at: Date.now() });
+      // Coverage compute
+      renderCoverage(targets, weeks);
+      toast(`Seeded ${created} activities for ${targets.length} users`, 'success');
+    }
+
+    async function seedGoals(){
+      await API.resolveBase();
+      const weeks = Math.max(4, Math.min(5, parseInt(UI('#weeksInMonth').value||'4',10)));
+      const aeW = Math.max(10, parseInt(UI('#goalAeWeek').value||'120',10));
+      const amW = Math.max(10, parseInt(UI('#goalAmWeek').value||'100',10));
+      const month = new Date().toISOString().slice(0,7);
+      const values = {};
+      const metrics = ['callsMade','emailsSent','linkedinMessages','vidyardVideos','meetingsBooked','successfulContacts','opportunitiesGenerated','referralsGenerated','pipelineGenerated','revenueClosed','accountsTargeted','generalAbmCampaigns','crossSellAbmCampaigns','upSellAbmCampaigns','dormantAbmCampaigns'];
+      metrics.forEach(k=>{ values[k] = { ae: Math.round(aeW / metrics.length), am: Math.round(amW / metrics.length) }; });
+      const payload = { month, weeks, values, userId: null, updated_at: Date.now(), _seedBatchId: localStorage.getItem('ascm_seed_batch')||'' };
+      try{
+        const res = await API.json('POST','tables/goals_snapshots', payload);
+        UI('#covGoals').textContent = `${month}`;
+        toast('Goals snapshot seeded','success');
+        logLine({ type:'goals_snapshot', id: res?.id||null, month, weeks, at: Date.now() });
+        try{ localStorage.setItem('ascm_goals_updated', String(Date.now())); }catch{}
+        try{ new BroadcastChannel('ascm_sync').postMessage({ type:'goals_updated', at: Date.now() }); }catch{}
+      }catch(e){ toast('Failed to seed goals snapshot','error'); logLine({ type:'error', step:'post_goals_snapshot', error:String(e.message||e) }); }
+    }
+
+    async function clearSeeded(){
+      await API.resolveBase();
+      const batch = localStorage.getItem('ascm_seed_batch')||'';
+      if (!batch){ toast('No batch ID found in this session', 'error'); return; }
+      if (!confirm('Delete all activities created by this seeder batch?')) return;
+      let deleted=0, scanned=0;
+      // paginate activities, delete when _seedBatchId matches
+      let page=1; const limit=500;
+      while(true){
+        let j={}; try{ j=await API.json('GET',`tables/activities?page=${page}&limit=${limit}`); }catch(e){ logLine({ type:'error', step:'list_activities', error:String(e.message||e) }); break; }
+        const rows=j.data||[]; scanned+=rows.length;
+        for (const r of rows){ if (r._seedBatchId===batch){ try{ await API.json('DELETE', `tables/activities/${encodeURIComponent(r.id)}`); deleted++; }catch(e){ logLine({ type:'error', step:'delete_activity', id:r.id, error:String(e.message||e) }); } } }
+        if (rows.length<limit) break; page++;
+      }
+      UI('#seedStatus').textContent = `Deleted ${deleted} activities (batch)`;
+      logLine({ type:'clear_done', batch, deleted, scanned, at: Date.now() });
+      try{ localStorage.setItem('ascm_activities_updated', String(Date.now())); }catch{}
+      try{ new BroadcastChannel('ascm_sync').postMessage({ type:'activities_updated', at: Date.now() }); }catch{}
+      toast(`Deleted ${deleted} seeded activities`, 'success');
+    }
+
+    function renderCoverage(users, weeks){
+      UI('#covUsers').textContent = String(users.length);
+      UI('#covWeeks').textContent = String(weeks);
+      // Est. activities = users * weeks * days per week
+      const dpw = Math.max(1, parseInt(UI('#daysPerWeek').value||'4',10));
+      UI('#covActs').textContent = String(users.length * weeks * dpw);
+      // render a synthetic heatmap preview
+      try{
+        const el=document.getElementById('covHeat'); if (!el || !window.echarts) return;
+        if (renderCoverage._inst){ try{ renderCoverage._inst.dispose(); }catch{} renderCoverage._inst=null; }
+        const chart = echarts.init(el);
+        const data=[]; const max=users.length*2; for (let d=0; d<7; d++){ for (let h=0; h<24; h++){ const val = (h%3===0? Math.ceil(Math.random()*max): Math.ceil(Math.random()*Math.floor(max/3))); data.push([h,d,val]); } }
+        chart.setOption({ tooltip:{ position:'top' }, grid:{ height:'70%', top:'10%' }, xAxis:{ type:'category', data: Array.from({length:24},(_,i)=> String(i)), splitArea:{ show:true } }, yAxis:{ type:'category', data:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], splitArea:{ show:true } }, visualMap:{ min:0, max:Math.max(1,users.length*2), calculable:true, orient:'horizontal', left:'center', bottom:0, inRange:{ color:['#e0f2fe','#7dd3fc','#0ea5e9','#0369a1'] } }, series:[{ type:'heatmap', data }] });
+        renderCoverage._inst=chart;
+      }catch{}
+    }
+
+    async function hydrateUsers(){ const rows = await loadUsers(); const sel=UI('#userList'); sel.innerHTML = rows.map(u=> `<option value="${u.id}">${u.name||u.email||u.id} — ${String(u.role||'ae').toUpperCase()}</option>`).join(''); UI('#seedStatus').textContent = `${rows.length} active users loaded`; }
+
+    document.addEventListener('DOMContentLoaded', ()=>{
+      // wire
+      UI('#weeksBack').oninput = (e)=> UI('#weeksBackLabel').textContent = e.target.value;
+      UI('#daysPerWeek').oninput = (e)=> UI('#daysPerWeekLabel').textContent = e.target.value;
+      UI('#reloadUsers').onclick = hydrateUsers;
+      UI('#btnSeedActivities').onclick = seedActivities;
+      UI('#btnSeedGoals').onclick = seedGoals;
+      UI('#btnClearSeeded').onclick = clearSeeded;
+      UI('#btnExportLog').onclick = ()=>{ try{ const arr=JSON.parse(UI('#logOut').dataset.json||'[]'); const blob = new Blob([JSON.stringify(arr,null,2)], { type:'application/json' }); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='ascm-seed-log.json'; a.click(); setTimeout(()=> URL.revokeObjectURL(url), 500); }catch{} };
+      UI('#btnClearLog').onclick = ()=> resetLog();
+      resetLog(); hydrateUsers(); renderCoverage([], parseInt(UI('#weeksBack').value||'8',10));
+    });
+  </script>
+</body>
+</html>

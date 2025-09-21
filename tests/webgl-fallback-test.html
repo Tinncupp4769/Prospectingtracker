@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WebGL Fallback Test</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts-gl@2/dist/echarts-gl.min.js"></script>
+</head>
+<body class="p-4">
+  <h1 class="text-lg font-bold mb-2">WebGL Detection + Heatmap Fallback Demo</h1>
+  <p class="text-sm mb-3">This page mirrors the dashboard logic: it selects 3D (WebGL) if available, otherwise 2D heatmap.</p>
+  <div class="flex items-center gap-2 mb-2">
+    <span id="status" class="px-2 py-1 text-xs rounded border bg-slate-100 border-slate-200 text-slate-600">Detecting…</span>
+    <button id="btn2d" class="px-2 py-1 text-xs rounded border">2D</button>
+    <button id="btn3d" class="px-2 py-1 text-xs rounded border">3D</button>
+  </div>
+  <div id="chart" style="height:360px"></div>
+  <details class="mt-3 p-2 border rounded">
+    <summary>Diagnostics</summary>
+    <div>Support: <span id="support">—</span></div>
+    <div id="rendRow" class="hidden">Renderer: <span id="renderer">—</span></div>
+  </details>
+
+  <script>
+    function detect(){
+      const out={gl2:false, gl1:false, renderer:null};
+      try{
+        const c=document.createElement('canvas');
+        const gl2=c.getContext('webgl2');
+        const gl1=gl2 || c.getContext('webgl') || c.getContext('experimental-webgl');
+        if (gl1){ out.gl1=true; out.gl2=(typeof WebGL2RenderingContext!=='undefined' && gl1 instanceof WebGL2RenderingContext); try{ const ext=gl1.getExtension('WEBGL_debug_renderer_info'); if (ext) out.renderer=gl1.getParameter(ext.UNMASKED_RENDERER_WEBGL)||''; }catch{} }
+      }catch{}
+      return out;
+    }
+    function grid(){ const g=Array.from({length:7},()=>Array.from({length:24},()=>Math.floor(Math.random()*8))); return g; }
+    function render(mode){
+      const el=document.getElementById('chart'); if (!window.echarts||!el) return; try{ if (render._inst){ render._inst.dispose(); render._inst=null; } }catch{}
+      const chart=echarts.init(el); const g=grid(); const max=g.reduce((m,row)=>Math.max(m,...row),1); const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      if (mode==='3d'){
+        const data=[]; for(let d=0; d<7; d++){ for(let h=0; h<24; h++){ data.push([d,h,g[d][h]]); } }
+        chart.setOption({ tooltip:{}, visualMap:{ max:Math.max(1,max), inRange:{ color:['#083344','#065f46','#10b981','#a7f3d0'] } }, xAxis3D:{ type:'category', data:days }, yAxis3D:{ type:'category', data:Array.from({length:24},(_,i)=> String(i)) }, zAxis3D:{ type:'value' }, grid3D:{ boxDepth:60, boxWidth:110 }, series:[{ type:'bar3D', data:data.map(v=>({value:v})), shading:'lambert', barSize:6 }] });
+      } else {
+        const data=[]; for(let d=0; d<7; d++){ for(let h=0; h<24; h++){ data.push([h,d,g[d][h]]); } }
+        chart.setOption({ tooltip:{ position:'top' }, grid:{ height:'70%', top:'10%' }, xAxis:{ type:'category', data:Array.from({length:24},(_,i)=> String(i)), splitArea:{ show:true } }, yAxis:{ type:'category', data:days, splitArea:{ show:true } }, visualMap:{ min:0, max:Math.max(1,max), calculable:true, orient:'horizontal', left:'center', bottom:0, inRange:{ color:['#e0f2fe','#7dd3fc','#0ea5e9','#0369a1'] } }, series:[{ type:'heatmap', data }] });
+      }
+      render._inst=chart;
+    }
+    (function(){
+      const info=detect();
+      const sup=document.getElementById('support'); sup.textContent = info.gl2? 'WebGL2' : (info.gl1? 'WebGL1' : 'No');
+      if (info.renderer){ document.getElementById('renderer').textContent=info.renderer; document.getElementById('rendRow').classList.remove('hidden'); }
+      const status=document.getElementById('status');
+      const mode = (info.gl2||info.gl1) ? '3d' : '2d';
+      status.textContent = mode==='3d'? '3D (WebGL)' : '2D (Canvas)';
+      render(mode);
+      document.getElementById('btn2d').onclick=()=>{ status.textContent='2D (Canvas)'; render('2d'); };
+      document.getElementById('btn3d').onclick=()=>{ if(!(info.gl2||info.gl1)){ alert('WebGL not supported; staying in 2D'); return; } status.textContent='3D (WebGL)'; render('3d'); };
+    })();
+  </script>
+</body>
+</html>

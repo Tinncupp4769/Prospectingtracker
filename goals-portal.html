@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Goals Portal — Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <script src="js/theme.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root { --row-h: 48px; }
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background:#f8fafc; }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:16px; box-shadow:0 10px 24px rgba(0,0,0,.06); }
+    .input { border:1px solid #E5E7EB; }
+    .row{ height: var(--row-h); display:grid; grid-template-columns: 1.4fr 1fr 1fr 1fr 1fr; align-items:center; border-top:1px solid #e5e7eb; }
+    .row.head{ position: sticky; top: 0; background:#f1f5f9; z-index: 1; border-top:0; font-size: 12px; color:#334155; font-weight:600; }
+    .cell{ padding: 8px 12px; }
+    .metric-sub{ font-size: 11px; color:#64748b; }
+    .virtual-container{ height: 560px; overflow:auto; position:relative; }
+    .virtual-phantom{ height: 0; }
+    .status-ribbon{ position:sticky; top:0; z-index:50; }
+  </style>
+  <script>
+    // Single, new Goals Portal gate: session-only admin, non-blocking
+    (function(){ try{ const s=JSON.parse(localStorage.getItem('ascm_session')||'null'); if(!s){ location.replace('index.html'); return; } if(String((s.role||'')).toLowerCase()!=='admin'){ document.addEventListener('DOMContentLoaded',()=>{ document.body.innerHTML='<div class="max-w-3xl mx-auto mt-10 p-4 rounded-md border bg-red-50 text-red-700">Access denied: Admins only.</div>'; }); } }catch{} })();
+  </script>
+</head>
+<body>
+  <header class="brand-gradient text-white" id="header">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-white/10 grid place-items-center"><i class="fa-solid fa-bullseye text-white"></i></div>
+        <div>
+          <h1 class="text-base font-bold">Goals Portal</h1>
+          <p class="text-xs text-white/80">Admin-only · Snapshot-first · Weekly → Monthly auto</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a id="home-button" href="app.html" class="btn-outline px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-house mr-2"></i>Home</a>
+      </div>
+    </div>
+  </header>
+  <script>
+    (function(){ try{ const url=new URL(location.href); if (url.searchParams.get('embed')==='1'){ var h=document.getElementById('header'); if(h) h.style.display='none'; var hb=document.getElementById('home-button'); if(hb) hb.style.display='none'; document.body.style.paddingTop='0'; } }catch{} })();
+  </script>
+  <script src="js/queue-goals-snapshots.js"></script>
+
+  <main class="max-w-7xl mx-auto px-6 py-6">
+    <div id="ribbon" class="status-ribbon hidden"></div>
+    <div class="card p-3 text-xs flex items-center justify-between">
+      <div class="flex items-center gap-2"><i class="fa-solid fa-shield-heart text-emerald-700"></i><span>Snapshot-first architecture: publish writes a compact snapshot used by dashboards immediately; legacy rows sync in background.</span></div>
+      <div id="badges" class="flex items-center gap-2 text-[11px]"></div>
+    </div>
+
+    <div class="card p-4 mb-4">
+      <div class="flex flex-col lg:flex-row gap-3 lg:items-center justify-between">
+        <div class="flex items-center gap-3 flex-wrap">
+          <div class="flex items-center gap-2">
+            <label class="text-sm">Month</label>
+            <input id="month" type="month" class="input rounded px-2 py-1 text-sm" />
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-sm">Weeks in Month</label>
+            <input id="weeks" type="number" min="1" max="6" class="input rounded px-2 py-1 text-sm w-20" />
+          </div>
+          <span id="dataMode" class="px-2 py-0.5 rounded-full border" title="Data source">—</span>
+          <span id="queueChip" class="px-2 py-0.5 rounded-full border" title="Queued publish writes">Q: 0</span>
+          <span id="lastSaved" class="px-2 py-0.5 rounded-full border hidden" title="Last save time"></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="saveDraft" class="btn-outline px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-floppy-disk mr-2"></i>Save Draft</button>
+          <button id="publish" class="btn-primary px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-cloud-arrow-up mr-2"></i>Publish</button>
+          <button id="warmRetry" class="btn-outline px-3 py-2 rounded-md text-sm" title="Warm-up API and retry queued publishes"><i class="fa-solid fa-rotate mr-2"></i>Warm-up & Retry</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card p-0 overflow-hidden">
+      <div class="row head"><div class="cell">Metric</div><div class="cell">AE Weekly</div><div class="cell">AE Monthly</div><div class="cell">AM Weekly</div><div class="cell">AM Monthly</div></div>
+      <div id="grid" class="virtual-container"></div>
+    </div>
+
+    <div id="jsonWrap" class="card p-3 mt-4 hidden"><div class="text-xs font-bold mb-1">Last Action</div><pre id="jsonResponse" class="text-xs whitespace-pre-wrap"></pre></div>
+  </main>
+
+  <!-- Global toast (theme.css provides .ascm-toast) -->
+  <div id="ascm_toast" class="ascm-toast info" role="status" aria-live="polite"></div>
+
+  <script>
+  (function(){
+    // Utilities
+    const sleep = (ms)=> new Promise(r=>setTimeout(r, ms));
+    const qs = (s)=> document.querySelector(s);
+    const now = ()=> Date.now();
+
+    // Metrics catalog (read from js/metrics-config.js if present, else fallback)
+    const METRICS = (window.METRICS_CATALOG ? (function(){
+      const list=[]; const seen=new Set();
+      const AE = window.METRICS_CATALOG.ae||{}; const AM = window.METRICS_CATALOG.am||{};
+      for (const group of Object.values(AE)){ for (const [k,l] of group){ if(!seen.has(k)){ seen.add(k); list.push([k,l]); } } }
+      for (const group of Object.values(AM)){ for (const [k,l] of group){ if(!seen.has(k)){ seen.add(k); list.push([k,l]); } } }
+      const order=['callsMade','emailsSent','meetingsConducted','meetingsBooked','opportunitiesGenerated','vidyardVideos','linkedinMessages','pipelineGenerated','revenueClosed','accountsTargeted','generalAbmCampaigns','crossSellAbmCampaigns','upSellAbmCampaigns','dormantAbmCampaigns','referralsGenerated','successfulContacts'];
+      list.sort((a,b)=> (order.indexOf(a[0])===-1?999:order.indexOf(a[0])) - (order.indexOf(b[0])===-1?999:order.indexOf(b[0])) || a[1].localeCompare(b[1]));
+      return list;
+    })() : [
+      ['callsMade','Calls Made'],['emailsSent','Emails Sent'],['meetingsBooked','Meetings Booked'],['meetingsConducted','Meetings Conducted'],['opportunitiesGenerated','Opportunities Generated'],['pipelineGenerated','Pipeline Generated'],['revenueClosed','Revenue Closed'],['linkedinMessages','LinkedIn Messages'],['vidyardVideos','Vidyard Videos'],['accountsTargeted','Accounts Targeted'],['generalAbmCampaigns','General ABM Campaigns'],['crossSellAbmCampaigns','Cross-Sell ABM Campaigns'],['upSellAbmCampaigns','Up-Sell ABM Campaigns'],['dormantAbmCampaigns','Dormant ABM Campaigns'],['referralsGenerated','Referrals Generated'],['successfulContacts','Successful Contacts']
+    ]);
+
+    // Robust API wrapper (snapshot-first)
+    const API = (function(){
+      let BASE = 'tables/'; const CAND=['tables/','/tables/'];
+      function looksHtml(res){ return (res.headers.get('content-type')||'').toLowerCase().includes('text/html'); }
+      function npath(p){ if(/^https?:/i.test(p)) return p; if(p.startsWith('tables/')) return BASE + p.slice(7); if(p.startsWith('/tables/')) return BASE + p.slice(8); return BASE + p; }
+      async function resolveBase(){ for(const b of CAND){ try{ const r=await fetch(`${b}users?limit=1`,{cache:'no-store',credentials:'same-origin'}); const ct=(r.headers.get('content-type')||'').toLowerCase(); if(r.ok && ct.includes('application/json')){ BASE=b; break; } }catch{} } }
+      function fetchWithTimeout(url, options={}, timeoutMs=12000){ const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(), timeoutMs); const opts={ ...options, signal: ctrl.signal, cache:'no-store', credentials:'same-origin' }; return fetch(url, opts).finally(()=> clearTimeout(t)); }
+      async function req(method, path, body, tries=5){ await resolveBase(); let last=''; for(let i=0;i<tries;i++){ try{ let url=npath(path); url += (url.includes('?')?'&':'?')+`cb=${Date.now()}_${i}`; const r=await fetchWithTimeout(url,{method, headers:{'Content-Type':'application/json'}, body: body!=null?JSON.stringify(body):undefined}, 15000); const ct=(r.headers.get('content-type')||'').toLowerCase(); if(!r.ok || looksHtml(r) || !ct.includes('application/json')){ // WAF/HTML or error → warm-up then backoff with jitter
+            try{ const wu=npath('tables/users?limit=1'); const sep=wu.includes('?')?'&':'?'; await fetchWithTimeout(`${wu}${sep}cb=${Date.now()}`, { method:'GET' }, 8000); }catch{}
+            const jitter = Math.floor(Math.random()*200);
+            await sleep(500*Math.pow(1.6,i) + jitter);
+            continue; }
+          return r; }catch(e){ last=String(e?.message||e); const jitter=Math.floor(Math.random()*200); await sleep(500*Math.pow(1.6,i) + jitter); } }
+        throw new Error('API blocked '+last); }
+      async function json(method, path, body, tries=3){ const r=await req(method, path, body, tries); if(!r.ok){ let t=''; try{t=await r.text();}catch{}; throw new Error(`${method} ${path} -> ${r.status} ${t.slice(0,160)}`); } try{ return await r.json(); }catch{ return {}; } }
+      return { json, npath };
+    })();
+
+    // Snapshot model: tables/goals_snapshots (primary), legacy tables/goals (fallback for older pages)
+    function cacheKey(ym){ return `goals_snapshot_${ym}`; }
+    function getYM(){ return new Date().toISOString().slice(0,7); }
+
+    const state = {
+      month: getYM(), weeks: 4,
+      map: new Map(), // key: `${metric}|${role}` -> weekly number or ''
+      dataMode: 'checking',
+      lastResult: null,
+      queueCount: 0,
+    };
+
+    function setBadge(id, text, cls){ const el=qs('#'+id); if(!el) return; el.textContent=text; el.className='px-2 py-0.5 rounded-full border '+(cls||''); }
+    function showRibbon(msg, type){ const el=qs('#ribbon'); if(!el) return; const color= type==='error'?'bg-red-50 text-red-800 border-red-200':'bg-emerald-50 text-emerald-800 border-emerald-200'; el.className='status-ribbon card p-3 border '+color; el.innerHTML=`<div class="text-sm">${msg}</div>`; el.classList.remove('hidden'); setTimeout(()=> el.classList.add('hidden'), 3500); }
+    function showToast(msg, type){ const el=qs('#ascm_toast'); if(!el) return; el.className='ascm-toast '+(type||'info'); el.innerHTML=`<span>${msg}</span><button class="close" aria-label="Dismiss">×</button>`; el.querySelector('.close').onclick=()=> el.classList.remove('show'); el.classList.add('show'); setTimeout(()=> el.classList.remove('show'), 5000); }
+    function showJson(payload){ try{ state.lastResult=payload; qs('#jsonWrap').classList.remove('hidden'); qs('#jsonResponse').textContent = JSON.stringify(payload,null,2); }catch{} }
+
+    function renderGrid(){ const container=qs('#grid'); const rowH=48; const total=METRICS.length; const viewStart=0, viewEnd=total; container.innerHTML=''; const topPad=document.createElement('div'); topPad.className='virtual-phantom'; topPad.style.height=(viewStart*rowH)+'px'; container.appendChild(topPad);
+      for(const [key,label] of METRICS.slice(viewStart, viewEnd)){
+        const aeKey=`${key}|ae`, amKey=`${key}|am`; const aeW=state.map.get(aeKey)||''; const amW=state.map.get(amKey)||'';
+        const aeM=(aeW===''?'—': (Number(aeW)||0) * Number(state.weeks||4));
+        const amM=(amW===''?'—': (Number(amW)||0) * Number(state.weeks||4));
+        const row=document.createElement('div'); row.className='row'; row.style.height=rowH+'px';
+        row.innerHTML=`
+          <div class="cell"><div class="font-medium">${label}</div><div class="metric-sub">${key}</div></div>
+          <div class="cell"><input inputmode="numeric" class="input rounded px-3 py-1 w-28" placeholder="0" value="${aeW}" aria-label="AE Weekly ${label}" data-k="${aeKey}" /></div>
+          <div class="cell"><span>${aeM}</span></div>
+          <div class="cell"><input inputmode="numeric" class="input rounded px-3 py-1 w-28" placeholder="0" value="${amW}" aria-label="AM Weekly ${label}" data-k="${amKey}" /></div>
+          <div class="cell"><span>${amM}</span></div>`;
+        container.appendChild(row);
+      }
+      const botPad=document.createElement('div'); botPad.className='virtual-phantom'; botPad.style.height=((total-viewEnd)*rowH)+'px'; container.appendChild(botPad);
+      container.querySelectorAll('input[data-k]').forEach(inp=>{
+        inp.addEventListener('input', (e)=>{
+          const v = e.target.value.replace(/[^0-9]/g,''); e.target.value=v; state.map.set(e.target.dataset.k, v===''? '' : Math.max(0, parseInt(v,10)||0));
+          // update monthly cells live (simple: re-render row)
+          renderGridRowUpdate(e.target.closest('.row'));
+        });
+      });
+    }
+
+    function renderGridRowUpdate(row){ try{ const inputs=row.querySelectorAll('input[data-k]'); inputs.forEach((inp,idx)=>{ const k=inp.dataset.k; const w=state.map.get(k)||''; const m = (w===''?'—': (Number(w)||0) * Number(state.weeks||4)); const cells=row.querySelectorAll('.cell'); cells[idx===0?2:4].querySelector('span').textContent = m; }); }catch{}
+    }
+
+    function applyBadges(){ setBadge('dataMode', state.dataMode==='live'?'Live API':'Cached', ''); setBadge('queueChip', `Q: ${state.queueCount||0}`, ''); const ls=qs('#lastSaved'); if(state.lastResult && state.lastResult.status==='success'){ ls.classList.remove('hidden'); ls.textContent = new Date().toLocaleTimeString(); } }
+
+    function loadCached(ym){ try{ const cached = JSON.parse(localStorage.getItem(cacheKey(ym))||'null'); if (cached && cached.map){ state.weeks=cached.weeks||4; state.map=new Map(cached.map); state.dataMode='cached'; return true; } }catch{} return false; }
+    function saveCached(ym){ try{ localStorage.setItem(cacheKey(ym), JSON.stringify({ weeks: state.weeks, map: Array.from(state.map.entries()) })); }catch{} }
+
+    // Compatibility caches for legacy consumers (dashboards fallback)
+    function saveRoleCaches(ym){ try{ const weeks=Math.max(1, Number(state.weeks||4)); const valsAE={}; const valsAM={}; for(const [metric,label] of METRICS){ const wAE=Number(state.map.get(`${metric}|ae`)||0); const wAM=Number(state.map.get(`${metric}|am`)||0); valsAE[metric]={ week:wAE, month:Math.round(wAE*weeks) }; valsAM[metric]={ week:wAM, month:Math.round(wAM*weeks) }; } localStorage.setItem(`goals_cache_role_ae_${ym}`, JSON.stringify({ weeks, values: valsAE })); localStorage.setItem(`goals_cache_role_am_${ym}`, JSON.stringify({ weeks, values: valsAM })); }catch{} }
+
+    async function loadSnapshot(ym){
+      try {
+        // Try snapshot table first (fast single doc)
+        const snapRes = await API.json('GET', `tables/goals_snapshots?limit=1&search=${encodeURIComponent(ym)}`);
+        const rows = (snapRes.data||[]).filter(x=> !x.deleted && x.month===ym && !x.userId);
+        if (rows.length){ const r=rows[0]; state.weeks = Math.max(1, Number(r.weeks||4)); const map = new Map(); const vals = r.values||{}; for (const [metric, ob] of Object.entries(vals)){ map.set(`${metric}|ae`, Number(ob.ae||0)); map.set(`${metric}|am`, Number(ob.am||0)); }
+          state.map = map; state.dataMode='live'; return true; }
+      } catch{}
+      return false;
+    }
+
+    async function loadLegacyGoals(ym){
+      try { const data = await API.json('GET', 'tables/goals?limit=1000'); const rows=(data.data||[]).filter(g=> !g.deleted && g.month===ym && !g.userId);
+        const map=new Map(); const weekMap={}; const monthMap={}; let weeks=4;
+        for (const r of rows){ const m=(r.metric||''); const role=String(r.role||'ae').toLowerCase(); if (r.period==='week'){ weekMap[`${m}|${role}`] = Number(r.target||0); weeks = Math.max(1, Number(r.weeks||weeks||4)); } else if (r.period==='month'){ monthMap[`${m}|${role}`] = Number(r.target||0); weeks = Math.max(1, Number(r.weeks||weeks||4)); } }
+        // Derive missing week from month
+        for (const [key,label] of METRICS){ for (const role of ['ae','am']){ const k=`${key}|${role}`; const w = (weekMap[k]!=null? weekMap[k] : (monthMap[k]!=null? Math.round(monthMap[k]/weeks) : '')); map.set(k, w); } }
+        state.weeks = weeks; state.map = map; state.dataMode='live'; return true;
+      } catch{}
+      return false;
+    }
+
+    async function load(){ const ym = state.month; const hadCache = loadCached(ym); if (hadCache){ renderGrid(); applyBadges(); }
+      // live attempts (snapshot -> legacy)
+      if (await loadSnapshot(ym) || await loadLegacyGoals(ym)){ saveCached(ym); renderGrid(); }
+      applyBadges();
+    }
+
+    function buildSnapshotPayload(){ const vals={}; for (const [key,label] of METRICS){ const aeW = Number(state.map.get(`${key}|ae`)||0); const amW = Number(state.map.get(`${key}|am`)||0); vals[key] = { ae: aeW, am: amW }; } return { month: state.month, weeks: Math.max(1, Number(state.weeks||4)), values: vals, userId: null, updated_at: now() } }
+
+    async function postSnapshot(){ const payload = buildSnapshotPayload(); const res = await API.json('POST','tables/goals_snapshots', payload); return res; }
+
+    async function syncLegacyGoals(){
+      // Best-effort background sync to legacy tables/goals (non-blocking)
+      try { const ym = state.month; const weeks = Math.max(1, Number(state.weeks||4)); const work=[]; for (const [metric,label] of METRICS){ for(const role of ['ae','am']){ const w = Number(state.map.get(`${metric}|${role}`)||0); const m = Math.round(w*weeks); work.push({ role, metric, period:'week', target:w, month:ym, weeks, userId:null }); work.push({ role, metric, period:'month', target:m, month:ym, weeks, userId:null }); } }
+        let ok=0; for (const item of work){ try{ await API.json('POST','tables/goals', item); ok++; }catch(e){ /* ignore, background best-effort */ } }
+        return { ok, total: work.length };
+      } catch(e){ return { ok:0, total:0, error:String(e?.message||e) } }
+    }
+
+    async function saveDraft(){ saveCached(state.month); saveRoleCaches(state.month); const payload = { status:'success', message:'Goals saved as draft', month: state.month, weeks: state.weeks, broadcasted: true };
+      try { localStorage.setItem('ascm_goals_updated', String(now())); } catch{}
+      try { if(!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.postMessage({ type:'goals_updated', at: now() }); }catch{}
+      showJson(payload); showRibbon('Draft saved — dashboards notified', 'success'); showToast('Draft saved — dashboards will use snapshot/cache immediately.','success'); applyBadges(); }
+
+    async function publish(){ const ym = state.month; setBadge('dataMode','Publishing…','');
+      try{
+        const snap = await postSnapshot();
+        saveCached(ym); saveRoleCaches(ym); // keep local caches aligned
+        // Broadcast immediately so dashboards pick up snapshot
+        try { localStorage.setItem('ascm_goals_updated', String(now())); } catch{}
+        try { if(!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.postMessage({ type:'goals_updated', at: now(), snapshot:true }); }catch{}
+        showRibbon('Goals published — dashboards updated from snapshot','success'); showToast('Goals published — dashboards using snapshot now.','success');
+        // Background legacy sync (non-blocking)
+        (async()=>{ const r = await syncLegacyGoals(); state.queueCount = Math.max(0, (r.total - r.ok)); applyBadges(); try{ const summary = { queued: state.queueCount, retrying: 0, succeeded: r.ok||0, total: r.total||0, at: now() }; localStorage.setItem('goals_async_queue_summary', JSON.stringify(summary)); }catch{} try{ if(!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.postMessage({ type:'goals_queue_update', summary, at: now() }); }catch{} })();
+        showJson({ status:'success', message:'Goals published successfully', month: ym, weeks: state.weeks, broadcasted:true, snapshot_id: (snap?.id||null) });
+      }catch(e){
+        // Preserve draft caches and enqueue snapshot for retry
+        const payload = buildSnapshotPayload();
+        saveCached(ym); saveRoleCaches(ym);
+        let qid=null; try{ if (window.GoalsSnapshotQueue){ const q = window.GoalsSnapshotQueue.enqueue(payload); qid = q?.id||null; window.GoalsSnapshotQueue.schedule?.(); } }catch{}
+        try { localStorage.setItem('ascm_goals_updated', String(now())); } catch{}
+        try { if(!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.postMessage({ type:'goals_updated', at: now(), snapshot:false, queued:true }); }catch{}
+        try { if (window.GoalsSnapshotQueue && window.GoalsSnapshotQueue.getSummary){ const s=window.GoalsSnapshotQueue.getSummary(); state.queueCount = (s.queued||0)+(s.retrying||0); applyBadges(); } }catch{}
+        showRibbon('Publish failed — queued for retry','error');
+        showToast('API blocked. Snapshot queued for retry; dashboards will use cached goals until live succeeds.','error');
+        showJson({ status:'queued', message:'Snapshot publish queued for retry', queue_id: qid, details:String(e?.message||e) });
+      }
+      finally { setBadge('dataMode', state.dataMode==='live'?'Live API':'Cached',''); }
+    }
+
+    // Initialize
+    (function init(){
+      state.month = new Date().toISOString().slice(0,7); qs('#month').value = state.month; qs('#weeks').value = state.weeks;
+      qs('#month').addEventListener('change', (e)=>{ state.month = e.target.value || new Date().toISOString().slice(0,7); load(); });
+      qs('#weeks').addEventListener('input', (e)=>{ const v=Math.max(1, Math.min(6, parseInt(e.target.value||'4',10)||4)); state.weeks=v; renderGrid(); });
+      qs('#saveDraft').addEventListener('click', saveDraft);
+      qs('#publish').addEventListener('click', publish);
+      // Seed map
+      for (const [k,l] of METRICS){ state.map.set(`${k}|ae`,''); state.map.set(`${k}|am`,''); }
+      renderGrid();
+      // Load data
+      load();
+      // Subscribe to snapshot publish queue summary + Warm-up & Retry button
+      try {
+        if (window.GoalsSnapshotQueue){
+          window.GoalsSnapshotQueue.schedule?.();
+          window.GoalsSnapshotQueue.subscribe((s)=>{ try{ state.queueCount = (s.queued||0)+(s.retrying||0); applyBadges(); }catch{} });
+        }
+        const btn = document.getElementById('warmRetry');
+        if (btn){ btn.addEventListener('click', async ()=>{ try{ await API.json('GET','tables/users?limit=1'); }catch{} try{ window.GoalsSnapshotQueue?.kick?.(); }catch{} showToast('Warmed up API and retried queued publishes','success'); }); }
+      } catch{}
+      // Listen for queue updates and resets (if any existing background process uses BroadcastChannel)
+      try {
+        if(!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync');
+        const prev = window._ascmChan.onmessage;
+        window._ascmChan.onmessage = (e)=>{
+          try {
+            const t = e?.data?.type;
+            if (t==='goals_queue_update'){
+              state.queueCount = (e.data.summary?.queued||0)+(e.data.summary?.retrying||0);
+              applyBadges();
+            }
+            if (t==='goals_updated'){
+              showRibbon('Dashboards refreshed','success');
+            }
+            if (t==='goals_reset'){
+              // Clear local caches and reload freshly (should pick up zeroed snapshot)
+              try{ Object.keys(localStorage).forEach(k=>{ if(k.startsWith('goals_snapshot_')||k.startsWith('goals_cache_role_')||k==='goals_cache') localStorage.removeItem(k); }); }catch{}
+              // Reset map to blanks (zeros shown after load)
+              try{ for (const [k,l] of METRICS){ state.map.set(`${k}|ae`,''); state.map.set(`${k}|am`,''); } renderGrid(); }catch{}
+              load();
+              showRibbon('Goals reset detected — reloaded','success');
+            }
+            if (typeof prev === 'function') prev(e);
+          } catch {}
+        };
+      } catch{}
+    })();
+  })();
+  </script>
+</body>
+</html>

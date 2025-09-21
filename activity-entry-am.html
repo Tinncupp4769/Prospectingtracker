@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AM Activity Entry — ASCM</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:wght@500;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <script src="js/theme.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --group-1: #FEF9C3; /* yellow-100 */
+      --group-2: #E0F2FE; /* sky-100 */
+      --group-3: #DCFCE7; /* green-100 */
+      --group-4: #FDE68A; /* amber-300 */
+    }
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+    .headline { font-family: 'Poppins', 'Inter', sans-serif; letter-spacing: .2px; }
+    .group-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 16px; padding: 20px; box-shadow: 0 10px 24px rgba(0,0,0,.06); }
+    .bg-group-1 { background: var(--group-1); }
+    .bg-group-2 { background: var(--group-2); }
+    .bg-group-3 { background: var(--group-3); }
+    .bg-group-4 { background: var(--group-4); }
+    .summary { background: linear-gradient(135deg, var(--ascm-green-medium), var(--ascm-blue-accent)); color: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 12px 28px rgba(0,0,0,.08); }
+    .tab { padding: 10px 14px; border-radius: 999px; background: #fff; border: 1px solid #E5E7EB; cursor: pointer; }
+    .tab.active { background: var(--ascm-blue-accent); color: #fff; border-color: transparent; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <header class="brand-gradient text-white shadow">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-white/10 grid place-items-center"><i class="fa-solid fa-pen-to-square text-white"></i></div>
+        <div>
+          <h1 class="text-base font-bold headline">AM Activity Entry</h1>
+          <p class="text-xs text-white/80">Enter weekly activity by category</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="inline-flex items-center gap-2 bg-white/10 rounded-md px-2 py-1">
+          <span id="sessionStatus" class="px-2 py-0.5 text-xs rounded border border-white/30 bg-white/10">Session: Idle</span>
+          <button id="sessionStart" class="px-3 py-1 rounded-md text-xs bg-emerald-500 hover:bg-emerald-400 text-white transition"><i class="fa-solid fa-play mr-1"></i>Start</button>
+          <button id="sessionStop" class="px-3 py-1 rounded-md text-xs bg-rose-500 hover:bg-rose-400 text-white transition opacity-60 cursor-not-allowed" disabled><i class="fa-solid fa-stop mr-1"></i>Stop</button>
+        </div>
+        <div class="inline-flex items-center gap-2">
+          <a id="home-button" href="app.html" class="btn-outline px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-house mr-2"></i>Home</a>
+          <button id="logout" class="btn-primary px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-arrow-right-from-bracket mr-2"></i>Logout</button>
+        </div>
+      </div>
+    </div>
+    <div id="impersonationContainer" class="bg-black/5 border-t border-white/10">
+      <div class="max-w-6xl mx-auto px-6 py-2"></div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-6">
+    <div class="flex flex-col md:flex-row md:items-center gap-4 mb-6">
+      <div class="flex-1">
+        <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 headline">Welcome, <span id="userName">User</span></h2>
+        <p class="text-sm text-slate-600">Select a category and week, then enter your AM metrics.</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <label for="week" class="text-sm text-slate-700">Week</label>
+        <select id="week" class="input rounded-md px-3 py-2"></select>
+        <button id="resetWeek" class="btn-outline rounded-md px-3 py-2 text-sm"><i class="fa-solid fa-rotate-left mr-2"></i>Reset Week</button>
+
+      </div>
+    </div>
+
+    <div class="flex items-center gap-2 mb-4">
+      <button class="tab active" data-cat="up-sell">Up-Sell</button>
+      <button class="tab" data-cat="cross-sell">Cross-Sell</button>
+      <button class="tab" data-cat="dormant">Dormant Account Reactivation</button>
+    </div>
+
+    <section class="summary mb-6">
+      <div class="grid sm:grid-cols-3 gap-4 text-sm">
+        <div>
+          <div class="opacity-90">Total Results</div>
+          <div class="text-3xl md:text-4xl font-extrabold transition-all duration-300" id="sumResults">0</div>
+        </div>
+        <div>
+          <div class="opacity-90">Pipeline Value</div>
+          <div class="text-3xl md:text-4xl font-extrabold transition-all duration-300" id="sumPipeline">$0</div>
+        </div>
+        <div>
+          <div class="opacity-90">Revenue Closed</div>
+          <div class="text-3xl md:text-4xl font-extrabold transition-all duration-300" id="sumRevenue">$0</div>
+        </div>
+      </div>
+    </section>
+
+    <form id="form" class="space-y-6">
+      <!-- Activities -->
+      <div class="group-card">
+        <h3 class="font-semibold mb-3">Activities</h3>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div><label class="block text-sm font-medium text-slate-700" title="Number of unique accounts targeted in this category"><i class="fa-solid fa-bullseye mr-2 text-rose-600"></i>Accounts Targeted</label><input type="number" min="0" id="accountsTargeted" class="input w-full rounded-md px-3 py-2" value="0"></div>
+          <div><label class="block text-sm font-medium text-slate-700" title="Number of outbound calls placed"><i class="fa-solid fa-phone mr-2 text-emerald-600"></i>Calls Made</label><input type="number" min="0" id="callsMade" class="input w-full rounded-md px-3 py-2" value="0"></div>
+          <div><label class="block text-sm font-medium text-slate-700" title="Number of individual sales emails sent"><i class="fa-solid fa-envelope mr-2 text-blue-600"></i>Emails Sent</label><input type="number" min="0" id="emailsSent" class="input w-full rounded-md px-3 py-2" value="0"></div>
+          <div><label class="block text-sm font-medium text-slate-700" title="Number of direct LinkedIn messages sent"><i class="fa-brands fa-linkedin mr-2 text-sky-600"></i>LinkedIn Messages</label><input type="number" min="0" id="linkedinMessages" class="input w-full rounded-md px-3 py-2" value="0"></div>
+          <div><label class="block text-sm font-medium text-slate-700" title="Number of Vidyard (or similar) personalized videos sent"><i class="fa-solid fa-video mr-2 text-lime-600"></i>Vidyard Videos Sent</label><input type="number" min="0" id="vidyardVideos" class="input w-full rounded-md px-3 py-2" value="0"></div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="group-card bg-group-2">
+        <h3 class="font-semibold mb-3">Results</h3>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div><label class="block text-sm font-medium text-slate-700" title="Number of meetings scheduled"><i class="fa-solid fa-calendar-check mr-2 text-violet-600"></i>Meetings Booked</label><input type="number" min="0" id="meetingsBooked" class="input w-full rounded-md px-3 py-2" value="0"></div>
+          <div><label class="block text-sm font-medium text-slate-700" title="Number of positive engagements or replies"><i class="fa-solid fa-circle-check mr-2 text-emerald-600"></i>Successful Contacts</label><input type="number" min="0" id="successfulContacts" class="input w-full rounded-md px-3 py-2" value="0"></div>
+          <div><label class="block text-sm font-medium text-slate-700" title="Number of meetings completed"><i class="fa-solid fa-person-chalkboard mr-2 text-amber-600"></i>Meetings Conducted</label><input type="number" min="0" id="meetingsConducted" class="input w-full rounded-md px-3 py-2" value="0"></div>
+          <div><label class="block text-sm font-medium text-slate-700" title="Number of new opportunities created"><i class="fa-solid fa-lightbulb mr-2 text-yellow-500"></i>Opportunities Generated</label><input type="number" min="0" id="opportunitiesGenerated" class="input w-full rounded-md px-3 py-2" value="0"></div>
+          <div><label class="block text-sm font-medium text-slate-700"><i class="fa-solid fa-share-nodes mr-2 text-cyan-600"></i>Referrals Generated</label><input type="number" min="0" id="referralsGenerated" class="input w-full rounded-md px-3 py-2" value="0"></div>
+        </div>
+      </div>
+
+      <!-- Financials -->
+      <div class="group-card bg-group-3">
+        <h3 class="font-semibold mb-3">Financials</h3>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div><label class="block text-sm font-medium text-slate-700"><i class="fa-solid fa-funnel-dollar mr-2 text-indigo-600"></i>Pipeline Generated ($)</label><input type="number" min="0" step="100" id="pipelineGenerated" class="input w-full rounded-md px-3 py-2" value="0"></div>
+          <div><label class="block text-sm font-medium text-slate-700"><i class="fa-solid fa-sack-dollar mr-2 text-green-700"></i>Revenue Closed ($)</label><input type="number" min="0" step="100" id="revenueClosed" class="input w-full rounded-md px-3 py-2" value="0"></div>
+        </div>
+      </div>
+
+      <!-- ABM Campaigns -->
+      <div class="group-card bg-group-1">
+        <h3 class="font-semibold mb-3">ABM Campaigns</h3>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div><label class="block text-sm font-medium text-slate-700"><i class="fa-solid fa-bullhorn mr-2 text-fuchsia-600"></i>General ABM Campaigns</label><input type="number" min="0" id="generalAbmCampaigns" class="input w-full rounded-md px-3 py-2" value="0"></div>
+          <div><label class="block text-sm font-medium text-slate-700">Dormant Account ABM</label><input type="number" min="0" id="dormantAbmCampaigns" class="input w-full rounded-md px-3 py-2" value="0"></div>
+          <div><label class="block text-sm font-medium text-slate-700">Cross-Sell ABM</label><input type="number" min="0" id="crossSellAbmCampaigns" class="input w-full rounded-md px-3 py-2" value="0"></div>
+          <div><label class="block text-sm font-medium text-slate-700">Up-Sell ABM</label><input type="number" min="0" id="upSellAbmCampaigns" class="input w-full rounded-md px-3 py-2" value="0"></div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between">
+        <button type="button" id="saveDraft" class="btn-outline rounded-md px-4 py-2"><i class="fa-solid fa-save mr-2"></i>Save Draft</button>
+        <div class="flex gap-2">
+          <button type="button" id="addTotals" class="btn-accent rounded-md px-4 py-2"><i class="fa-solid fa-plus mr-2"></i>Update Week's Total</button>
+          <button type="button" id="undoLast" class="btn-outline rounded-md px-4 py-2" disabled><i class="fa-solid fa-rotate-left mr-2"></i>Undo Last Entry</button>
+          <button type="button" id="submit" class="btn-primary rounded-md px-4 py-2"><i class="fa-solid fa-paper-plane mr-2"></i>Submit</button>
+        </div>
+      </div>
+    </form>
+
+    <div class="mt-8">
+      <h3 class="font-semibold mb-2">This Week’s Entries (<span id="catName">Up-Sell</span>)</h3>
+      <div id="entries" class="grid gap-2"></div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { requireAuthOrRedirect, currentWeekId, weeksWithLabels, listActivities, listUserWeekActivities, createActivity, deleteRecord, sanitizeNumber, sumMetrics, toast, showInlineBadgeAtId, showInlineBadgeAtTop, getImpersonation, startImpersonation, stopImpersonation, loadUsersSimple } from './js/activity-utils.js';
+    const session = requireAuthOrRedirect();
+    // Enforce role-based access: AM page is restricted to AM or Admin
+    const role = String(session?.role||'').toLowerCase();
+    const isAdmin = role==='admin';
+    if (!isAdmin && role!=='am') { window.location.replace('activity-entry-router.html'); }
+
+    // State
+    let category = 'up-sell';
+    let impersonation = getImpersonation();
+
+    // UI refs
+    const userName = document.getElementById('userName');
+    const header = document.querySelector('header .max-w-6xl');
+    const sessionStatus = document.getElementById('sessionStatus');
+    const sessionStartBtn = document.getElementById('sessionStart');
+    const sessionStopBtn = document.getElementById('sessionStop');
+    const weekSel = document.getElementById('week');
+    const sumResults = document.getElementById('sumResults');
+    const sumPipeline = document.getElementById('sumPipeline');
+    const sumRevenue = document.getElementById('sumRevenue');
+    const entries = document.getElementById('entries');
+    const catName = document.getElementById('catName');
+
+    const fields = ['accountsTargeted','callsMade','emailsSent','linkedinMessages','vidyardVideos','meetingsBooked','successfulContacts','meetingsConducted','opportunitiesGenerated','referralsGenerated','pipelineGenerated','revenueClosed','generalAbmCampaigns','dormantAbmCampaigns','crossSellAbmCampaigns','upSellAbmCampaigns']; let _lastCreatedId=null;
+
+    userName.textContent = session.name || session.email;
+
+    // Impersonation banner for admins
+    if (isAdmin) {
+      const container = document.querySelector('#impersonationContainer > .max-w-6xl > .px-6') || document.getElementById('impersonationContainer') || header;
+      const bar = document.createElement('div');
+      bar.id = 'impersonationBar';
+      bar.className = 'w-full flex items-center gap-2';
+      bar.innerHTML = `
+        <div class="px-2 py-1 rounded border text-xs ${impersonation? 'bg-amber-50 border-amber-200 text-amber-700' : 'bg-slate-100 border-slate-200 text-slate-700'}">
+          ${impersonation? `<i class='fa-solid fa-user-secret mr-1'></i>Impersonating: <strong>${impersonation.name||impersonation.email||impersonation.id}</strong> (${impersonation.role?.toUpperCase()||''})` : 'Impersonate user:'}
+        </div>
+        <select id="impersonateSelect" class="input rounded-md px-2 py-1 text-xs min-w-[220px]"></select>
+        <button id="impersonateStart" class="btn-outline rounded-md px-2 py-1 text-xs">Start</button>
+        <button id="impersonateStop" class="btn-accent rounded-md px-2 py-1 text-xs ${impersonation? '' : 'hidden'}">Stop</button>
+      `;
+      try { const host = document.getElementById('impersonationContainer') || header; (host.querySelector('.max-w-6xl .px-6')||host).appendChild(bar); } catch { header.appendChild(bar); }
+      // load users
+      const sel = bar.querySelector('#impersonateSelect');
+      loadUsersSimple(1000).then(users=>{
+        sel.innerHTML = users.map(u=>`<option value="${u.id}">${u.name||u.email||u.id}</option>`).join('');
+        if (impersonation) sel.value = impersonation.id;
+      });
+      bar.querySelector('#impersonateStart').addEventListener('click', async ()=>{
+        const id = sel.value;
+        const users = await loadUsersSimple(1000);
+        const u = users.find(x=> x.id===id);
+        if (!u) { toast('Select a user to impersonate','error'); return; }
+        try { impersonation = await startImpersonation(u); toast('Impersonation active for '+(impersonation.name||impersonation.email)); bar.querySelector('#impersonateStop').classList.remove('hidden'); bar.querySelector('div').className='px-2 py-1 rounded border text-xs bg-amber-50 border-amber-200 text-amber-700'; bar.querySelector('div').innerHTML = `<i class='fa-solid fa-user-secret mr-1'></i>Impersonating: <strong>${impersonation.name||impersonation.email||impersonation.id}</strong> (${impersonation.role?.toUpperCase()||''})`; } catch(e){ toast('Failed to start impersonation','error'); }
+      });
+      bar.querySelector('#impersonateStop').addEventListener('click', async ()=>{
+        try { await stopImpersonation(); impersonation=null; toast('Stopped impersonating'); bar.querySelector('#impersonateStop').classList.add('hidden'); bar.querySelector('div').className='px-2 py-1 rounded border text-xs bg-slate-100 border-slate-200 text-slate-700'; bar.querySelector('div').textContent='Impersonate user:'; } catch(e){ toast('Failed to stop impersonation','error'); }
+      });
+    }
+
+    // Populate weeks
+    const weeks = weeksWithLabels(16);
+    weeks.forEach(w => { const opt = document.createElement('option'); opt.value = w.id; opt.textContent = w.label; weekSel.appendChild(opt); });
+    weekSel.value = currentWeekId();
+
+    document.getElementById('logout').addEventListener('click', () => { localStorage.removeItem('ascm_session'); window.location.assign('index.html'); });
+
+    // Session controls (client-only)
+    function readSession(){ try { return JSON.parse(localStorage.getItem(`am_session_${session.id}`)||'null'); } catch { return null; } }
+    function writeSession(obj){ if (!obj) { try{ localStorage.removeItem(`am_session_${session.id}`);}catch{} } else { try{ localStorage.setItem(`am_session_${session.id}`, JSON.stringify(obj)); }catch{} } }
+    function renderSession(){ const s=readSession(); const active=!!(s&&s.active); if (sessionStatus) sessionStatus.textContent = 'Session: ' + (active? 'Active' : 'Idle'); if (sessionStartBtn) { sessionStartBtn.disabled = active; sessionStartBtn.classList.toggle('opacity-60', active); sessionStartBtn.classList.toggle('cursor-not-allowed', active); } if (sessionStopBtn){ sessionStopBtn.disabled = !active; sessionStopBtn.classList.toggle('opacity-60', !active); sessionStopBtn.classList.toggle('cursor-not-allowed', !active); } }
+    if (sessionStartBtn) sessionStartBtn.addEventListener('click', ()=>{ writeSession({ active:true, startAt: Date.now() }); try{ if (!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.postMessage({ type:'session_start', at: Date.now(), role:'am' }); }catch{} renderSession(); });
+    if (sessionStopBtn) sessionStopBtn.addEventListener('click', ()=>{ writeSession(null); try{ if (!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.postMessage({ type:'session_stop', at: Date.now(), role:'am' }); }catch{} renderSession(); });
+    renderSession();
+
+    // Role switching is removed; admins use impersonation instead
+
+    // Tabs
+    document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', (e) => {
+      // Persist current tab values before switching
+      try{ persistDraft(); }catch{}
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      category = e.currentTarget.dataset.cat;
+      catName.textContent = e.currentTarget.textContent;
+      loadDraft();
+      refresh();
+    }));
+
+    document.getElementById('resetWeek').addEventListener('click', async () => {
+      if (!confirm('Reset all your data for the selected week? This will delete records for that week.')) return;
+      const data = await listActivities(1000);
+      const items = (data.data||[]).filter(a => a.userId === session.id && a.week === weekSel.value);
+      for (const r of items) { try { await deleteRecord(r.id); } catch(e) { console.warn('Delete failed', r.id, e); } }
+      try { localStorage.setItem('ascm_week_reset', String(Date.now())); } catch {}
+      await refresh();
+    });
+
+    function readValues(){ const d={}; for (const f of fields) d[f] = sanitizeNumber(document.getElementById(f).value); return d; }
+
+    function animateNumber(el, start, end, duration=500, prefix='', format=val => val){
+      const t0 = performance.now();
+      function step(ts){
+        const p = Math.min(1, (ts - t0) / duration);
+        const val = Math.round(start + (end - start) * p);
+        el.textContent = prefix + format(val);
+        if (p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
+    function liveSummary(records){
+      const keysResults = ['meetingsBooked','successfulContacts','meetingsConducted','opportunitiesGenerated','referralsGenerated'];
+      const totals = sumMetrics(records, [...fields]);
+      const totalResults = keysResults.reduce((s,k)=>s+totals[k],0);
+      const currentResults = parseInt(sumResults.textContent.replace(/[^0-9]/g,'')) || 0;
+      const currentPipeline = parseInt(String(sumPipeline.textContent).replace(/[^0-9]/g,'')) || 0;
+      const currentRevenue = parseInt(String(sumRevenue.textContent).replace(/[^0-9]/g,'')) || 0;
+      animateNumber(sumResults, currentResults, totalResults, 350);
+      animateNumber(sumPipeline, currentPipeline, totals.pipelineGenerated||0, 350, '$', (v)=> v.toLocaleString());
+      animateNumber(sumRevenue, currentRevenue, totals.revenueClosed||0, 350, '$', (v)=> v.toLocaleString());
+    }
+
+    function persistDraft(){ localStorage.setItem(`am_draft_${session.id}_${weekSel.value}_${category}`, JSON.stringify(readValues())); }
+    function loadDraft(){
+      try {
+        const raw = localStorage.getItem(`am_draft_${session.id}_${weekSel.value}_${category}`);
+        if (!raw) { for (const f of fields) document.getElementById(f).value = 0; return; }
+        const d = JSON.parse(raw);
+        for (const f of fields) document.getElementById(f).value = d[f] ?? 0;
+      } catch {}
+    }
+
+    async function refresh(){
+      const items = await listUserWeekActivities(session.id, weekSel.value);
+      const filtered = items.filter(r => (r.category||'') === category);
+      // render entries
+      if (!filtered.length) {
+        entries.innerHTML = '<div class="text-sm text-slate-500">No entries yet this week.</div>';
+      } else {
+        entries.innerHTML = filtered.map(r => {
+          const when = new Date(r.createdAt||r.date||Date.now());
+          const parts = [];
+          if (r.accountsTargeted>0) parts.push(`${r.accountsTargeted} accts`);
+          if (r.callsMade>0) parts.push(`${r.callsMade} calls`);
+          if (r.emailsSent>0) parts.push(`${r.emailsSent} emails`);
+          if (r.meetingsBooked>0) parts.push(`${r.meetingsBooked} mtgs`);
+          if (r.opportunitiesGenerated>0) parts.push(`${r.opportunitiesGenerated} opps`);
+          if (r.pipelineGenerated>0) parts.push(`$${Number(r.pipelineGenerated).toLocaleString()} pipeline`);
+          if (r.revenueClosed>0) parts.push(`$${Number(r.revenueClosed).toLocaleString()} revenue`);
+          const line = parts.join(' · ') || '—';
+          return `<div class=\"card rounded-md p-3 flex items-center justify-between\"><div><div class=\"font-medium\">${when.toLocaleDateString()} ${when.toLocaleTimeString()}</div><div class=\"text-sm text-slate-600\">${line}</div></div><button data-id=\"${r.id}\" class=\"btn-outline px-3 py-1 rounded-md text-xs\">Delete</button></div>`;
+        }).join('');
+        entries.querySelectorAll('button[data-id]').forEach(btn => btn.addEventListener('click', async (e) => { const id = e.currentTarget.dataset.id; if (confirm('Delete this entry?')) { await deleteRecord(id); await refresh(); }}));
+      }
+      liveSummary(filtered);
+    }
+
+    // Events
+    weekSel.addEventListener('change', () => { loadDraft(); refresh(); });
+    document.getElementById('saveDraft').addEventListener('click', () => { persistDraft(); toast('Draft saved'); });
+    function updateUndoState(){ const btn=document.getElementById('undoLast'); try { const id=localStorage.getItem('am_last_entry_id'); if (btn) { btn.disabled = !id; btn.classList.toggle('opacity-60', !id); btn.title = id? 'Delete the last entry you created' : 'No recent entry to undo'; } } catch{} }
+
+    document.getElementById('addTotals').addEventListener('click', async () => {
+      const debug = location.search.includes('debug=1');
+      const values = readValues();
+      const payload = { ...values, role:'am', userId: session.id, userName: session.name||session.email, week: weekSel.value, category, date: Date.now(), createdAt: Date.now() };
+      try{
+        const res = await createActivity(payload);
+        if (res && res.id) { _lastCreatedId = res.id; try { localStorage.setItem('am_last_entry_id', res.id); } catch {} }
+        await refresh();
+        updateUndoState();
+        toast("Week's totals updated");
+        try { if (_lastCreatedId) showInlineBadgeAtId('entries', _lastCreatedId, 'Saved'); else showInlineBadgeAtTop('entries','Saved'); } catch{}
+        if (debug) console.log('[AM][addTotals] saved', res);
+      } catch(e){
+        console.warn('[AM][addTotals] save failed', e);
+        toast('Could not update totals', 'error');
+      }
+    });
+    document.getElementById('undoLast').addEventListener('click', async ()=>{ try { const id = localStorage.getItem('am_last_entry_id'); if (!id) return; await deleteRecord(id); localStorage.removeItem('am_last_entry_id'); await refresh(); updateUndoState(); toast('Undid last entry'); showInlineBadgeAtTop('entries','Saved'); } catch(e){ console.warn('Undo failed', e); toast('Undo failed','error'); } });
+
+    document.getElementById('submit').addEventListener('click', async () => {
+      const debug = location.search.includes('debug=1');
+      const values = readValues();
+      const payload = { ...values, role:'am', userId: session.id, userName: session.name||session.email, week: weekSel.value, category, date: Date.now(), createdAt: Date.now() };
+      try{
+        const res = await createActivity(payload);
+        localStorage.removeItem(`am_draft_${session.id}_${weekSel.value}_${category}`);
+        // Clear inputs
+        for (const f of fields) document.getElementById(f).value = 0;
+        if (res && res.id) { _lastCreatedId = res.id; try { localStorage.setItem('am_last_entry_id', res.id); } catch {} }
+        await refresh();
+        updateUndoState();
+        toast('Activity submitted');
+        try { if (_lastCreatedId) showInlineBadgeAtId('entries', _lastCreatedId, 'Saved'); else showInlineBadgeAtTop('entries','Saved'); } catch{}
+        if (debug) console.log('[AM][submit] saved', res);
+      } catch(e){
+        console.warn('[AM][submit] save failed', e);
+        toast('Could not submit activity','error');
+      }
+    });
+
+    // Live summary
+    document.getElementById('form').addEventListener('input', async () => {
+      // Auto-save draft seamlessly while typing to prevent data loss on tab switch
+      try{ persistDraft(); }catch{}
+      // Live recompute totals (no lag)
+      try{
+        const items = await listUserWeekActivities(session.id, weekSel.value);
+        const filtered = items.filter(r => (r.category||'') === category);
+        const cur = readValues();
+        filtered.push(cur);
+        liveSummary(filtered);
+      }catch(e){ /* ignore for live preview */ }
+    });
+
+    // init
+    loadDraft();
+    refresh();
+    updateUndoState();
+  </script>
+</body>
+</html>

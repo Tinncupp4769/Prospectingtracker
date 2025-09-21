@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Goal Portal Seeder</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="font-[Inter] bg-slate-50">
+  <main class="max-w-3xl mx-auto p-6">
+    <h1 class="text-xl font-bold mb-2">Goal Setting Portal — Seed/Test Data</h1>
+    <p class="text-slate-600 mb-4">Click Seed Data to populate role types, metrics, a published goal period (2025-09), entries for AE/AM Calls/Emails/Meetings, and an audit log. This is for development/testing only.</p>
+
+    <div class="space-x-2">
+      <button id="run" class="btn-primary px-3 py-2 rounded-md">Seed Data</button>
+      <button id="wipe" class="btn-outline px-3 py-2 rounded-md">Wipe Period 2025-09</button>
+    </div>
+
+    <pre id="log" class="mt-4 p-3 bg-black text-green-300 rounded-md text-xs h-80 overflow-auto"></pre>
+  </main>
+
+  <script src="js/metrics-config.js"></script>
+  <script>
+    // Enable debug from console: localStorage.setItem('ascm_debug','1')
+    const logEl = document.getElementById('log');
+    const log = (...a)=>{ logEl.textContent += a.join(' ') + '\n'; logEl.scrollTop = logEl.scrollHeight; }
+
+    const api = (()=>{
+      let base = 'tables/';
+      const CAND = ['tables/','/tables/'];
+      async function resolve(){
+        for (const b of CAND){
+          try{ const r = await fetch(`${b}users?limit=1&cb=${Date.now()}`); const ct=(r.headers.get('content-type')||'').toLowerCase(); if (r.ok && ct.includes('application/json')){ base=b; break; } } catch{}
+        }
+      }
+      async function json(method, path, body){
+        await resolve();
+        const DEBUG = localStorage.getItem('ascm_debug')==='1';
+        let lastErr='';
+        for (let i=0;i<5;i++){
+          const u = `${base}${path}${path.includes('?')?'&':'?'}cb=${Date.now()}_${i}`;
+          try{
+            DEBUG && console.debug('[SEED][req]', method, u);
+            const r = await fetch(u, { method, headers:{'Content-Type':'application/json'}, body: body?JSON.stringify(body):undefined });
+            const ct=(r.headers.get('content-type')||'').toLowerCase();
+            if (r.status===401||r.status===403){ location.replace('index.html'); return {}; }
+            if (!r.ok || !ct.includes('application/json')) throw new Error('blocked');
+            try { return await r.json(); } catch { return {}; }
+          }catch(e){ lastErr=String(e.message||e); const delay=Math.min(4800,300*Math.pow(2,i))+Math.floor(Math.random()*150); await new Promise(r=>setTimeout(r,delay)); }
+        }
+        throw new Error('API blocked '+lastErr);
+      }
+      return { json };
+    })();
+
+    async function ensureRoleTypes(){
+      log('Ensuring role_types…');
+      const want=[{id:1,name:'AE'},{id:2,name:'AM'}];
+      try{
+        const j = await api.json('GET','tables/role_types?limit=1000');
+        const have = j.data || [];
+        for (const r of want){ if (!have.find(x=> String(x.id)==String(r.id))){ await api.json('POST','tables/role_types', r); log(' + role_types', r.id, r.name); } }
+      }catch(e){ log(' ! role_types error', e.message); }
+    }
+
+    async function ensureMetrics(){
+      log('Ensuring metrics…');
+      const wanted = new Map();
+      for (const groups of Object.values(window.METRICS_CATALOG.ae)){
+        for (const [key,label] of groups){ wanted.set(key, {id:key, name:label, description: label, is_active:true}); }
+      }
+      for (const groups of Object.values(window.METRICS_CATALOG.am)){
+        for (const [key,label] of groups){ if (!wanted.has(key)) wanted.set(key, {id:key, name:label, description: label, is_active:true}); }
+      }
+      try{
+        const j = await api.json('GET','tables/metrics?limit=1000');
+        const have = j.data||[];
+        for (const r of wanted.values()){
+          if (!have.find(x=> x.id===r.id)){
+            await api.json('POST','tables/metrics', r); log(' + metrics', r.id);
+          }
+        }
+      }catch(e){ log(' ! metrics error', e.message); }
+    }
+
+    async function seedUsers(){
+      log('Ensuring sample users…');
+      const want=[
+        { id:'U1', email:'admin.joe@example.com', name:'Admin Joe', role:'admin', is_active:true },
+        { id:'U2', email:'amy.exec@example.com', name:'Amy Exec', role:'ae', is_active:true },
+        { id:'U3', email:'max.mgr@example.com', name:'Max Mgr', role:'am', is_active:true },
+      ];
+      try{
+        const j = await api.json('GET','tables/users?limit=1000');
+        const have = j.data||[];
+        for (const u of want){
+          if (!have.find(x=> x.email===u.email)){
+            await api.json('POST','tables/users', u); log(' + user', u.email);
+          }
+        }
+      }catch(e){ log(' ! users error', e.message); }
+    }
+
+    async function seedGoalPeriodAndEntries(){
+      log('Ensuring goal_period 2025-09 published and entries…');
+      const month='2025-09'; const weeks=4;
+      try{
+        const jp = await api.json('GET','tables/goal_periods?limit=1000');
+        let p = (jp.data||[]).find(x=> !x.deleted && x.month===month);
+        if (!p){ p = await api.json('POST','tables/goal_periods', { month, weeks_in_month: weeks, status:'draft', created_by:'U1', created_at: Date.now(), updated_at: Date.now() }); log(' + goal_period', p.id); }
+        if (p.status!=='published'){ p = await api.json('PATCH', `tables/goal_periods/${p.id}`, { status:'published', weeks_in_month: weeks, updated_at: Date.now() }); log(' ~ goal_period published'); }
+
+        const baseline = [
+          ['callsMade', 10, 15],
+          ['emailsSent',20, 12],
+          ['meetingsConducted',5,4],
+          ['crossSellAbmCampaigns', 0, 3],
+          ['upSellAbmCampaigns', 0, 2],
+        ]; // AE=0, AM>0 for cross/up-sell ABM
+        const je = await api.json('GET','tables/goal_entries?limit=2000');
+        const have = (je.data||[]).filter(x=> !x.deleted && x.goal_period_id===p.id);
+        for (const [metric, aeW, amW] of baseline){
+          const rowAe = have.find(x=> (x.metric_id===metric||x.metric===metric) && String(x.role_type||x.role_type_id||'').toLowerCase()==='ae');
+          const rowAm = have.find(x=> (x.metric_id===metric||x.metric===metric) && String(x.role_type||x.role_type_id||'').toLowerCase()==='am');
+          if (!rowAe){ await api.json('POST','tables/goal_entries',{ goal_period_id: p.id, metric_id: metric, role_type:'ae', weekly_target: aeW, monthly_target: aeW*weeks, created_by:'U1', created_at: Date.now(), updated_at: Date.now() }); log(' + entry AE', metric); }
+          if (!rowAm){ await api.json('POST','tables/goal_entries',{ goal_period_id: p.id, metric_id: metric, role_type:'am', weekly_target: amW, monthly_target: amW*weeks, created_by:'U1', created_at: Date.now(), updated_at: Date.now() }); log(' + entry AM', metric); }
+        }
+
+        // Create a matching legacy goals sync for dashboards
+        const g = await api.json('GET','tables/goals?limit=2000');
+        const existing = (g.data||[]).filter(x=> !x.deleted && x.month===month && !x.userId);
+        function find(role, metric, period){ return existing.find(x=> x.role===role && x.metric===metric && x.period===period); }
+        for (const [metric, aeW, amW] of baseline){
+          const pairs = [['ae',aeW],['am',amW]];
+          for (const [role,wk] of pairs){
+            const mo = wk*weeks;
+            const wRow = find(role, metric, 'week');
+            const mRow = find(role, metric, 'month');
+            if (!wRow){ await api.json('POST','tables/goals',{ role, metric, period:'week', target: wk, month, weeks, userId:null, updated_by:'U1' }); log(' + goals week', role, metric); }
+            if (!mRow){ await api.json('POST','tables/goals',{ role, metric, period:'month', target: mo, month, weeks, userId:null, updated_by:'U1' }); log(' + goals month', role, metric); }
+          }
+        }
+
+        await api.json('POST','tables/audit_logs', { action:'publish', goal_period_id: p.id, performed_by:'U1', performed_at: Date.now(), details:{ month, weeks } });
+        log('Done.');
+      }catch(e){ log(' ! seed error', e.message); }
+    }
+
+    document.getElementById('run').addEventListener('click', async ()=>{
+      logEl.textContent='';
+      await ensureRoleTypes();
+      await ensureMetrics();
+      await seedUsers();
+      await seedGoalPeriodAndEntries();
+    });
+
+    document.getElementById('wipe').addEventListener('click', async ()=>{
+      logEl.textContent='';
+      const month='2025-09';
+      try{
+        const jp = await api.json('GET','tables/goal_periods?limit=1000');
+        const p = (jp.data||[]).find(x=> !x.deleted && x.month===month);
+        if (p){ await api.json('DELETE', `tables/goal_periods/${p.id}`); log(' - deleted goal_period'); }
+        const je = await api.json('GET','tables/goal_entries?limit=2000');
+        for (const e of (je.data||[]).filter(x=> !x.deleted && x.goal_period_id===(p?.id))){ await api.json('DELETE', `tables/goal_entries/${e.id}`); }
+        const g = await api.json('GET','tables/goals?limit=2000');
+        for (const x of (g.data||[]).filter(x=> !x.deleted && x.month===month && !x.userId)){ await api.json('DELETE', `tables/goals/${x.id}`); }
+        log('Wiped period 2025-09.');
+      }catch(e){ log(' ! wipe error', e.message); }
+    });
+  </script>
+</body>
+</html>

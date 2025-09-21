@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Avatar — ASCM</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <script src="js/theme.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body{ font-family:'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+    .card{ background:#fff; border:1px solid var(--ascm-border); border-radius:16px; box-shadow:0 10px 24px rgba(0,0,0,.06); }
+    .avatar-img{ width:72px; height:72px; border-radius:9999px; object-fit:cover; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <header class="brand-gradient text-white" id="header">
+    <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-white/10 grid place-items-center"><i class="fa-solid fa-user-circle"></i></div>
+        <div>
+          <h1 class="text-base font-bold">Manage Your Avatar</h1>
+          <p class="text-xs text-white/80">LinkedIn or built-in avatars with instant preview</p>
+        </div>
+      </div>
+      <a id="home-button" href="app.html" class="btn-outline px-3 py-2 rounded-md text-sm" data-hide-embed>Home</a>
+    </div>
+  </header>
+  <script>(function(){ try{ const url=new URL(location.href); if (url.searchParams.get('embed')==='1'){ var h=document.getElementById('header'); if(h) h.style.display='none'; } }catch{} })();</script>
+
+  <main class="max-w-3xl mx-auto px-6 py-6">
+    <section class="card p-5">
+      <div class="flex items-center gap-4 mb-4">
+        <div id="preview" class="avatar-img bg-slate-200 grid place-items-center text-slate-500" aria-live="polite"><i class="fa-solid fa-user"></i></div>
+        <div>
+          <div class="text-sm text-slate-600">Current</div>
+          <div id="userLabel" class="font-semibold">—</div>
+          <div id="statusChip" class="mt-1 inline-flex items-center px-2 py-0.5 text-xs rounded border bg-slate-100 border-slate-200 text-slate-600">Checking…</div><button id="warmRetry" class="ml-2 btn-outline rounded-md px-2 py-0.5 text-xs">Warm-up & Retry</button>
+        </div>
+      </div>
+
+      <div class="grid gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">LinkedIn Profile URL</label>
+          <div class="flex gap-2">
+            <input id="linkedinUrl" type="url" placeholder="https://www.linkedin.com/in/your-profile" class="input w-full rounded-md px-3 py-2">
+            <button id="useLinkedIn" class="btn-outline rounded-md px-3 py-2 text-sm"><i class="fa-brands fa-linkedin mr-1"></i>Use LinkedIn</button>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">We use unavatar.io to fetch LinkedIn avatars. No login required.</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Or pick a built-in avatar</label>
+          <div id="avatarGrid" class="grid grid-cols-6 gap-2"></div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Direct Avatar URL (optional)</label>
+          <input id="avatarUrl" type="url" placeholder="https://..." class="input w-full rounded-md px-3 py-2">
+          <p class="text-xs text-slate-500 mt-1">Paste a public image URL (CORS-enabled). Used directly if provided.</p>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between mt-5">
+        <div class="text-xs text-slate-500">Avatars load lazily and fallback to colorful initials if unavailable.</div>
+        <div class="flex gap-2">
+          <button id="saveBtn" class="btn-primary rounded-md px-4 py-2 text-sm"><i class="fa-solid fa-floppy-disk mr-2"></i>Save</button>
+        </div>
+      </div>
+    </section>
+    <div id="toast" class="ascm-toast info" style="display:none"></div>
+  </main>
+
+  <script src="js/avatars.js"></script>
+  <script src="js/queue-avatars.js"></script>
+  <script>
+    function getSession(){ try { return JSON.parse(localStorage.getItem('ascm_session')||'null'); } catch { return null; } }
+    const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+    let API_BASE='tables/'; const API_BASE_CANDIDATES=['tables/','/tables/'];
+    function normalizePath(p){ if (/^https?:\/\//i.test(p)) return p; if (p.startsWith('tables/')) return API_BASE + p.slice('tables/'.length); if (p.startsWith('/tables/')) return API_BASE + p.slice('/tables/'.length); return p; }
+    async function resolveApiBase(){ for(const b of API_BASE_CANDIDATES){ try{ const r=await fetch(`${b}users?limit=1`,{cache:'no-store',credentials:'same-origin'}); const ct=(r.headers.get('content-type')||'').toLowerCase(); if(r.ok && ct.includes('application/json')){ API_BASE=b; break; } }catch{} } }
+    function showToast(msg,type){ const el=document.getElementById('toast'); el.style.display='block'; el.classList.remove('success','error','info','warn'); el.classList.add(type||'info'); el.innerHTML = `<span>${String(msg||'')}</span><button class='close' aria-label='Dismiss'>×</button>`; const btn = el.querySelector('.close'); if (btn) btn.onclick = ()=> el.classList.remove('show'); el.classList.add('show'); clearTimeout(showToast._t); showToast._t=setTimeout(()=>{ el.classList.remove('show'); }, 5000); }
+
+    async function apiJson(method, path, body){ let last=''; for(let i=0;i<6;i++){ const sep = path.includes('?')?'&':'?'; const url = normalizePath(`${path}${sep}cb=${Date.now()}_${i}`); const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort('timeout'), 12000+i*1500); try{ const res = await fetch(url,{ method, headers:{'Content-Type':'application/json'}, body: body!=null?JSON.stringify(body):undefined, cache:'no-store', credentials:'same-origin', signal: ctrl.signal }); clearTimeout(t); if(res.status===204) return {}; const ct=(res.headers.get('content-type')||'').toLowerCase(); if(!res.ok || (!ct || !ct.includes('application/json'))){ try{ const wu = normalizePath('tables/users?limit=1'); const wsep=wu.includes('?')?'&':'?'; await fetch(`${wu}${wsep}cb=${Date.now()}`,{cache:'no-store',credentials:'same-origin'}); }catch{} await sleep(600*Math.pow(1.7,i)+Math.floor(Math.random()*350)); continue; } try{ return await res.json(); }catch{ return {}; } }catch(e){ clearTimeout(t); last=String(e?.message||e); await sleep(600*Math.pow(1.7,i)+Math.floor(Math.random()*350)); } } throw new Error('API blocked '+last); }
+
+    function renderAvatarGrid(seed){ const grid=document.getElementById('avatarGrid'); const s = encodeURIComponent(seed||'user'); const baseColors='006B36,3BB14A,82C341,21C0DB,F3F4F6'; const sizes=72; const urls = [
+      `https://source.boringavatars.com/beam/${sizes}/${s}?colors=${baseColors}`,
+      `https://source.boringavatars.com/ring/${sizes}/${s}?colors=${baseColors}`,
+      `https://source.boringavatars.com/bauhaus/${sizes}/${s}?colors=${baseColors}`,
+      `https://source.boringavatars.com/marble/${sizes}/${s}?colors=${baseColors}`,
+      `https://source.boringavatars.com/pixel/${sizes}/${s}?colors=${baseColors}`,
+      `https://source.boringavatars.com/sunset/${sizes}/${s}?colors=${baseColors}`
+    ]; grid.innerHTML = urls.map(u=>`<button type="button" class="border rounded-lg overflow-hidden hover:ring-2 hover:ring-emerald-400" data-url="${u}"><img src="${u}" alt="avatar" class="w-12 h-12"></button>`).join(''); Array.from(grid.children).forEach(btn=> btn.addEventListener('click', ()=>{ document.getElementById('avatarUrl').value = btn.dataset.url; updatePreview(); })); }
+
+    function updatePreview(){ try{ const session=getSession(); const user = { ...session, avatar_url: document.getElementById('avatarUrl').value.trim(), linkedin_url: document.getElementById('linkedinUrl').value.trim() }; const html = Avatars.img(user, 72, 'avatar-img'); const box=document.getElementById('preview'); if (box) { box.innerHTML = html; box.classList.remove('grid','place-items-center','text-slate-500','bg-slate-200'); } }catch{} }
+
+    async function init(){ const session = getSession(); if(!session){ window.location.replace('index.html'); return; } await resolveApiBase(); document.getElementById('userLabel').textContent = session.name||session.email||session.id; try{ const row = await apiJson('GET', `tables/users/${encodeURIComponent(session.id)}`); document.getElementById('avatarUrl').value = row.avatar_url||''; document.getElementById('linkedinUrl').value = row.linkedin_url||''; }catch{} renderAvatarGrid(session.email||session.name||'user'); updatePreview(); document.getElementById('statusChip').textContent='Ready'; document.getElementById('useLinkedIn').addEventListener('click', ()=>{ const li=document.getElementById('linkedinUrl').value.trim(); if(!li){ showToast('Enter your LinkedIn profile URL first','warn'); return; } try{ const url = Avatars.unavatarByLinkedIn(li, 72); document.getElementById('avatarUrl').value = url; }catch{} updatePreview(); });
+      const warmRetryBtn = document.getElementById('warmRetry'); if (warmRetryBtn){ warmRetryBtn.addEventListener('click', async ()=>{ try{ await resolveApiBase(); await fetch(normalizePath('tables/users?limit=1&cb='+Date.now()), { cache:'no-store' }); if (window.AvatarsQueue) AvatarsQueue.kick(); showToast('Warmed API and kicked retry queue','success'); }catch{ showToast('Warm-up failed — will retry automatically','error'); } }); }
+      // Queue status chip updater
+      function updateQueueChip(){ try{ const s = JSON.parse(localStorage.getItem('ascm_avatar_queue_summary')||'null'); const chip=document.getElementById('statusChip'); if (!chip) return; const size = (window.AvatarsQueue && AvatarsQueue.size && AvatarsQueue.size()) || (s?.size||0); if (size>0){ chip.textContent = `Queued (retrying) · next in ${s?.nextInSec||'?'}s`; chip.className='mt-1 inline-flex items-center px-2 py-0.5 text-xs rounded border bg-amber-50 border-amber-200 text-amber-700'; } else { chip.textContent='Ready'; chip.className='mt-1 inline-flex items-center px-2 py-0.5 text-xs rounded border bg-slate-100 border-slate-200 text-slate-600'; } }catch{} }
+      updateQueueChip(); window.addEventListener('storage', (e)=>{ if (e.key==='ascm_avatar_queue_summary') updateQueueChip(); }); try{ if (!window._ascmChan) window._ascmChan=new BroadcastChannel('ascm_sync'); window._ascmChan.onmessage=(e)=>{ if ((e?.data||{}).type==='avatars_queue_update') updateQueueChip(); }; }catch{}
+      document.getElementById('avatarUrl').addEventListener('input', updatePreview); document.getElementById('linkedinUrl').addEventListener('input', updatePreview);
+      document.getElementById('saveBtn').addEventListener('click', async ()=>{ const payload = { avatar_url: document.getElementById('avatarUrl').value.trim(), linkedin_url: document.getElementById('linkedinUrl').value.trim() };
+        // Basic validation + HEAD probe to reduce broken links
+        try{
+          if (payload.avatar_url){ try{ await fetch(payload.avatar_url, { method:'GET', mode:'no-cors' }); }catch{} }
+          await apiJson('PATCH', `tables/users/${encodeURIComponent(session.id)}`, payload);
+          showToast('Avatar updated','success');
+          try{ const cached = JSON.parse(localStorage.getItem('um_users')||'[]'); const meIdx = cached.findIndex(u=>u.id===session.id); if (meIdx>=0){ cached[meIdx] = { ...cached[meIdx], ...payload }; localStorage.setItem('um_users', JSON.stringify(cached)); localStorage.setItem('users', JSON.stringify(cached)); } }catch{}
+          try{ const s = { ...session, ...payload }; localStorage.setItem('ascm_session', JSON.stringify(s)); }catch{}
+          try{ if (!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.postMessage({ type:'users_updated', at: Date.now(), userId: session.id }); }catch{}
+        } catch(e){ console.warn(e); const msg = String(e?.message||e);
+          showToast('Could not save avatar — queued retry×','error');
+          try{ if (window.AvatarsQueue) AvatarsQueue.enqueue({ userId: session.id, avatar_url: payload.avatar_url, linkedin_url: payload.linkedin_url }); }catch{}
+        }
+      });
+    }
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

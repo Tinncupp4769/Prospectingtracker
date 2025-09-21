@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASCM Tracker — App</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <script src="js/theme.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <style>
+    :root{
+      --ascm-green:#006B36;
+      --ascm-green-dark:#003726;
+      --ascm-green-primary:#3BB14A;
+      --ascm-green-light:#82C341;
+      --ascm-blue-accent:#21C0DB;
+      --ascm-yellow:#FFF204;
+      --ascm-white:#FFFFFF;
+      --ascm-gray:#495965;
+      --ascm-border:#D1D5DB;
+      --text:#0F172A;
+      --muted:#475569;
+      --shadow: 0 10px 24px rgba(0,0,0,.08);
+      --shadow-lg: 0 16px 36px rgba(0,0,0,.12);
+      --radius:16px;
+    }
+    html,body{ height:100%; }
+    body{ font-family:'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background:#f3f6f4; color:var(--text); }
+    .shell{ display:grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+    @media (max-width: 900px){ .shell{ grid-template-columns: 1fr; } .sidebar{ position:fixed; top:56px; left:0; bottom:0; right:auto; width:260px; z-index:30; display:none; } .sidebar.show{ display:block; } }
+
+    .sidebar{ background: linear-gradient(160deg, rgba(0,107,54,.22) 0%, rgba(130,195,65,.12) 100%), #0b1e17; color:#e6f4ec; border-right:1px solid rgba(255,255,255,.08); }
+    .brand-row{ display:flex; align-items:center; gap:12px; padding:16px 16px 8px 16px; }
+    .brand-logo{ width:40px; height:40px; border-radius:12px; background:rgba(255,255,255,.10); display:grid; place-items:center; color:#fff; }
+    .brand-name{ font-weight:800; letter-spacing:.2px; }
+    nav.nav{ padding:8px; }
+    .nav-item{ display:flex; align-items:center; gap:10px; color:#e6f4ec; padding:10px 12px; border-radius:10px; text-decoration:none; transition: background .15s ease, transform .12s ease; }
+    .nav-item:hover{ background: rgba(255,255,255,.08); transform: translateX(1px); }
+    .nav-item.active{ background: rgba(255,255,255,.16); box-shadow: inset 0 0 0 1px rgba(255,255,255,.18); }
+    .nav-item .ico{ width:28px; height:28px; display:grid; place-items:center; border-radius:8px; background: rgba(255,255,255,.12); }
+    .nav-head{ margin:10px 12px 6px; font-size:11px; letter-spacing:.2px; text-transform:uppercase; color: #cfe7d8; opacity:.85; }
+    .admin-badge{ margin-left:6px; background:#E6F1FF; color:#003766; font-weight:800; font-size:10px; padding:2px 6px; border-radius:999px; }
+
+    .main{ display:flex; flex-direction:column; min-width:0; }
+    .topbar{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; background: linear-gradient(160deg, rgba(0,107,54,.10) 0%, rgba(130,195,65,.08) 100%), var(--ascm-white); border-bottom:1px solid var(--ascm-border); position:sticky; top:0; z-index:20; }
+    .logout{ border:1px solid var(--ascm-border); color:var(--ascm-green-dark); background:#fff; border-radius:10px; padding:8px 12px; cursor:pointer; }
+    .logout:hover{ background:#f2fbf5; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+  <script src="js/avatars.js"></script>
+</head>
+<body>
+  <script>
+    (function(){
+      try {
+        var s = null; try { s = JSON.parse(localStorage.getItem('ascm_session')||'null'); } catch {}
+        if (!s) { window.location.replace('index.html'); return; }
+      } catch {}
+    })();
+  </script>
+  <main id="root"></main>
+
+  <script type="text/babel">
+    function getSession(){ try { return JSON.parse(localStorage.getItem('ascm_session')||'null'); } catch { return null; } }
+    const session = getSession();
+    if (!session) { window.location.replace('index.html'); }
+
+    const LINKS = [
+      { key:'home',        label:'Home',                            icon:'fa-house',          href:'home.html?embed=1' },
+      { key:'dashboard',   label:'Activity Overview Dashboard',     icon:'fa-chart-line',     href:'sales-dashboard-modular.html?embed=1' },
+      { key:'entry',       label:'Enter Your Prospecting Activity', icon:'fa-pen-to-square',  href:'activity-entry-router.html?embed=1' },
+      { key:'analytics',   label:'Analytics',                        icon:'fa-chart-area',     href:'analytics-react.html?embed=1' },
+      { key:'leaderboard', label:'Leaderboard',                     icon:'fa-trophy',         href:'leaderboard.html?embed=1' },
+      { key:'avatar',      label:'My Avatar',                        icon:'fa-user-circle',    href:'avatar-management.html?embed=1' },
+      { key:'goals',       label:'Set Goals',                       icon:'fa-bullseye',       href:'goals-portal.html?embed=1' },
+    ];
+    const ADMIN_LINKS = [
+      { key:'users', label:'User Management', icon:'fa-user-gear', href:'admin-users.html?embed=1' },
+      { key:'goals-admin', label:'Goals Portal', icon:'fa-bullseye', href:'goals-portal.html?embed=1' },
+      { key:'admin-tools', label:'Admin Tools (TEST ONLY)', icon:'fa-screwdriver-wrench', href:'admin-tools.html?embed=1' },
+      { key:'admin-logs', label:'Audit Logs', icon:'fa-scroll', href:'admin-logs.html?embed=1' },
+      { key:'admin-sandbox', label:'Admin Sandbox', icon:'fa-flask', href:'admin-sandbox.html?embed=1' },
+
+    ];
+
+    function Sidebar({ isAdmin, allowGoals, currentKey, onNavigate, mobile=false }){
+      return (
+        <aside className={"sidebar "+(mobile?"show md:block":"md:block")}> 
+          <div className="brand-row">
+            <div className="brand-logo"><i className="fa-solid fa-diagram-project"></i></div>
+            <div>
+              <div className="brand-name">ASCM Prospecting</div>
+              <div style={{fontSize:'12px', opacity:.85}}>Turn outreach into outcomes</div>
+            </div>
+          </div>
+          <div className="nav-head">Main</div>
+          <nav className="nav" aria-label="Primary">
+            {(allowGoals ? LINKS : LINKS.filter(l => l.key !== 'goals')).map(l => (
+              <a key={l.key} className={"nav-item" + (currentKey===l.key ? " active" : "")} href={l.href} onClick={(e)=>{ e.preventDefault(); onNavigate?.(l.href, l.key); }} aria-current={currentKey===l.key ? 'page' : undefined}>
+                <span className="ico"><i className={"fa-solid "+l.icon}></i></span>
+                <span>{l.label}</span>
+              </a>
+            ))}
+          </nav>
+          {isAdmin && (
+            <>
+              <div className="nav-head">Administration</div>
+              <nav className="nav" aria-label="Administration">
+                {ADMIN_LINKS.map(l => (
+                  <a key={l.key} className={"nav-item" + (currentKey===l.key ? ' active' : '')} href={l.href} onClick={(e)=>{ e.preventDefault(); onNavigate?.(l.href, l.key); }} aria-current={currentKey===l.key ? 'page' : undefined}>
+                    <span className="ico"><i className={"fa-solid "+l.icon}></i></span>
+                    <span>{l.label}</span>
+                    <span className="admin-badge" aria-label="Admin">ADMIN</span>
+                  </a>
+                ))}
+              </nav>
+            </>
+          )}
+        </aside>
+      );
+    }
+
+    function AppShell({ user }){
+      const [usr, setUsr] = React.useState(user);
+      const isAdmin = (usr?.role||'').toLowerCase()==='admin';
+      const [allowGoals, setAllowGoals] = React.useState(isAdmin);
+      const [currentKey, setCurrentKey] = React.useState('home');
+      const [src, setSrc] = React.useState('home.html?embed=1');
+      const [mobileOpen, setMobileOpen] = React.useState(false);
+
+      React.useEffect(()=>{
+        try {
+          const saved = localStorage.getItem('ascm_theme');
+          if (saved==="dark") document.documentElement.dataset.theme='dark';
+          else document.documentElement.removeAttribute('data-theme');
+        } catch {}
+      }, []);
+
+      React.useEffect(() => {
+        // Server-confirmed admin for goals visibility
+        let cancelled=false;
+        async function verify(){
+          try{
+            const uid = usr?.id; if(!uid){ setAllowGoals(false); return; }
+            const bases=['tables/','/tables/']; let base='tables/';
+            for(const b of bases){ try{ const r=await fetch(`${b}users/${encodeURIComponent(uid)}?cb=${Date.now()}`,{cache:'no-store',credentials:'same-origin'}); const ct=(r.headers.get('content-type')||'').toLowerCase(); if(r.ok && ct.includes('application/json')){ base=b; break; } }catch{} }
+            const res = await fetch(`${base}users/${encodeURIComponent(uid)}?cb=${Date.now()}`,{cache:'no-store',credentials:'same-origin'});
+            if(!res.ok){ if(!cancelled) setAllowGoals(false); return; }
+            const data = await res.json(); if(!cancelled) setAllowGoals(String((data?.role||'')).toLowerCase()==='admin');
+          }catch{ if(!cancelled) setAllowGoals(false); }
+        }
+        verify();
+        return ()=>{ cancelled=true };
+      }, [usr?.id]);
+
+      React.useEffect(()=>{
+        // Respect incoming page param
+        try{
+          const url = new URL(window.location.href);
+          const page = url.searchParams.get('page');
+          const map = {
+            home:'home.html?embed=1',
+            dashboard:'sales-dashboard-modular.html?embed=1',
+            entry:'activity-entry-router.html?embed=1',
+            analytics:'analytics-react.html?embed=1',
+            leaderboard:'leaderboard.html?embed=1',
+            goals:'goals-portal.html?embed=1',
+            users:'admin-users.html?embed=1',
+            'admin-tools':'admin-tools.html?embed=1',
+            'admin-logs':'admin-logs.html?embed=1',
+              'admin-sandbox':'admin-sandbox.html?embed=1'
+          };
+          if (page && map[page]){ setCurrentKey(page); setSrc(map[page]); }
+        }catch{}
+      }, []);
+
+      React.useEffect(()=>{
+        // Update header avatar when session changes via storage/broadcast
+        function onStorage(e){ if (e.key==='ascm_session'){ try{ const v=JSON.parse(e.newValue||'null'); if (v) setUsr(v); }catch{} } }
+        window.addEventListener('storage', onStorage);
+        try{ if(!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); const prev = window._ascmChan.onmessage; window._ascmChan.onmessage = (ev)=>{ const t=ev?.data?.type; if (t==='users_updated'){ try{ const s=JSON.parse(localStorage.getItem('ascm_session')||'null'); if (s) setUsr(s); }catch{} } if (typeof prev==='function') prev(ev); }; }catch{}
+        return ()=>{ window.removeEventListener('storage', onStorage); };
+      }, []);
+
+      const onNavigate = (href, key)=>{ setSrc(href); setCurrentKey(key||'dashboard'); setMobileOpen(false); };
+
+      // Guard against nested app.html inside the iframe (causes double sidebars)
+      React.useEffect(()=>{
+        const frame = document.getElementById('appFrame');
+        function handleLoad(){
+          try{
+            const href = (frame?.contentWindow?.location?.href) || (frame?.src) || '';
+            if (href && /(^|\/)app\.html(\?|$)/i.test(href)){
+              // Redirect embedded app to a content page in embed mode
+              frame.src = 'home.html?embed=1';
+              setCurrentKey('home');
+            }
+          }catch{}
+        }
+        if (frame) frame.addEventListener('load', handleLoad);
+        return ()=>{ if (frame) frame.removeEventListener('load', handleLoad); };
+      }, [src]);
+
+      return (
+        <div className="shell">
+          <Sidebar isAdmin={isAdmin} allowGoals={allowGoals} currentKey={currentKey} onNavigate={onNavigate} mobile={mobileOpen} />
+          <section className="main">
+            <div className="topbar">
+              <div style={{display:'flex', alignItems:'center', gap:10}}>
+                <button className="logout md:hidden" onClick={()=> setMobileOpen(v=>!v)} aria-label="Toggle navigation"><i className="fa-solid fa-bars"></i></button>
+                <div style={{fontWeight:800, color:'#0f2f21'}}>ASCM</div>
+              </div>
+              <div className="user-chip" style={{display:'flex', alignItems:'center', gap:8}}>
+                <div className="hidden md:flex items-center gap-2">
+                  <span className="text-sm text-slate-600 truncate" title={(usr?.name||usr?.email||'User')}>{usr?.name || usr?.email || 'User'}</span>
+                  <span dangerouslySetInnerHTML={{__html: (window.Avatars? Avatars.img2x(usr, 28, 'rounded-full'): '') }}></span>
+                </div>
+                <button className="logout" onClick={()=>{ document.documentElement.dataset.theme = (document.documentElement.dataset.theme==='dark'?'':'dark'); localStorage.setItem('ascm_theme', document.documentElement.dataset.theme||'light'); }} title="Toggle dark mode">
+                  <i className="fa-solid fa-moon"></i>
+                </button>
+                <button className="logout" onClick={()=>{ try{ localStorage.removeItem('ascm_session'); localStorage.removeItem('ascm_impersonate'); }catch{} window.location.assign('index.html'); }}>
+                  <i className="fa-solid fa-arrow-right-from-bracket" style={{marginRight:8}}></i>Logout
+                </button>
+              </div>
+            </div>
+            <div style={{flex:1, minHeight:0}}>
+              <iframe id="appFrame" title="Content" src={src} style={{width:'100%', height:'calc(100vh - 60px)', border:'0'}}></iframe>
+            </div>
+          </section>
+        </div>
+      );
+    }
+
+    class ErrorBoundary extends React.Component {
+      constructor(props){ super(props); this.state = { hasError:false, error:null }; }
+      static getDerivedStateFromError(error){ return { hasError:true, error }; }
+      componentDidCatch(error, info){ try { console.error('AppShell ErrorBoundary', error, info); } catch{} }
+      render(){ if (this.state.hasError){ return (<div className="max-w-3xl mx-auto mt-10 p-4 rounded-md border bg-red-50 text-red-700">An error occurred while loading the app. Please reload, or log in again.</div>); } return this.props.children; }
+    }
+
+    if (session){ ReactDOM.createRoot(document.getElementById('root')).render(<ErrorBoundary><AppShell user={session} /></ErrorBoundary>); }
+  </script>
+</body>
+</html>

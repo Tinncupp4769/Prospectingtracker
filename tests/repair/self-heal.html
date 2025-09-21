@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCM Self-Heal Toolkit</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style> body{ font-family:'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; } .card{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; box-shadow: 0 10px 24px rgba(0,0,0,.06); } .log{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:12px; white-space:pre-wrap; }</style>
+</head>
+<body class="bg-slate-50">
+  <header class="brand-gradient text-white">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="font-bold">ASCM Self-Heal Toolkit</div>
+      <a href="tests/health.html" class="btn-outline px-3 py-2 rounded-md text-sm">Health</a>
+    </div>
+  </header>
+  <main class="max-w-6xl mx-auto px-6 py-6 space-y-4">
+    <div class="card p-4">
+      <div class="font-bold mb-2">Quick Repair Actions</div>
+      <div class="grid md:grid-cols-2 gap-3">
+        <button class="btn-outline px-3 py-2 rounded" id="btnClearTokens">Clear Tokens & Session</button>
+        <button class="btn-outline px-3 py-2 rounded" id="btnWarmup">API Warm-up</button>
+        <button class="btn-outline px-3 py-2 rounded" id="btnKickQueue">Kick Goals Queue</button>
+        <button class="btn-outline px-3 py-2 rounded" id="btnResetCaches">Reset Local Caches</button>
+      </div>
+    </div>
+    <div class="card p-4">
+      <div class="font-bold mb-2">Logs</div>
+      <pre id="logs" class="log h-64 overflow-auto bg-slate-50 border rounded p-2"></pre>
+    </div>
+  </main>
+  <script>
+    function log(m){ const el=document.getElementById('logs'); el.textContent += m+'\n'; el.scrollTop = el.scrollHeight; }
+    function fetchWithTimeout(url, options={}, timeoutMs=8000){ const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(), timeoutMs); const token=localStorage.getItem('authToken'); const auth= token? { 'Authorization':`Bearer ${token}` } : {}; const opts={ ...options, headers:{ ...(options.headers||{}), ...auth }, signal: ctrl.signal, mode:'cors', credentials:'include' }; return fetch(url, opts).finally(()=> clearTimeout(t)); }
+    async function resolveApiBase(){ const CAND=['tables/','/tables/']; for (const b of CAND){ try{ const r=await fetchWithTimeout(`${b}users?limit=1&cb=${Date.now()}`, { method:'HEAD', cache:'no-store' }, 6000); if (r.ok) return b; }catch{} } return 'tables/'; }
+
+    document.getElementById('btnClearTokens').onclick = ()=>{ try{ localStorage.removeItem('authToken'); localStorage.removeItem('ascm_session'); log('Tokens and session cleared'); }catch{} };
+    document.getElementById('btnWarmup').onclick = async ()=>{ const base=await resolveApiBase(); try{ await fetchWithTimeout(`${base}users?limit=1&cb=${Date.now()}`, { cache:'no-store' }, 6000); log(`Warm-up GET sent to ${base}`); }catch(e){ log('Warm-up failed: '+String(e?.message||e)); } };
+    document.getElementById('btnKickQueue').onclick = ()=>{ try{ if (window.GoalsQueue){ window.GoalsQueue.kick(); log('GoalsQueue kicked'); } else { log('GoalsQueue not available on this page'); } }catch(e){ log('Kick error: '+String(e?.message||e)); } };
+    document.getElementById('btnResetCaches').onclick = ()=>{ const keys = Object.keys(localStorage).filter(k=> /^(goals_cache_|um_users|users\?|tables\/activities|\/tables\/activities)/.test(k)); let n=0; for (const k of keys){ try{ localStorage.removeItem(k); n++; }catch{} } log(`Removed ${n} local cache keys`); };
+  </script>
+</body>
+</html>

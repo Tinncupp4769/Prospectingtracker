@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCM Health Check</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body{ font-family:'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+    .card{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; box-shadow: 0 10px 24px rgba(0,0,0,.06); }
+    .log{ font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size:12px; white-space:pre-wrap; }
+    iframe{ width: 1px; min-width:100%; height: 600px; border:0; }
+  </style>
+</head>
+<body class="bg-slate-50">
+  <header class="brand-gradient text-white">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="font-bold">ASCM Health Check</div>
+      <a href="app.html" class="btn-outline px-3 py-2 rounded-md text-sm">Home</a>
+    </div>
+  </header>
+  <main class="max-w-6xl mx-auto px-6 py-6 space-y-4">
+    <div class="card p-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="font-bold">Automated Health Audit</div>
+          <div class="text-sm text-slate-600">Runs probes for API, RBAC, pages, key interactions. Produces machine-readable JSON result.</div>
+        </div>
+        <div class="flex gap-2">
+          <button id="runBtn" class="btn-primary px-3 py-2 rounded-md text-sm">Run Checks</button>
+          <button id="clearBtn" class="btn-outline px-3 py-2 rounded-md text-sm">Clear & Reset</button>
+        </div>
+      </div>
+      <div class="mt-3 text-sm">Status: <span id="status" class="font-mono">idle</span></div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="card p-4">
+        <div class="font-bold mb-2">Summary</div>
+        <div id="summary" class="text-sm"></div>
+      </div>
+      <div class="card p-4">
+        <div class="font-bold mb-2">Logs</div>
+        <div id="logs" class="log h-64 overflow-auto bg-slate-50 border rounded p-2"></div>
+      </div>
+    </div>
+
+    <div class="card p-4">
+      <div class="font-bold mb-2">Raw JSON</div>
+      <pre id="json" class="log"></pre>
+    </div>
+
+    <iframe id="sandbox" title="Test Sandbox" class="hidden"></iframe>
+  </main>
+
+  <script>
+    // Minimal resilient fetch for probes
+    function fetchWithTimeout(url, options={}, timeoutMs=8000){ const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(), timeoutMs); const token=localStorage.getItem('authToken'); const auth= token? { 'Authorization':`Bearer ${token}` } : {}; const opts={ ...options, headers:{ ...(options.headers||{}), ...auth }, signal: ctrl.signal, mode:'cors', credentials:'include' }; return fetch(url, opts).finally(()=> clearTimeout(t)); }
+    async function resolveApiBase(){ const CAND=['tables/','/tables/']; for (const b of CAND){ try{ const r=await fetchWithTimeout(`${b}users?limit=1&cb=${Date.now()}`, { method:'HEAD', cache:'no-store' }, 6000); if (r.ok) return b; }catch{} } return 'tables/'; }
+
+    const HEALTH = { startedAt:0, finishedAt:0, apiBase:'', results:[], pass:true };
+    const PAGES = [
+      { path:'app.html', selector:'.topbar', label:'Home' },
+      { path:'sales-dashboard-modular.html', selector:'#home-button', label:'Dashboard' },
+      { path:'leaderboard.html', selector:'#home-button', label:'Leaderboard' },
+      { path:'analytics-dashboard.html', selector:'#home-button', label:'Analytics' },
+      { path:'analytics-react.html', selector:'#home-button', label:'Analytics React' },
+      { path:'activity-entry-ae.html', selector:'#home-button', label:'AE Entry' },
+      { path:'activity-entry-am.html', selector:'#home-button', label:'AM Entry' },
+      { path:'admin-users.html', selector:'#home-button', label:'Admin Users (requires admin session)' },
+      { path:'admin-weights.html', selector:'#home-button', label:'Admin Weights (requires admin session)' },
+      { path:'goals-portal.html', selector:'#publish', label:'Goals Portal (snapshot-first)' }
+    ];
+
+    function log(msg){ const el=document.getElementById('logs'); el.textContent += msg + '\n'; el.scrollTop = el.scrollHeight; }
+    function setStatus(s){ document.getElementById('status').textContent = s; }
+    function summarize(){ const ok=HEALTH.results.filter(r=>r.ok).length; const total=HEALTH.results.length; document.getElementById('summary').textContent = `${ok}/${total} checks passed`; document.getElementById('json').textContent = JSON.stringify(HEALTH, null, 2); window.HEALTH_RESULT = HEALTH; }
+
+    async function probeApi(){
+      const base = await resolveApiBase(); HEALTH.apiBase = base; log(`[API] Base resolved: ${base}`);
+      const endpoints = [ 'users?limit=1', 'activities?limit=1', 'goals?limit=1', 'audit_logs?limit=1' ];
+      for (const ep of endpoints){
+        try{
+          const r = await fetchWithTimeout(`${base}${ep}&cb=${Date.now()}`, { cache:'no-store' }, 8000);
+          const ct=(r.headers.get('content-type')||'').toLowerCase();
+          const ok = r.ok && ct.includes('application/json');
+          HEALTH.results.push({ type:'api', name: ep, ok, status:r.status });
+          log(`[API] ${ep} -> ${r.status} ${ok?'OK':'FAIL'}`);
+          if (r.status===401 || r.status===403){ HEALTH.pass=false; }
+          if (!ok) HEALTH.pass=false;
+        } catch(e){ HEALTH.results.push({ type:'api', name: ep, ok:false, error:String(e?.message||e) }); log(`[API] ${ep} -> ERROR ${String(e?.message||e)}`); HEALTH.pass=false; }
+      }
+    }
+
+    async function checkPages(){
+      const frame=document.getElementById('sandbox'); frame.classList.add('hidden');
+      for (const pg of PAGES){
+        try{
+          // Ensure admin session for admin pages
+          const sess = JSON.parse(localStorage.getItem('ascm_session')||'null') || { id:'healthAdmin', email:'admin@example.com', name:'Health Admin', role:'admin' };
+          localStorage.setItem('ascm_session', JSON.stringify(sess));
+          await new Promise((res,rej)=>{ frame.onload=()=> res(); frame.onerror=()=> rej(new Error('onerror')); frame.src = pg.path + (pg.path.includes('?')?'&':'?')+`cb=${Date.now()}`; });
+          const doc = frame.contentDocument;
+          const ok = !!doc.querySelector(pg.selector);
+          HEALTH.results.push({ type:'page', name: pg.path, label: pg.label, ok });
+          log(`[PAGE] ${pg.path} selector ${pg.selector} -> ${ok?'OK':'FAIL'}`);
+          if (!ok) HEALTH.pass=false;
+        }catch(e){ HEALTH.results.push({ type:'page', name: pg.path, label: pg.label, ok:false, error:String(e?.message||e) }); log(`[PAGE] ${pg.path} -> ERROR ${String(e?.message||e)}`); HEALTH.pass=false; }
+      }
+    }
+
+    async function autoHeal(){
+      try {
+        log('[HEAL] Attempting warm-up and token refresh');
+        const base = await resolveApiBase();
+        await fetchWithTimeout(`${base}users?limit=1&cb=${Date.now()}`, { cache:'no-store' }, 6000);
+      } catch(e){ log('[HEAL] Warm-up failed: '+String(e?.message||e)); }
+    }
+
+    async function run(){
+      HEALTH.startedAt = Date.now(); HEALTH.results.length=0; HEALTH.pass=true; setStatus('running…'); log('--- Starting Health Audit ---');
+      // Minimal clear that doesn’t log a user out unless needed
+      try{ localStorage.removeItem('ascm_debug'); }catch{}
+      await probeApi();
+      await checkPages();
+      if (!HEALTH.pass){
+        log('--- FAIL detected. Auto-heal pass starting ---');
+        await autoHeal();
+        // Re-run API probes after heal
+        await probeApi();
+      }
+      HEALTH.finishedAt = Date.now(); setStatus('done'); summarize(); log('--- Health Audit Complete ---');
+    }
+
+    document.getElementById('runBtn').addEventListener('click', run);
+    document.getElementById('clearBtn').addEventListener('click', ()=>{ try{ localStorage.clear(); sessionStorage.clear(); }catch{}; document.getElementById('logs').textContent=''; document.getElementById('summary').textContent=''; document.getElementById('json').textContent=''; setStatus('cleared'); });
+
+    // Auto-run in CI
+    if (new URL(location.href).searchParams.get('autorun')==='1'){ run(); }
+  </script>
+</body>
+</html>

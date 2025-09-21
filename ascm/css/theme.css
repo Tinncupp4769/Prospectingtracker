@@ -1,0 +1,153 @@
+/* ASCM Brand Theme — Official Palette Applied
+   Primary: Medium Green #006B36 (Pantone 7727)
+   Dark Green: #003726 (hover/dark)
+   Greens: #3BB14A (Green), #82C341 (Light Green)
+   Neutrals: Black #000002, Dark Gray #495965, Light Gray #A0AAB2, White #FFFFFF
+   Accents: Blue #21C0DB, Yellow #FFF204
+*/
+:root {
+  /* Brand palette */
+  --ascm-green-medium: #006B36; /* primary */
+  --ascm-green-dark:   #003726; /* hover/dark */
+  --ascm-green:        #3BB14A;
+  --ascm-green-light:  #82C341;
+
+  --ascm-blue-accent:  #21C0DB;
+  --ascm-yellow:       #FFF204;
+
+  --ascm-black:        #000002;
+  --ascm-gray-700:     #495965; /* dark gray */
+  --ascm-gray-400:     #A0AAB2; /* light gray */
+  --ascm-white:        #FFFFFF;
+
+  /* UI tokens (light) */
+  --ascm-bg: #F7FAF8;            /* soft background derived from green */
+  --ascm-card: var(--ascm-white);
+  --ascm-border: #E5E7EB;        /* neutral border for clarity */
+  --ascm-text: #0F172A;          /* slate-900 */
+  --ascm-muted: #475569;         /* slate-600 */
+
+  /* Semantic */
+  --primary: var(--ascm-green-medium);
+  --primary-contrast: #FFFFFF;
+  --primary-hover: var(--ascm-green-dark);
+  --accent: var(--ascm-blue-accent);
+  --accent-hover: #18A9C2;       /* slightly darker blue */
+}
+
+/* Dark mode overrides */
+:root[data-theme='dark'] {
+  --ascm-bg: #0b1310;            /* deep green-black */
+  --ascm-card: #0f1b17;
+  --ascm-border: #1f2a25;
+  --ascm-text: #E5F6EE;
+  --ascm-muted: #a7cdbf;
+  --primary: #2BB673;
+  --primary-hover: #1b8c56;
+  --accent: #35D3E8;
+  --accent-hover: #22bdd2;
+}
+
+html, body {
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background: var(--ascm-bg);
+  color: var(--ascm-text);
+  transition: background-color .25s ease, color .25s ease;
+}
+
+/* Brand gradient banner */
+.brand-gradient {
+  background: linear-gradient(135deg, var(--ascm-green-medium), var(--ascm-green));
+}
+:root[data-theme='dark'] .brand-gradient {
+  background: radial-gradient(1200px 300px at 10% -10%, rgba(53,211,232,0.20), transparent), linear-gradient(135deg, #0e2a21, #124233);
+}
+
+/* Toast (global helper) - top-right, dismissible, 5s auto-hide */
+.ascm-toast{ position:fixed; right:16px; top:16px; background:#111827; color:#fff; padding:10px 12px; border-radius:12px; box-shadow:0 12px 28px rgba(0,0,0,.22); font-size:13px; opacity:0; transform:translateY(-10px); transition:opacity .2s ease, transform .2s ease; z-index:9999; display:inline-flex; align-items:center; gap:8px; }
+.ascm-toast.show{ opacity:1; transform:translateY(0); }
+.ascm-toast.success{ background:#0c6f54; }
+.ascm-toast.info{ background:#1f2937; }
+.ascm-toast.error{ background:#7f1d1d; }
+.ascm-toast .close{ background:transparent; border:none; color:#fff; font-weight:800; cursor:pointer; font-size:16px; line-height:1; }
+
+/* Inline badge animation for "Saved" chips */
+@keyframes ascmBadgePop {
+  0% { opacity: 0; transform: translateY(-2px) scale(0.96); }
+  15% { opacity: 1; transform: translateY(0) scale(1); }
+  85% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-2px) scale(0.98); }
+}
+.ascm-badge-fx { animation: ascmBadgePop 1.6s ease-in-out forwards; }
+
+/* Buttons */
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-contrast);
+  transition: background .2s ease, transform .1s ease, box-shadow .2s ease;
+  box-shadow: 0 8px 20px rgba(0, 107, 54, 0.18);
+  border-radius: 12px;
+}
+.btn-primary:hover { background: var(--primary-hover); box-shadow: 0 10px 24px rgba(0, 55, 38, 0.25); }
+.btn-primary:active { transform: translateY(1px); }
+
+.btn-accent {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 8px 20px rgba(33, 192, 219, 0.25);
+  border-radius: 12px;
+}
+.btn-accent:hover { background: var(--accent-hover); }
+
+.btn-outline {
+  border: 1px solid var(--ascm-border);
+  background: var(--ascm-card);
+  color: var(--ascm-text);
+  border-radius: 12px;
+}
+.btn-outline:hover {
+  border-color: var(--ascm-gray-400);
+}
+
+/* Inputs */
+.input {
+  border: 1px solid var(--ascm-border);
+  background: var(--ascm-card);
+  color: var(--ascm-text);
+  border-radius: 12px;
+}
+.input:focus {
+  outline: none;
+  border-color: var(--ascm-green-medium);
+  box-shadow: 0 0 0 3px rgba(0, 107, 54, 0.20);
+}
+
+/* Card */
+.card {
+  background: var(--ascm-card);
+  border: 1px solid var(--ascm-border);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  border-radius: 16px;
+}
+:root[data-theme='dark'] .card { box-shadow: 0 10px 28px rgba(0,0,0,0.35); }
+
+/* Links */
+.link { color: var(--accent); }
+.link:hover { color: var(--accent-hover); text-decoration: underline; }
+
+/* Alerts */
+.alert {
+  border-left: 4px solid var(--accent);
+  background: rgba(53, 211, 232, 0.08);
+}
+.alert.warn {
+  border-left-color: #F59E0B;
+  background: rgba(245,158,11,0.10);
+}
+.alert.error {
+  border-left-color: #EF4444;
+  background: rgba(239,68,68,0.10);
+}
+
+/* Footer */
+.footer { color: var(--ascm-gray-700); }

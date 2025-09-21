@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics (React · Recharts) — ASCM Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <script src="js/theme.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <!-- ECharts + ECharts-GL for 3D charts -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts-gl@2/dist/echarts-gl.min.js"></script>
+  <!-- Confetti for gamification -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+  <!-- React + Redux Toolkit + React-Redux -->
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/@reduxjs/toolkit@2.2.6/dist/redux-toolkit.umd.production.min.js"></script>
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/react-redux@8.1.3/dist/react-redux.umd.min.js"></script>
+  <!-- Recharts UMD -->
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/recharts@2.10.3/umd/Recharts.min.js"></script>
+  <script src="js/avatars.js"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+    .card { background:#fff; border:1px solid #E5E7EB; border-radius:16px; box-shadow:0 10px 24px rgba(0,0,0,.06); }
+    .kpi { display:flex; align-items:center; gap:12px; }
+    .kpi .label { font-size:12px; color:#64748b; }
+    .kpi .value { font-weight:800; font-size:18px; color:#0f172a; }
+    .grid-auto { display:grid; grid-template-columns: repeat(1, minmax(0, 1fr)); gap:16px; }
+    @media (min-width: 1024px){ .grid-auto { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .heat-cell { border: 1px solid #e5e7eb; text-align:center; font-size:12px; padding:6px; }
+    .heat-user { white-space:nowrap; text-overflow:ellipsis; overflow:hidden; max-width:160px; text-align:left; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <header class="brand-gradient text-white" id="header">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-white/10 grid place-items-center"><i class="fa-solid fa-chart-line text-white"></i></div>
+        <div>
+          <h1 class="text-base font-bold">Analytics</h1>
+          <p class="text-xs text-white/80">Track your sales performance and trends</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="hidden md:inline-flex items-center gap-2"><span class="text-xs text-white/90" id="arUserName"></span><span id="arUserAvatar"></span></span>
+        <a id="home-button" href="app.html" class="btn-outline px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-house mr-2"></i>Home</a>
+        <span id="lastUpdatedChip" class="px-2 py-1 text-xs rounded border bg-white/20 border-white/30 text-white/90" title="Last successful analytics refresh">—</span>
+      </div>
+    </div>
+  </header>
+  <script>
+    (function(){
+      try{
+        const url=new URL(location.href);
+        if (url.searchParams.get('embed')==='1'){
+          var h=document.getElementById('header'); if(h) h.style.display='none';
+          var hb=document.getElementById('home-button'); if(hb) hb.style.display='none';
+        }
+      }catch{}
+    })();
+  </script>
+
+  <main class="max-w-7xl mx-auto px-6 py-6">
+    <div id="root"></div>
+  </main>
+
+  <script type="text/javascript">
+    // Inject user name + avatar in header
+    (function(){ try{ const s=JSON.parse(localStorage.getItem('ascm_session')||'null'); if(s){ const nameEl=document.getElementById('arUserName'); const avEl=document.getElementById('arUserAvatar'); if(nameEl) nameEl.textContent = s.name||s.email||'User'; if (avEl){ try{ if (window.Avatars){ avEl.innerHTML = Avatars.img2x(s, 24, 'rounded-full'); } }catch{} } } window.addEventListener('storage', (e)=>{ if(e.key==='ascm_session'){ try{ const s=JSON.parse(e.newValue||'null'); const nameEl=document.getElementById('arUserName'); const avEl=document.getElementById('arUserAvatar'); if(nameEl) nameEl.textContent = s?.name||s?.email||'User'; if (avEl && window.Avatars){ avEl.innerHTML = Avatars.img2x(s, 24, 'rounded-full'); } }catch{} } }); }catch{} })();
+    // Fallback guard when React/CDN libraries are blocked
+    (function(){
+      try{
+        if (!(window.React && window.ReactDOM && window.RTK && window.ReactRedux && window.Recharts)){
+          const root=document.getElementById('root');
+          if(root){
+            root.innerHTML = '<section class="card p-5">'+
+              '<div class="flex items-center justify-between">'+
+              '<h2 class="font-semibold">Analytics — Fallback Mode</h2>'+
+              '<span class="px-2 py-1 text-xs rounded border bg-amber-50 border-amber-200 text-amber-700">CDNs blocked</span>'+
+              '</div>'+
+              '<p class="text-sm text-slate-600 mt-2">We could not load UI libraries. You can still view cached KPIs and run diagnostics.</p>'+
+              '<div class="mt-3 flex items-center gap-2">'+
+              '<button id="fbUseCache" class="btn-outline px-3 py-2 rounded-md text-sm">Use Cached Data</button>'+
+              '<button id="fbDiagnostics" class="btn-outline px-3 py-2 rounded-md text-sm">Run Diagnostics</button>'+
+              '</div>'+
+              '<div id="fbOut" class="mt-3 text-xs bg-slate-50 border rounded p-2">Ready.</div>'+
+            '</section>'+
+            '<section id="fbKpis" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mt-4"></section>';
+            const out=document.getElementById('fbOut');
+            const kpis=document.getElementById('fbKpis');
+            function renderKPIs(ag){ kpis.innerHTML = [
+              ['Total Activities', ag.totalActivities||0],
+              ['Meetings', ag.meetingsBooked||0],
+              ['Pipeline', '$'+Math.round((ag.pipeline||0)/1000)+'K'],
+              ['Revenue', '$'+Math.round((ag.revenue||0)/1000)+'K']
+            ].map(([label,val])=> '<div class="card p-4"><div class="text-xs text-slate-500">'+label+'</div><div class="text-2xl font-extrabold">'+val+'</div></div>').join(''); }
+            function agg(rows){ return (rows||[]).reduce((acc,r)=>{ acc.totalActivities += (Number(r.callsMade||0)+Number(r.emailsSent||0)+Number(r.linkedinMessages||0)+Number(r.vidyardVideos||0)+Number(r.generalAbmCampaigns||0)+Number(r.dormantAbmCampaigns||0)+Number(r.crossSellAbmCampaigns||0)+Number(r.upSellAbmCampaigns||0)); acc.meetingsBooked += Number(r.meetingsBooked||0); acc.pipeline += Number(r.pipelineGenerated||0); acc.revenue += Number(r.revenueClosed||0); return acc; }, { totalActivities:0, meetingsBooked:0, pipeline:0, revenue:0 }); }
+            document.getElementById('fbUseCache').onclick = function(){ try{ const c=JSON.parse(localStorage.getItem('analytics_cache')||'null'); if(c&&c.data){ renderKPIs(c.data.aggregates||agg(c.data.rows||[])); out.textContent='Loaded cached analytics.'; } else { const acts=JSON.parse(localStorage.getItem('activities')||'[]'); renderKPIs(agg(acts)); out.textContent='Computed KPIs from cached activities.'; } }catch(e){ out.textContent='Cache read failed: '+String(e.message||e); } };
+            document.getElementById('fbDiagnostics').onclick = async function(){ try{ let users='-', acts='-'; try{ const r=await fetch('tables/users?limit=1',{cache:'no-store'}); users = r.ok? 'ok' : r.status; }catch{ users='err'; } try{ const r=await fetch('tables/activities?limit=1',{cache:'no-store'}); acts = r.ok? 'ok' : r.status; }catch{ acts='err'; } out.textContent = 'Probe users '+users+' · activities '+acts; }catch(e){ out.textContent='Diagnostics failed'; } };
+          }
+          throw new Error('CDN libs missing — stopping React bootstrap');
+        }
+      }catch(e){ if(String(e.message||e).includes('CDN libs missing')){ console.warn('[AN]', e.message); } }
+    })();
+
+    if (window.React && window.ReactDOM && window.RTK && window.ReactRedux && window.Recharts){
+    if (window.React && window.ReactDOM && window.RTK && window.ReactRedux && window.Recharts){
+    const libsOk = (window.React && window.ReactDOM && window.RTK && window.ReactRedux && window.Recharts);
+    if (!libsOk) {
+      // Fallback-only mode: React app skipped
+    } else {
+    // Shorthands
+    const { useState, useEffect, useMemo } = React;
+    const { Provider, useDispatch, useSelector } = ReactRedux;
+    const { configureStore, createSlice, createAsyncThunk } = window.RTK;
+    const R = window.Recharts;
+
+    // Environment/session helpers
+    function getSession(){ try { return JSON.parse(localStorage.getItem('ascm_session')||'null'); } catch { return null; } }
+
+    // Resilient API helpers (tables/ vs /tables/)
+    let API_BASE = 'tables/';
+    const API_BASE_CANDIDATES = ['tables/','/tables/'];
+    function fetchWithTimeout(url, options={}, timeoutMs=15000){ const ctrl=new AbortController(); const t=setTimeout(()=>ctrl.abort(), timeoutMs); const opts={ ...options, signal: ctrl.signal, mode:'cors', credentials:'include' }; return fetch(url, opts).finally(()=> clearTimeout(t)); }
+    async function resolveApiBase(){
+      // Probe both candidates with HEAD then GET as warm-up; choose the first that returns non-HTML
+      for (const base of API_BASE_CANDIDATES){
+        try {
+          let ok=false;
+          // HEAD probe activities
+          try { const r = await fetchWithTimeout(`${base}activities?limit=1`, { method:'HEAD', cache:'no-store' }, 6000); ok = r.ok; } catch {}
+          // If HEAD blocked, try GET users (often allowed) as warm-up
+          if (!ok){ try { const r = await fetchWithTimeout(`${base}users?limit=1&cb=${Date.now()}`, { method:'GET', cache:'no-store' }, 8000); const ct=(r.headers.get('content-type')||'').toLowerCase(); ok = r.ok && ct.includes('application/json'); } catch {} }
+          if (ok){ API_BASE = base; break; }
+        } catch {}
+      }
+    }
+    function normalizePath(p){ if (/^https?:\/\//i.test(p)) return p; if (p.startsWith('tables/')) return API_BASE + p.slice('tables/'.length); if (p.startsWith('/tables/')) return API_BASE + p.slice('/tables/'.length); return p; }
+    function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+    function looksLikeHtml(res){ const ct=(res.headers.get('content-type')||'').toLowerCase(); return ct.includes('text/html'); }
+    async function apiRequest(method, path, body, tries=7){ const DEBUG=(new URL(location.href)).searchParams.get('debug')==='1' || localStorage.getItem('ascm_debug')==='1'; let warmed=false; for (let i=1;i<=tries;i++){ let url = normalizePath(path); const sep=url.includes('?')?'&':'?'; url=`${url}${sep}cb=${Date.now()}_${i}`; try{ DEBUG&&console.debug('[AN][req]', method, url, 'attempt', i); const res = await fetchWithTimeout(url,{ method, headers:{'Content-Type':'application/json'}, body: body!=null?JSON.stringify(body):undefined, cache:'no-store' }, 15000); const ct=(res.headers.get('content-type')||'').toLowerCase(); if (res.status===401){ window.location.replace('index.html'); return res; } if (res.status===403){ showToast('Access blocked (WAF/403). Trying warm-up…','error'); } if (res.status===429){ showToast('Rate limited (429). Slowing down and retrying…','error'); } if (res.status>=500){ showToast('Server error. Retrying…','error'); } if (!res.ok || looksLikeHtml(res) || !ct.includes('application/json')){ if (!warmed){ try { await resolveApiBase(); await fetchWithTimeout(normalizePath('tables/users?limit=1'), { method:'GET', cache:'no-store' }, 6000); } catch {} warmed=true; } const delay = Math.min(12000, 500*Math.pow(2,(i-1))) + Math.floor(Math.random()*400); await sleep(delay); continue; } return res; }catch(e){ const delay = Math.min(12000, 500*Math.pow(2,(i-1))) + Math.floor(Math.random()*400); DEBUG&&console.warn('[AN][req] error', url, String(e.message||e)); if (!warmed){ try { await resolveApiBase(); await fetchWithTimeout(normalizePath('tables/activities?limit=1'), { method:'GET', cache:'no-store' }, 6000); } catch{} warmed=true; } await sleep(delay); } } throw new Error('API blocked'); }
+    async function apiJson(method, path, body, tries=7){ const r = await apiRequest(method,path,body,tries); if (!r.ok){ let t=''; try{t=await r.text();}catch{}; throw new Error(`${method} ${path} -> ${r.status} ${t.slice(0,160)}`); } if (r.status===204) return {}; try { return await r.json(); } catch { return {}; } }
+
+    // Toast helpers
+    function ensureToast(){ let t=document.getElementById('ascm_toast'); if(!t){ t=document.createElement('div'); t.id='ascm_toast'; t.className='ascm-toast info'; t.setAttribute('role','status'); document.body.appendChild(t);} return t; }
+    function showToast(msg,type='info'){ try{ const t=ensureToast(); t.classList.remove('success','error','info'); t.classList.add(type||'info'); t.innerHTML = `<span>${String(msg||'')}</span><button class='close' aria-label='Dismiss'>×</button>`; const btn=t.querySelector('.close'); if(btn){ btn.onclick=()=> t.classList.remove('show'); } t.classList.add('show'); clearTimeout(showToast._t); showToast._t=setTimeout(()=>{ try{t.classList.remove('show');}catch{} }, 5000);}catch{} }
+
+    // Period helpers
+    function startOfWeek(d){ const dt=new Date(d); const day=(dt.getUTCDay()+6)%7; dt.setUTCDate(dt.getUTCDate()-day); dt.setUTCHours(0,0,0,0); return dt; }
+    function endOfWeek(d){ const s=startOfWeek(d); const e=new Date(s); e.setUTCDate(s.getUTCDate()+6); e.setUTCHours(23,59,59,999); return e; }
+    function isoWeekNumber(date){ const dt=new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())); const dayNum = dt.getUTCDay() || 7; dt.setUTCDate(dt.getUTCDate() + 4 - dayNum); const yearStart = new Date(Date.UTC(dt.getUTCFullYear(),0,1)); const weekNo = Math.ceil((((dt - yearStart) / 86400000) + 1)/7); return weekNo; }
+
+    // Analytics calculations
+    const METRICS_ACT = ['callsMade','emailsSent','linkedinMessages','vidyardVideos','generalAbmCampaigns','dormantAbmCampaigns','crossSellAbmCampaigns','upSellAbmCampaigns'];
+    const METRICS_RES = ['meetingsBooked','successfulContacts','meetingsConducted','opportunitiesGenerated','referralsGenerated'];
+    const METRICS_FIN = ['pipelineGenerated','revenueClosed'];
+
+    function sumSafe(vals){ return (vals||[]).reduce((a,b)=> a + (Number(b)||0), 0); }
+    function toNum(x){ const n=Number(x); return isFinite(n)?n:0; }
+
+    function mapActivityDocRow(a){ // Normalize one activity row to our keys
+      return {
+        id: a.id,
+        userId: a.userId || a.user_id,
+        userName: a.userName || a.user_name || '',
+        role: (a.role||'ae').toLowerCase(),
+        date: a.date ? new Date(a.date) : (a.createdAt ? new Date(a.createdAt) : new Date()),
+        week: a.week || null,
+        weekNumber: a.weekNumber || a.week_number || (a.date? isoWeekNumber(new Date(a.date)) : isoWeekNumber(new Date())),
+        submitted: (a.submitted!=null)? !!a.submitted : true,
+        callsMade: toNum(a.callsMade||a.calls||0),
+        emailsSent: toNum(a.emailsSent||a.emails||0),
+        linkedinMessages: toNum(a.linkedinMessages||a.linkedin||0),
+        vidyardVideos: toNum(a.vidyardVideos||a.vidyard||0),
+        generalAbmCampaigns: toNum(a.generalAbmCampaigns||a.abmCampaigns||a.abCampaigns||0),
+        dormantAbmCampaigns: toNum(a.dormantAbmCampaigns||0),
+        crossSellAbmCampaigns: toNum(a.crossSellAbmCampaigns||0),
+        upSellAbmCampaigns: toNum(a.upSellAbmCampaigns||0),
+        meetingsBooked: toNum(a.meetingsBooked||0),
+        successfulContacts: toNum(a.successfulContacts||0),
+        meetingsConducted: toNum(a.meetingsConducted||0),
+        opportunitiesGenerated: toNum(a.opportunitiesGenerated||a.opportunities||0),
+        referralsGenerated: toNum(a.referralsGenerated||a.referrals||0),
+        pipelineGenerated: toNum(a.pipelineGenerated||a.pipeline||0),
+        revenueClosed: toNum(a.revenueClosed||a.revenue||0)
+      };
+    }
+
+    function totalActivitiesOf(row){ return sumSafe([row.callsMade,row.emailsSent,row.linkedinMessages,row.vidyardVideos,row.generalAbmCampaigns,row.dormantAbmCampaigns,row.crossSellAbmCampaigns,row.upSellAbmCampaigns]); }
+    function scoreOf(row){ // simple normalized score
+      return (
+        1*row.callsMade + 2*row.emailsSent + 3*row.linkedinMessages + 2*row.vidyardVideos +
+        4*row.meetingsBooked + 3*row.successfulContacts + 5*row.meetingsConducted + 10*row.opportunitiesGenerated + 4*row.referralsGenerated +
+        (row.pipelineGenerated/1000)*8 + (row.revenueClosed/1000)*12
+      );
+    }
+
+    function filterByPeriod(rows, period){
+      if (period==='all') return rows;
+      const now = new Date();
+      if (period==='today'){
+        const d0=new Date(now); d0.setHours(0,0,0,0); const d1=new Date(now); d1.setHours(23,59,59,999);
+        return rows.filter(r => r.date >= d0 && r.date <= d1);
+      }
+      if (period==='thisWeek'){
+        const s = startOfWeek(now); const e = endOfWeek(now);
+        return rows.filter(r => r.date >= s && r.date <= e);
+      }
+      if (period==='thisMonth'){
+        const start=new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+        const end=new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth()+1, 0, 23,59,59,999));
+        return rows.filter(r => r.date >= start && r.date <= end);
+      }
+      return rows;
+    }
+
+    function aggregate(rows){
+      const submitted = rows.filter(r=> r.submitted!==false);
+      const totals = submitted.reduce((acc, r)=>{
+        const totalAct = totalActivitiesOf(r);
+        acc.totalActivities += totalAct;
+        acc.calls += r.callsMade; acc.emails += r.emailsSent; acc.linkedin += r.linkedinMessages; acc.vidyard += r.vidyardVideos;
+        acc.abm += r.generalAbmCampaigns + r.dormantAbmCampaigns + r.crossSellAbmCampaigns + r.upSellAbmCampaigns;
+        acc.meetingsBooked += r.meetingsBooked; acc.successfulContacts += r.successfulContacts; acc.meetingsConducted += r.meetingsConducted; acc.opportunities += r.opportunitiesGenerated; acc.referrals += r.referralsGenerated;
+        acc.pipeline += r.pipelineGenerated; acc.revenue += r.revenueClosed;
+        acc.score += scoreOf(r);
+        return acc;
+      }, { totalActivities:0, calls:0, emails:0, linkedin:0, vidyard:0, abm:0, meetingsBooked:0, successfulContacts:0, meetingsConducted:0, opportunities:0, referrals:0, pipeline:0, revenue:0, score:0 });
+      const denomAct = Math.max(1, totals.totalActivities);
+      const denomOpp = Math.max(1, totals.opportunities);
+      const conversionRate = (totals.meetingsBooked/denomAct)*100;
+      const pipelineVelocity = totals.pipeline/denomOpp; // $ per opportunity
+      const referralEfficiency = totals.referrals/Math.max(1, totals.opportunities);
+      return { ...totals, conversionRate, pipelineVelocity, referralEfficiency };
+    }
+
+    function groupWeekly(rows){
+      // Return last 8 weeks trend
+      const map = new Map();
+      rows.forEach(r=>{
+        const y = r.date.getUTCFullYear();
+        const w = r.weekNumber || isoWeekNumber(r.date);
+        const key = `${y}-W${String(w).padStart(2,'0')}`;
+        if (!map.has(key)) map.set(key, { key, year:y, week:w, activities:0, meetings:0, pipeline:0, revenue:0 });
+        const slot = map.get(key);
+        slot.activities += totalActivitiesOf(r);
+        slot.meetings += r.meetingsBooked;
+        slot.pipeline += r.pipelineGenerated;
+        slot.revenue += r.revenueClosed;
+      });
+      // Fill gaps for continuous timeline (last 8 weeks)
+      const now = new Date();
+      const out = [];
+      for (let i=7;i>=0;i--){
+        const d = new Date(now); d.setUTCDate(d.getUTCDate() - i*7);
+        const y = d.getUTCFullYear();
+        const w = isoWeekNumber(d);
+        const key = `${y}-W${String(w).padStart(2,'0')}`;
+        out.push(map.get(key) || { key, year:y, week:w, activities:0, meetings:0, pipeline:0, revenue:0 });
+      }
+      return out;
+    }
+
+    function usersHeat(rows){
+      // Build matrix: users x metrics (calls, emails, meetings, pipeline)
+      const byUser = new Map();
+      rows.forEach(r=>{
+        const u = r.userName || r.userId || 'Unknown';
+        if (!byUser.has(u)) byUser.set(u, { user:u, calls:0, emails:0, meetings:0, pipeline:0 });
+        const slot = byUser.get(u);
+        slot.calls += r.callsMade; slot.emails += r.emailsSent; slot.meetings += r.meetingsBooked; slot.pipeline += r.pipelineGenerated;
+      });
+      const arr = Array.from(byUser.values());
+      arr.sort((a,b)=> (b.pipeline||0) - (a.pipeline||0));
+      return arr.slice(0,10); // top 10 rows
+    }
+
+    function buildDonutData(rows){
+      const ag = aggregate(rows);
+      return [
+        { name:'Calls', value: ag.calls, fill:'#10B981' },
+        { name:'Emails', value: ag.emails, fill:'#3B82F6' },
+        { name:'LinkedIn', value: ag.linkedin, fill:'#22C55E' },
+        { name:'Vidyard', value: ag.vidyard, fill:'#A855F7' },
+        { name:'ABM', value: ag.abm, fill:'#F59E0B' }
+      ];
+    }
+
+    // Redux slice
+    const fetchAnalytics = createAsyncThunk('analytics/fetch', async (args, thunkAPI)=>{
+      const DEBUG=(new URL(location.href)).searchParams.get('debug')==='1' || localStorage.getItem('ascm_debug')==='1';
+
+      const { period, userId } = args||{};
+      await resolveApiBase();
+      // Pull users (for selector) and activities
+      const [usersJ, actJ, goalsSnapJ, goalsJ] = await Promise.all([
+        apiJson('GET','tables/users?limit=2000').catch((e)=>{ DEBUG&&console.warn('[AN] users error', e); return {data:[]}; }),
+        apiJson('GET','tables/activities?limit=2000').catch((e)=>{ DEBUG&&console.warn('[AN] activities error', e); return {data:[]}; }),
+        apiJson('GET',`tables/goals_snapshots?limit=1&search=${encodeURIComponent(new Date().toISOString().slice(0,7))}`).catch((e)=>{ DEBUG&&console.warn('[AN] goals snapshot error', e); return {data:[]}; }),
+        apiJson('GET','tables/goals?limit=1000').catch((e)=>{ DEBUG&&console.warn('[AN] legacy goals error', e); return {data:[]}; })
+      ]);
+      const sess = getSession();
+      const allRows = (actJ.data||[]).map(mapActivityDocRow);
+      const scopeRows = userId ? allRows.filter(r=> String(r.userId)===String(userId)) : allRows;
+      const filtered = filterByPeriod(scopeRows, period||'thisWeek');
+      // Previous week for WoW delta
+      const prevWeekRows = filterByPeriod(scopeRows, 'thisWeek'); // compute now, then shift by 7 days back
+      const lastWeekStart = startOfWeek(new Date(Date.now() - 7*86400000));
+      const lastWeekEnd = endOfWeek(new Date(Date.now() - 7*86400000));
+      const prevScoped = scopeRows.filter(r => r.date >= lastWeekStart && r.date <= lastWeekEnd);
+      const agCurr = aggregate(filtered);
+      const agPrev = aggregate(prevScoped);
+      const wowActivities = agPrev.totalActivities>0 ? ((agCurr.totalActivities - agPrev.totalActivities)/agPrev.totalActivities)*100 : (agCurr.totalActivities>0?100:0);
+      const wowPipeline = agPrev.pipeline>0 ? ((agCurr.pipeline - agPrev.pipeline)/agPrev.pipeline)*100 : (agCurr.pipeline>0?100:0);
+      const wowRevenue = agPrev.revenue>0 ? ((agCurr.revenue - agPrev.revenue)/agPrev.revenue)*100 : (agCurr.revenue>0?100:0);
+
+      // Goal baseline (snapshot-first, fallback to legacy tables/goals)
+      let weeklyGoal = 50; // default
+      try {
+        const role = (sess?.role||'ae').toLowerCase();
+        const ym = new Date().toISOString().slice(0,7);
+        const snap = (goalsSnapJ.data||[]).find(x=> !x.deleted && x.month===ym && !x.userId);
+        if (snap && snap.values){
+          const vals = snap.values||{};
+          // Sum weekly goals for the active role across metrics
+          weeklyGoal = Object.values(vals).reduce((sum, ob)=> sum + Number(role==='am' ? (ob?.am||0) : (ob?.ae||0)), 0);
+        }
+        // Fallback to legacy tables/goals for current month and role
+        if (!isFinite(weeklyGoal) || weeklyGoal<=0){
+          const rows = (goalsJ.data||[]).filter(g=> !g.deleted && (String(g.role||'').toLowerCase()===role) && g.month===ym && !g.userId);
+          if (rows && rows.length){
+            // Build per-metric weekly values (derive from month if needed)
+            const byMetric = new Map();
+            for (const r of rows){
+              const key = String(r.metric||''); if (!key) continue;
+              const weeks = Math.max(1, Number(r.weeks||4));
+              const slot = byMetric.get(key) || { week:null, month:null, weeks };
+              slot.weeks = weeks;
+              if ((r.period||'')==='week') slot.week = Number(r.target||0)||0;
+              if ((r.period||'')==='month') slot.month = Number(r.target||0)||0;
+              byMetric.set(key, slot);
+            }
+            const sum = Array.from(byMetric.values()).reduce((acc, s)=> acc + (s.week!=null ? s.week : (s.month!=null ? Math.round(Number(s.month||0)/Math.max(1,s.weeks||4)) : 0)), 0);
+            if (sum>0) weeklyGoal = sum;
+          }
+        }
+        if (!isFinite(weeklyGoal) || weeklyGoal<=0) weeklyGoal = 50;
+      } catch{}
+
+      const trend = groupWeekly(filtered);
+
+      const heat = usersHeat(filtered);
+      const donut = buildDonutData(filtered);
+
+      // Usage level: avg submitted entries/week per user
+      const byU = new Map(); filtered.forEach(r=>{ if (!byU.has(r.userId)) byU.set(r.userId, []); byU.get(r.userId).push(r); });
+      const weeksSet = new Set(trend.map(t=> t.key));
+      const usageLevel = (Array.from(byU.values()).reduce((acc, arr)=> acc + (arr.length||0), 0)) / Math.max(1, weeksSet.size * Math.max(1, byU.size));
+
+      // Cache analytics payload (10min TTL)
+      try{ localStorage.setItem('analytics_cache', JSON.stringify({ at: Date.now(), data: { users: usersJ.data||[], rows: filtered, aggregates: agCurr, wow:{ activities: wowActivities, pipeline: wowPipeline, revenue: wowRevenue }, trend, heat, donut, weeklyGoal, usageLevel } })); }catch{}
+
+      return {
+        users: usersJ.data||[],
+        rows: filtered,
+        aggregates: agCurr,
+        wow: { activities: wowActivities, pipeline: wowPipeline, revenue: wowRevenue },
+        trend, heat, donut,
+        weeklyGoal, usageLevel
+      };
+    });
+
+    const analyticsSlice = createSlice({
+      name: 'analytics',
+      initialState: { status:'idle', cacheTs: 0, data: null, lastError:'', filters: { period: 'thisWeek', userId: '' } },
+      reducers: {
+        setFilters(state, action){ state.filters = { ...state.filters, ...action.payload }; },
+        invalidate(state){ state.cacheTs = 0; },
+        hydrate(state, action){ state.data = action.payload; state.status='succeeded'; state.cacheTs = Date.now(); },
+      },
+      extraReducers: (builder)=>{
+        builder
+          .addCase(fetchAnalytics.pending, (state)=>{ state.status='loading'; })
+          .addCase(fetchAnalytics.fulfilled, (state, action)=>{ state.status='succeeded'; state.data = action.payload; state.cacheTs = Date.now(); try{ const chip=document.getElementById('lastUpdatedChip'); if(chip){ const ts=new Date(state.cacheTs); chip.textContent = 'Last updated ' + ts.toLocaleTimeString(); chip.title = ts.toLocaleString(); } }catch{} })
+          .addCase(fetchAnalytics.rejected, (state, action)=>{ state.status='failed'; state.lastError = String(action.error?.message || 'Fetch failed'); });
+      }
+    });
+
+    const store = configureStore({ reducer: { analytics: analyticsSlice.reducer } });
+    // Pre-hydrate from cache (10 min TTL) to avoid blank UI on slow/blocked networks
+    try { const c = JSON.parse(localStorage.getItem('analytics_cache')||'null'); if (c && Date.now()-c.at < 10*60*1000 && c.data){ store.dispatch(analyticsSlice.actions.hydrate(c.data)); } } catch {}
+
+    // Components
+    function Filters(){
+      const dispatch = useDispatch();
+      const filters = useSelector(s=> s.analytics.filters);
+      const data = useSelector(s=> s.analytics.data);
+      const cacheTs = useSelector(s=> s.analytics.cacheTs);
+      const users = data?.users || [];
+      const sess = getSession(); const isAdmin = (sess?.role||'').toLowerCase()==='admin';
+      const [userOption, setUserOption] = useState(filters.userId || (isAdmin? '': String(sess?.id||'')));
+      const [period, setPeriod] = useState(filters.period || 'thisWeek');
+      useEffect(()=>{ setUserOption(filters.userId||''); setPeriod(filters.period||'thisWeek'); }, [filters.period, filters.userId]);
+      function apply(){ dispatch(analyticsSlice.actions.setFilters({ period, userId: userOption })); dispatch(fetchAnalytics({ period, userId: userOption })); }
+      function exportCSV(){
+        try {
+          const rows = (store.getState().analytics.data?.rows)||[];
+          const headers = ['User','Date','ISO Week','Calls','Emails','LinkedIn','Vidyard','ABM','Meetings','Opportunities','Pipeline','Revenue','Total Activities','Score'];
+          const csv = [headers.join(',')].concat(rows.map(r=>{
+            const abm = r.generalAbmCampaigns+r.dormantAbmCampaigns+r.crossSellAbmCampaigns+r.upSellAbmCampaigns;
+            const totalA = totalActivitiesOf(r);
+            const score = scoreOf(r);
+            const key = `${r.date.getUTCFullYear()}-W${String(r.weekNumber||isoWeekNumber(r.date)).padStart(2,'0')}`;
+            return [r.userName||r.userId, r.date.toISOString(), key, r.callsMade, r.emailsSent, r.linkedinMessages, r.vidyardVideos, abm, r.meetingsBooked, r.opportunitiesGenerated, r.pipelineGenerated, r.revenueClosed, totalA, score].join(',');
+          })).join('\n');
+          const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='analytics_export.csv'; a.click(); setTimeout(()=> URL.revokeObjectURL(url), 500);
+        } catch(err){ console.warn('CSV export failed', err); }
+      }
+      const lastUpdatedLabel = cacheTs ? new Date(cacheTs).toLocaleTimeString() : '—';
+      const lastUpdatedTitle = cacheTs ? new Date(cacheTs).toLocaleString() : 'Not updated yet';
+      return (
+        React.createElement('div', { className:'card p-4 mb-4' },
+          React.createElement('div', { className:'flex flex-col lg:flex-row gap-3 lg:items-center justify-between' },
+            React.createElement('div', { className:'flex items-center gap-3 flex-wrap' },
+              React.createElement('div', { className:'flex items-center gap-2' },
+                React.createElement('label', { className:'text-sm' }, 'Time Period'),
+                React.createElement('select', { className:'input rounded px-2 py-1 text-sm', value: period, onChange:e=> setPeriod(e.target.value) },
+                  React.createElement('option',{value:'all'},'All Time'),
+                  React.createElement('option',{value:'thisMonth'},'This Month'),
+                  React.createElement('option',{value:'thisWeek'},'This Week'),
+                  React.createElement('option',{value:'today'},'Today')
+                )
+              ),
+              isAdmin ? (
+                React.createElement('div', { className:'flex items-center gap-2' },
+                  React.createElement('label', { className:'text-sm' }, 'User'),
+                  React.createElement('select', { className:'input rounded px-2 py-1 text-sm min-w-[220px]', value: userOption, onChange:e=> setUserOption(e.target.value) },
+                    React.createElement('option',{value:''},'All Users'),
+                    sess? React.createElement('option',{value:String(sess.id)},'My Performance') : null,
+                    users.map(u=> React.createElement('option',{key:u.id, value:String(u.id)}, u.name||u.email||u.id))
+                  )
+                )
+              ) : null
+            ),
+            React.createElement('div', { className:'flex items-center gap-2 flex-wrap' },
+              React.createElement('span', { className:'px-2 py-1 text-xs rounded border bg-slate-100 border-slate-200 text-slate-600', title: lastUpdatedTitle }, `Last updated ${lastUpdatedLabel}`),
+              React.createElement('button',{ className:'btn-outline px-3 py-2 rounded-md text-sm', onClick: apply }, 'Apply'),
+              !isAdmin ? React.createElement('span', { className:'px-2 py-1 text-xs rounded border bg-slate-100 border-slate-200 text-slate-600' }, 'Scope: My Performance') : null,
+              React.createElement('button',{ className:'btn-primary px-3 py-2 rounded-md text-sm', onClick: exportCSV }, React.createElement('i',{className:'fa-solid fa-file-csv mr-2'}), 'Export CSV')
+            )
+          )
+        )
+      );
+    }
+
+    function Gauge({ title, value=0, max=100, suffix='', color='#10B981', subtitle }){
+      const percent = Math.max(0, Math.min(100, (max>0? (value/max*100) : 0)));
+      const data = [{ name:title, value: percent }];
+      return (
+        React.createElement('div',{ className:'card p-4 flex items-center gap-3' },
+          React.createElement('div', { style:{ width:110, height:110 } },
+            React.createElement(R.RadialBarChart, { width:110, height:110, cx:55, cy:55, innerRadius:36, outerRadius:52, barSize:10, data:data },
+              React.createElement(R.RadialBar, { minAngle:15, background:true, clockWise:true, dataKey:'value', fill: color })
+            )
+          ),
+          React.createElement('div', null,
+            React.createElement('div', { className:'text-xs text-slate-500' }, title),
+            React.createElement('div', { className:'text-2xl font-bold' }, `${Math.round(value)}${suffix}`),
+            subtitle ? React.createElement('div', { className:'text-xs text-slate-500 mt-1' }, subtitle) : null
+          )
+        )
+      );
+    }
+
+    function KPIs(){
+      const data = useSelector(s=> s.analytics.data);
+      if (!data) return null;
+      const ag = data.aggregates;
+      const wow = data.wow || { activities:0, pipeline:0, revenue:0 };
+      const activityGoal = data.weeklyGoal || 50;
+      const usageLabel = data.usageLevel > 0.8 ? 'High' : (data.usageLevel > 0.3 ? 'Medium' : 'Low');
+      return (
+        React.createElement('div', { className:'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4' },
+          React.createElement(Gauge,{ title:'Total Activities', value:ag.totalActivities, max: activityGoal, color:'#10B981', subtitle:`Goal ${activityGoal}/week` }),
+          React.createElement(Gauge,{ title:'Conversion Rate', value: ag.conversionRate, max: 100, suffix:'%', color: ag.conversionRate>=10?'#10B981':'#F59E0B', subtitle: ag.conversionRate>=10?'Healthy':'Needs attention' }),
+          React.createElement(Gauge,{ title:'Pipeline $', value: ag.pipeline, max: Math.max(ag.pipeline,1), color:'#06B6D4', subtitle:`WoW ${Math.round(wow.pipeline)}%` }),
+          React.createElement(Gauge,{ title:'Revenue $', value: ag.revenue, max: Math.max(ag.revenue,1), color:'#3B82F6', subtitle:`WoW ${Math.round(wow.revenue)}%` }),
+          React.createElement(Gauge,{ title:'Usage Level', value: data.usageLevel*100, max:100, suffix:'%', color:'#10B981', subtitle: usageLabel }),
+          React.createElement(Gauge,{ title:'Referral Efficiency', value: ag.referralEfficiency*100, max:100, suffix:'%', color:'#22C55E', subtitle:'Referrals / Opps' })
+        )
+      );
+    }
+
+    function Donut(){
+      const data = useSelector(s=> s.analytics.data?.donut||[]);
+      if (!data.length) return React.createElement('div', { className:'card p-4' }, 'No data — start entering activities!');
+      return (
+        React.createElement('div', { className:'card p-4' },
+          React.createElement('div', { className:'mb-2 font-semibold' }, 'Activity Distribution'),
+          React.createElement('div', { style:{ height:260 } },
+            React.createElement(R.ResponsiveContainer, { width:'100%', height:'100%' },
+              React.createElement(R.PieChart, null,
+                React.createElement(R.Pie, { data:data, dataKey:'value', nameKey:'name', cx:'50%', cy:'50%', innerRadius:60, outerRadius:90, label:true }),
+                React.createElement(R.Tooltip, null),
+                React.createElement(R.Legend, null)
+              )
+            )
+          )
+        )
+      );
+    }
+
+    function WeeklyTrend(){
+      const trend = useSelector(s=> s.analytics.data?.trend||[]);
+      return (
+        React.createElement('div', { className:'card p-4' },
+          React.createElement('div', { className:'mb-2 font-semibold' }, 'Weekly Trends'),
+          React.createElement('div', { style:{ height:260 } },
+            React.createElement(R.ResponsiveContainer, { width:'100%', height:'100%' },
+              React.createElement(R.ComposedChart, { data: trend },
+                React.createElement(R.CartesianGrid, { strokeDasharray:'3 3' }),
+                React.createElement(R.XAxis, { dataKey:'key' }),
+                React.createElement(R.YAxis, null),
+                React.createElement(R.Tooltip, null),
+                React.createElement(R.Legend, null),
+                React.createElement(R.Bar, { dataKey:'activities', stackId:'a', fill:'#10B981', name:'Activities' }),
+                React.createElement(R.Bar, { dataKey:'meetings', stackId:'a', fill:'#3B82F6', name:'Meetings' }),
+                React.createElement(R.Line, { type:'monotone', dataKey:'pipeline', stroke:'#06B6D4', name:'Pipeline' }),
+                React.createElement(R.Line, { type:'monotone', dataKey:'revenue', stroke:'#0EA5E9', name:'Revenue' })
+              )
+            )
+          )
+        )
+      );
+    }
+
+    function Heatmap(){
+      const rows = useSelector(s=> s.analytics.data?.heat||[]);
+      const metrics = ['calls','emails','meetings','pipeline'];
+      function color(val, max){ const pct = max>0? (val/max) : 0; const g = Math.round(255 - pct*155); return `rgb(${255-g}, ${255}, ${220})`; }
+      const maxes = metrics.reduce((m,k)=>{ m[k] = Math.max(1, ...rows.map(r=> r[k]||0)); return m; }, {});
+      return (
+        React.createElement('div', { className:'card p-4' },
+          React.createElement('div', { className:'mb-2 font-semibold' }, 'User vs Metric Heatmap (Top 10 by Pipeline)'),
+          React.createElement('div', { className:'overflow-auto' },
+            React.createElement('table', { className:'min-w-full text-sm' },
+              React.createElement('thead', null,
+                React.createElement('tr', { className:'bg-slate-50 text-slate-700 text-xs' },
+                  React.createElement('th', { className:'px-3 py-2 text-left' }, 'User'),
+                  metrics.map(m=> React.createElement('th', { key:m, className:'px-3 py-2 text-left' }, m.charAt(0).toUpperCase()+m.slice(1)))
+                )
+              ),
+              React.createElement('tbody', null,
+                rows.map(r=> React.createElement('tr', { key:r.user, className:'border-t' },
+                  React.createElement('td', { className:'px-3 py-2 heat-user' }, r.user),
+                  metrics.map(m=> React.createElement('td', { key:m, className:'px-3 py-2 heat-cell', style:{ backgroundColor: color(r[m]||0, maxes[m]) } }, (r[m]||0)))
+                ))
+              )
+            )
+          )
+        )
+      );
+    }
+
+    function ScoreLine(){
+      // Build per-user score lines over the trend window (approximate by aggregating within last weeks)
+      const rows = useSelector(s=> s.analytics.data?.rows||[]);
+      const now = new Date();
+      const buckets = [];
+      for (let i=7;i>=0;i--){ const d=new Date(now); d.setUTCDate(d.getUTCDate() - i*7); const y=d.getUTCFullYear(); const w=isoWeekNumber(d); const key=`${y}-W${String(w).padStart(2,'0')}`; buckets.push({ key }); }
+      const byUser = new Map();
+      rows.forEach(r=>{
+        const y=r.date.getUTCFullYear(); const w=r.weekNumber||isoWeekNumber(r.date); const key=`${y}-W${String(w).padStart(2,'0')}`;
+        if (!byUser.has(r.userName||r.userId)) byUser.set(r.userName||r.userId, new Map());
+        const mp = byUser.get(r.userName||r.userId);
+        mp.set(key, (mp.get(key)||0) + scoreOf(r));
+      });
+      const series = Array.from(byUser.entries()).map(([name, mp])=>{
+        const obj = { name };
+        buckets.forEach(b=> obj[b.key] = mp.get(b.key)||0);
+        return obj;
+      }).sort((a,b)=> (Object.values(b).reduce((s,v)=> s+(typeof v==='number'?v:0),0)) - (Object.values(a).reduce((s,v)=> s+(typeof v==='number'?v:0),0))).slice(0,4);
+
+      return (
+        React.createElement('div', { className:'card p-4' },
+          React.createElement('div', { className:'mb-2 font-semibold' }, 'Performance Over Time (Score)'),
+          React.createElement('div', { style:{ height:260 } },
+            React.createElement(R.ResponsiveContainer, { width:'100%', height:'100%' },
+              React.createElement(R.LineChart, { data: buckets },
+                React.createElement(R.CartesianGrid, { strokeDasharray:'3 3' }),
+                React.createElement(R.XAxis, { dataKey:'key' }),
+                React.createElement(R.YAxis, null),
+                React.createElement(R.Tooltip, null),
+                React.createElement(R.Legend, null),
+                series.map((s,i)=> React.createElement(R.Line, { key:s.name, type:'monotone', dataKey:s.name, data: buckets.map(b=>({ key:b.key, [s.name]: s[b.key]||0 })), stroke: ['#10B981','#3B82F6','#06B6D4','#A855F7'][i%4] }))
+              )
+            )
+          )
+        )
+      );
+    }
+
+    function WeeklyProgress(){
+      const d = useSelector(s=> s.analytics.data);
+      if (!d) return null;
+      const totalA = d.aggregates?.totalActivities||0;
+      const weeklyGoal = d.weeklyGoal||0;
+      const pct = Math.max(0, Math.min(100, weeklyGoal>0? (totalA/weeklyGoal*100) : 0));
+      const marks=[25,50,75,100];
+      const badgeRow = React.createElement('div', { className:'flex items-center gap-2' }, marks.map(m=> React.createElement('span',{ key:m, className:'px-2 py-1 text-xs rounded-full '+(pct>=m? 'bg-emerald-100 text-emerald-800 border border-emerald-200':'bg-slate-100 text-slate-600 border border-slate-200') }, React.createElement('i',{className:'fa-solid '+(pct>=m?'fa-trophy':'fa-circle-dot')+' mr-1'}), `${m}%`)));
+      useEffect(()=>{ try{ if (pct>=100 && !window._anCelebrated && window.confetti){ window._anCelebrated=true; window.confetti({ particleCount: 120, spread: 70, origin:{ y:0.2 } }); } }catch{} }, [pct]);
+      return (
+        React.createElement('section', { className:'card p-4 bg-white border rounded-xl' },
+          React.createElement('div', { className:'flex items-center justify-between gap-3' },
+            React.createElement('div', null, React.createElement('div',{className:'font-semibold'},'Weekly Progress'), React.createElement('div',{className:'text-xs text-slate-500'},'Gamified badges unlock as you approach your goal')),
+            badgeRow
+          ),
+          React.createElement('div', { className:'mt-3' },
+            React.createElement('div', { className:'w-full h-3 bg-slate-200 rounded-full overflow-hidden', role:'progressbar', 'aria-valuemin':0, 'aria-valuemax':100, 'aria-valuenow':Math.round(pct), 'aria-label':'Weekly goal progress' },
+              React.createElement('div', { className:'h-3 bg-emerald-500', style:{ width: pct.toFixed(1)+'%' } })
+            ),
+            React.createElement('div', { className:'text-xs text-slate-600 mt-1' }, `${Math.round(pct)}% of weekly goal (${totalA}/${weeklyGoal})`)
+          )
+        )
+      );
+    }
+
+    function GoalsOverview(){
+      const [goalsMap, setGoalsMap] = useState({});
+      const filters = useSelector(s=> s.analytics.filters);
+      useEffect(()=>{
+        let mounted=true;
+        (async()=>{
+          try{
+            await resolveApiBase();
+            const ym = new Date().toISOString().slice(0,7);
+            const sess = getSession(); const role=(sess?.role||'ae').toLowerCase();
+            const snapJ = await apiJson('GET',`tables/goals_snapshots?limit=1&search=${encodeURIComponent(ym)}`).catch(()=>({data:[]}));
+            let map={};
+            const snap = (snapJ.data||[]).find(x=> !x.deleted && x.month===ym && !x.userId);
+            if (snap && snap.values){
+              const weeks = Math.max(1, Number(snap.weeks||4));
+              Object.entries(snap.values||{}).forEach(([metric, ob])=>{
+                const w = Number(role==='am' ? (ob?.am||0) : (ob?.ae||0));
+                const m = Math.round(w*weeks);
+                map[metric] = { week:{ global:w }, month:{ global:m }, weeks };
+              });
+            }
+            if (!Object.keys(map).length){
+              const goalsJ = await apiJson('GET','tables/goals?limit=1000').catch(()=>({data:[]}));
+              const rows = (goalsJ.data||[]).filter(g=> !g.deleted && g.month===ym && !g.userId && (String(g.role||'').toLowerCase()===role));
+              rows.forEach(r=>{ const k=String(r.metric||''); if(!k) return; map[k]=map[k]||{month:{global:null},week:{global:null},weeks:r.weeks||4}; const per=(r.period||'month'); const val=Number(r.target||0)||0; map[k][per].global = map[k][per].global==null? val : map[k][per].global; if(r.weeks) map[k].weeks=r.weeks; });
+              Object.values(map).forEach(v=>{ const w=Math.max(1,Number(v.weeks||4)); if(v.month.global==null && v.week.global!=null) v.month.global=Math.round(v.week.global*w); if(v.week.global==null && v.month.global!=null) v.week.global=Math.round(v.month.global/w); });
+            }
+            if (mounted) setGoalsMap(map);
+          }catch{}
+        })();
+        return ()=>{ mounted=false };
+      }, [filters?.period]);
+      const keys = Object.keys(goalsMap||{});
+      const period = (filters?.period==='week' || filters?.period==='7days') ? 'Weekly' : 'Monthly';
+      const sess = getSession(); const role = (sess?.role||'ae').toUpperCase();
+      return (
+        React.createElement('div', { className:'card p-4' },
+          React.createElement('div', { className:'flex items-center justify-between mb-2' },
+            React.createElement('div', { className:'font-semibold' }, 'Goals Overview (Read-only)'),
+            React.createElement('span', { className:'text-xs text-slate-500' }, `${role} · ${new Date().toISOString().slice(0,7)}`)
+          ),
+          keys.length ? (
+            React.createElement('div',{className:'overflow-x-auto'},
+              React.createElement('table',{className:'min-w-full text-sm'},
+                React.createElement('thead',null,
+                  React.createElement('tr',{className:'bg-slate-50 text-slate-700 text-xs'},
+                    React.createElement('th',{className:'px-4 py-2 text-left'},'Metric'),
+                    React.createElement('th',{className:'px-4 py-2 text-left'},'Period'),
+                    React.createElement('th',{className:'px-4 py-2 text-left'},'Target')
+                  )
+                ),
+                React.createElement('tbody',null,
+                  keys.map(k=> React.createElement('tr',{key:k,className:'border-t'},
+                    React.createElement('td',{className:'px-4 py-2'}, k),
+                    React.createElement('td',{className:'px-4 py-2'}, period),
+                    React.createElement('td',{className:'px-4 py-2'}, String(period==='Weekly'? (goalsMap[k]?.week?.global||0) : (goalsMap[k]?.month?.global||0)))
+                  ))
+                )
+              )
+            ) : React.createElement('div',{className:'text-sm text-slate-500'},'No goals found for the current month.')
+        )
+      );
+    }
+
+    function Heat3D(){
+      const rows = useSelector(s=> s.analytics.data?.rows||[]);
+      const [mode, setMode] = useState('checking'); // '3d' | '2d' | 'html' | 'checking'
+      useEffect(()=>{
+        const el = document.getElementById('an_heat3d');
+        if (!el){ setMode('html'); return; }
+        // Build grid data: day(0-6) × hour(0-23)
+        const grid = Array.from({length:7},()=> Array.from({length:24},()=>0));
+        rows.forEach(r=>{ const d=new Date(r.date||Date.now()); const day=d.getDay(); const hour=d.getHours(); const count=(r.callsMade||0)+(r.emailsSent||0)+(r.linkedinMessages||0)+(r.vidyardVideos||0); grid[day][hour]+= count>0?count : ((r.meetingsBooked||r.pipelineGenerated||r.revenueClosed)?1:0); });
+        const data=[]; for (let d=0; d<7; d++){ for (let h=0; h<24; h++){ data.push([d,h,grid[d][h]]); } }
+        const max = Math.max(1, data.reduce((m,[_d,_h,v])=> Math.max(m,v),0));
+        // Helper to test WebGL
+        function webglAvailable(){ try{ const c=document.createElement('canvas'); return !!(c.getContext('webgl')||c.getContext('experimental-webgl')); }catch{ return false; } }
+        // If echarts missing, render a simple HTML grid fallback
+        if (!window.echarts){
+          setMode('html');
+          const hours = Array.from({length:24},(_,i)=> i);
+          const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+          const maxv = max;
+          el.innerHTML = '<div class="text-xs text-slate-500 mb-2">Charts unavailable — rendering HTML fallback.</div>' +
+            '<div class="overflow-auto"><table class="text-xs border-collapse"><thead><tr><th class="px-2 py-1 border">Day/Hour</th>'+hours.map(h=>`<th class="px-1 py-1 border text-center">${h}</th>`).join('')+`</tr></thead><tbody>`+
+            days.map((dn,di)=> `<tr><td class="px-2 py-1 border font-medium">${dn}</td>` + hours.map((h)=>{
+              const v = grid[di][h]; const pct = maxv>0? (v/maxv):0; const col = `rgba(16,185,129,${0.1+0.7*pct})`;
+              return `<td class="w-6 h-6 border text-center" style="background:${col}">${v||''}</td>`;
+            }).join('') + '</tr>').join('') + '</tbody></table></div>';
+          return;
+        }
+        let chart=null;
+        try {
+          chart = echarts.init(el);
+          if (webglAvailable()){
+            // 3D bar heatmap
+            setMode('3d');
+            chart.setOption({ tooltip:{}, visualMap:{ max, inRange:{ color:['#083344','#065f46','#10b981','#a7f3d0'] } }, xAxis3D:{ type:'category', data:['Sun','Mon','Tue','Wed','Thu','Fri','Sat']}, yAxis3D:{ type:'category', data:Array.from({length:24},(_,i)=> String(i))}, zAxis3D:{ type:'value' }, grid3D:{ boxDepth:60, boxWidth:110, light:{ main:{ intensity:1.2 }, ambient:{ intensity:0.5 } } }, series:[{ type:'bar3D', shading:'lambert', data: data.map(item=>({ value:item })), barSize:6 }] });
+          } else {
+            // 2D heatmap fallback
+            setMode('2d');
+            const option = { tooltip:{}, grid:{ left:50, bottom:40, right:20, top:10 }, xAxis:{ type:'category', data:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] }, yAxis:{ type:'category', data: Array.from({length:24},(_,i)=> String(i)) }, visualMap:{ min:0, max, orient:'horizontal', left:'center', bottom:0 }, series:[{ name:'Volume', type:'heatmap', data: data.map(([d,h,v])=> [d, h, v]), emphasis:{ itemStyle:{ shadowBlur:10, shadowColor:'rgba(0,0,0,0.3)' } } ] };
+            chart.setOption(option);
+          }
+        } catch {
+          // As a last resort, render HTML grid
+          try { chart && chart.dispose && chart.dispose(); } catch{}
+          setMode('html');
+          const hours = Array.from({length:24},(_,i)=> i);
+          const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+          const maxv = max;
+          el.innerHTML = '<div class="text-xs text-slate-500 mb-2">Charts unavailable — rendering HTML fallback.</div>' +
+            '<div class="overflow-auto"><table class="text-xs border-collapse"><thead><tr><th class="px-2 py-1 border">Day/Hour</th>'+hours.map(h=>`<th class="px-1 py-1 border text-center">${h}</th>`).join('')+`</tr></thead><tbody>`+
+            days.map((dn,di)=> `<tr><td class="px-2 py-1 border font-medium">${dn}</td>` + hours.map((h)=>{
+              const v = grid[di][h]; const pct = maxv>0? (v/maxv):0; const col = `rgba(16,185,129,${0.1+0.7*pct})`;
+              return `<td class="w-6 h-6 border text-center" style="background:${col}">${v||''}</td>`;
+            }).join('') + '</tr>').join('') + '</tbody></table></div>';
+        }
+        return ()=>{ try{ chart && chart.dispose && chart.dispose(); }catch{} };
+      }, [rows]);
+      const chip = mode==='3d' ? '3D' : mode==='2d' ? '2D Fallback' : mode==='html' ? 'HTML Fallback' : '…';
+      return (
+        React.createElement('section',{className:'card p-4'},
+          React.createElement('div',{className:'flex items-center justify-between mb-2'},
+            React.createElement('h3',{className:'font-semibold'},'Activity Heatmap'),
+            React.createElement('span',{className:'text-xs text-slate-500 px-2 py-0.5 rounded border'}, chip)
+          ),
+          React.createElement('div',{id:'an_heat3d', style:{height:'360px'}})
+        )
+      );
+    }
+
+    function DataTable(){
+      const rows = useSelector(s=> s.analytics.data?.rows||[]);
+      const [sort, setSort] = useState({ key:'score', dir:'desc' });
+      const table = useMemo(()=>{
+        const list = rows.map(r=>{
+          const abm = r.generalAbmCampaigns+r.dormantAbmCampaigns+r.crossSellAbmCampaigns+r.upSellAbmCampaigns;
+          const totalA = totalActivitiesOf(r);
+          const score = scoreOf(r);
+          const weekKey = `${r.date.getUTCFullYear()}-W${String(r.weekNumber||isoWeekNumber(r.date)).padStart(2,'0')}`;
+          return { user: r.userName||r.userId, week: weekKey, calls:r.callsMade, emails:r.emailsSent, linkedin:r.linkedinMessages, vidyard:r.vidyardVideos, abm, meetings:r.meetingsBooked, opps:r.opportunitiesGenerated, pipeline:r.pipelineGenerated, revenue:r.revenueClosed, totalA, score };
+        });
+        const dir = sort.dir==='asc'?1:-1;
+        list.sort((a,b)=> (a[sort.key]>b[sort.key]?dir:(a[sort.key]<b[sort.key]?-dir:0)) );
+        return list;
+      }, [rows, sort.key, sort.dir]);
+
+      function th(label, key){ return React.createElement('th', { className:'px-4 py-2 text-left cursor-pointer', onClick:()=> setSort(prev=> ({ key, dir: prev.key===key && prev.dir==='asc' ? 'desc':'asc' })) }, label, ' ', sort.key===key? (sort.dir==='asc'?'▲':'▼'):'' ); }
+
+      return (
+        React.createElement('div', { className:'card p-4' },
+          React.createElement('div', { className:'mb-2 font-semibold' }, 'Raw Data (submitted entries)'),
+          React.createElement('div', { className:'overflow-x-auto' },
+            React.createElement('table', { className:'min-w-full text-sm' },
+              React.createElement('thead', null,
+                React.createElement('tr', { className:'bg-slate-50 text-slate-700 text-xs' },
+                  th('User','user'), th('Week','week'), th('Calls','calls'), th('Emails','emails'), th('LinkedIn','linkedin'), th('Vidyard','vidyard'), th('ABM','abm'), th('Meetings','meetings'), th('Opps','opps'), th('Pipeline','pipeline'), th('Revenue','revenue'), th('Total','totalA'), th('Score','score')
+                )
+              ),
+              React.createElement('tbody', null,
+                table.map((r,i)=> React.createElement('tr', { key:i, className:'border-t' },
+                  React.createElement('td', { className:'px-4 py-2' }, r.user),
+                  React.createElement('td', { className:'px-4 py-2' }, r.week),
+                  React.createElement('td', { className:'px-4 py-2' }, r.calls),
+                  React.createElement('td', { className:'px-4 py-2' }, r.emails),
+                  React.createElement('td', { className:'px-4 py-2' }, r.linkedin),
+                  React.createElement('td', { className:'px-4 py-2' }, r.vidyard),
+                  React.createElement('td', { className:'px-4 py-2' }, r.abm),
+                  React.createElement('td', { className:'px-4 py-2' }, r.meetings),
+                  React.createElement('td', { className:'px-4 py-2' }, r.opps),
+                  React.createElement('td', { className:'px-4 py-2' }, `$${(r.pipeline/1000).toFixed(1)}K`),
+                  React.createElement('td', { className:'px-4 py-2' }, `$${(r.revenue/1000).toFixed(1)}K`),
+                  React.createElement('td', { className:'px-4 py-2' }, r.totalA),
+                  React.createElement('td', { className:'px-4 py-2 font-semibold' }, r.score.toFixed(1))
+                ))
+              )
+            )
+          )
+        )
+      );
+    }
+
+    function FailureCard(){
+      const dispatch = useDispatch();
+      const filters = useSelector(s=> s.analytics.filters);
+      const lastError = useSelector(s=> s.analytics.lastError);
+      const [diag, setDiag] = useState({ base:'(checking…)', users:'—', activities:'—' });
+      async function retry(){ dispatch(analyticsSlice.actions.invalidate()); dispatch(fetchAnalytics(store.getState().analytics.filters)); }
+      async function probe(){ try{ await resolveApiBase(); const base = API_BASE; let users='fail', acts='fail'; try{ const r=await fetchWithTimeout(normalizePath('tables/users?limit=1'),{method:'GET',cache:'no-store'},8000); users = r.ok? 'ok' : (r.status+''||'fail'); }catch(e){ users = 'err'; } try{ const r=await fetchWithTimeout(normalizePath('tables/activities?limit=1'),{method:'GET',cache:'no-store'},8000); acts = r.ok? 'ok' : (r.status+''||'fail'); }catch(e){ acts='err'; } setDiag({ base, users, activities: acts }); }catch{ setDiag({ base:'(error)', users:'err', activities:'err' }); } }
+      function useCache(){ try{ const c=JSON.parse(localStorage.getItem('analytics_cache')||'null'); if (c && c.data){ dispatch(analyticsSlice.actions.hydrate(c.data)); showToast('Loaded cached analytics','success'); } else { showToast('No cached analytics found','error'); } }catch{ showToast('Failed to read cache','error'); } }
+      function clearCache(){ try{ localStorage.removeItem('analytics_cache'); showToast('Cleared analytics cache','success'); }catch{} }
+      function logout(){ try{ localStorage.removeItem('ascm_session'); }catch{} window.location.replace('index.html'); }
+      return (
+        React.createElement('div', { className:'card p-5 border border-amber-300 bg-amber-50 text-amber-900' },
+          React.createElement('div', { className:'flex items-start justify-between gap-3' },
+            React.createElement('div', null,
+              React.createElement('div',{className:'font-bold'}, 'Analytics temporarily unavailable'),
+              React.createElement('div',{className:'text-sm mt-1'}, 'We could not reach the data API. This can happen behind certain firewalls or when the site is first published. Use the tools below to recover quickly.'),
+              lastError ? React.createElement('div',{className:'text-xs mt-2'}, 'Last error: ', String(lastError)) : null
+            ),
+            React.createElement('div', { className:'flex items-center gap-2' },
+              React.createElement('button',{ className:'btn-outline px-3 py-2 rounded-md text-sm', onClick: retry }, 'Retry'),
+              React.createElement('button',{ className:'btn-outline px-3 py-2 rounded-md text-sm', onClick: probe }, 'Run Diagnostics'),
+              React.createElement('button',{ className:'btn-outline px-3 py-2 rounded-md text-sm', onClick: useCache }, 'Use Cached Data'),
+              React.createElement('button',{ className:'btn-outline px-3 py-2 rounded-md text-sm', onClick: clearCache }, 'Clear Cache'),
+              React.createElement('button',{ className:'btn-primary px-3 py-2 rounded-md text-sm bg-slate-800 text-white', onClick: logout }, 'Logout')
+            )
+          ),
+          React.createElement('div', { className:'mt-3 text-xs' },
+            React.createElement('div', null, 'API base: ', React.createElement('span',{className:'mono'}, diag.base)),
+            React.createElement('div', null, 'Probe users: ', React.createElement('span',{className:'mono'}, diag.users), ' · activities: ', React.createElement('span',{className:'mono'}, diag.activities)),
+            React.createElement('div', { className:'mt-1 text-slate-700' }, 'Tip: If a CDN/WAF is injecting an HTML challenge, the app will auto-retry after a warm-up GET. Keeping this tab open usually recovers within ~15–30s.')
+          )
+        )
+      );
+    }
+
+    function GoalBanner(){
+      const d = useSelector(s=> s.analytics.data);
+      if (!d) return null;
+      const ag = d.aggregates; const goal = d.weeklyGoal||50;
+      if (ag.totalActivities >= goal) return null;
+      return (
+        React.createElement('div', { className:'mb-4 bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg flex items-start gap-3' },
+          React.createElement('i', { className:'fa-solid fa-triangle-exclamation mt-0.5' }),
+          React.createElement('div', null,
+            React.createElement('div', { className:'font-semibold text-sm' }, 'Below goal'),
+            React.createElement('div', { className:'text-sm' }, `Total activities ${ag.totalActivities} of goal ${goal}. Try increasing outreach to meet weekly targets.`)
+          )
+        )
+      );
+    }
+
+    function AnalyticsApp(){
+      const dispatch = useDispatch();
+      const status = useSelector(s=> s.analytics.status);
+      const filters = useSelector(s=> s.analytics.filters);
+      const cacheTs = useSelector(s=> s.analytics.cacheTs);
+      const FIVE_MIN = 5*60*1000;
+      useEffect(()=>{
+        // initial load with role gating (non-admin scoped to self)
+        const sess=getSession(); const isAdmin=(sess?.role||'').toLowerCase()==='admin';
+        const baseFilters = { ...filters };
+        if (!isAdmin && !baseFilters.userId) baseFilters.userId = String(sess?.id||'');
+        const stale = !cacheTs || (Date.now()-cacheTs>FIVE_MIN);
+        if (stale) { dispatch(analyticsSlice.actions.setFilters(baseFilters)); dispatch(fetchAnalytics(baseFilters)); }
+
+        function refreshScoped(eventUserId){
+          try {
+            const f = store.getState().analytics.filters || {};
+            const target = f.userId || '';
+            if (!target || String(target)===String(eventUserId||'')){
+              dispatch(analyticsSlice.actions.invalidate());
+              dispatch(fetchAnalytics(f));
+              showToast('Analytics updated','info');
+              return true;
+            }
+          } catch{}
+          return false;
+        }
+
+        // Cross-tab storage event (no userId info) → refresh only when viewing All Users
+        function onStorage(e){ if (e.key==='ascm_activities_updated'){ const target=(store.getState().analytics.filters||{}).userId||''; if (!target){ dispatch(analyticsSlice.actions.invalidate()); dispatch(fetchAnalytics(store.getState().analytics.filters)); showToast('Analytics updated','info'); } } if (e.key==='ascm_goals_updated'){ dispatch(analyticsSlice.actions.invalidate()); dispatch(fetchAnalytics(store.getState().analytics.filters)); showToast('Goals updated. Refreshing analytics…','info'); } }
+        window.addEventListener('storage', onStorage);
+
+        // BroadcastChannel with userId-scoped updates
+        try {
+          if (!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync');
+          window._ascmChan.onmessage = (e)=>{
+            try {
+              const d = e?.data||{};
+              if (d.type==='activities_updated'){ refreshScoped(d.userId); }
+              if (d.type==='goals_updated' || d.type==='goals_reset'){ dispatch(analyticsSlice.actions.invalidate()); dispatch(fetchAnalytics(store.getState().analytics.filters)); showToast('Goals updated. Refreshing analytics…','info'); }
+            } catch{}
+          };
+        } catch{}
+
+        // Optional SSE/WS hooks for push updates (urls set in localStorage)
+        let es=null, ws=null, wsTimer=null;
+        function connectSSE(){
+          try {
+            const url = localStorage.getItem('ascm_sse_activities_url');
+            if (!url) return;
+            es = new EventSource(url);
+            es.onmessage = (ev)=>{ try { const m = JSON.parse(ev.data||'{}'); if (m && (m.type==='activities_updated' || m.event==='activities_updated')) refreshScoped(m.userId||m.user_id); if (m && (m.type==='goals_updated' || m.event==='goals_updated')) { dispatch(analyticsSlice.actions.invalidate()); dispatch(fetchAnalytics(store.getState().analytics.filters)); showToast('Goals updated. Refreshing analytics…','info'); } } catch { /* ignore */ } };
+            es.onerror = ()=>{ try { es.close(); } catch{}; es=null; };
+          } catch{}
+        }
+        function connectWS(){
+          try {
+            const url = localStorage.getItem('ascm_ws_activities_url');
+            if (!url) return;
+            ws = new WebSocket(url);
+            ws.onmessage = (ev)=>{ try { const m = JSON.parse(ev.data||'{}'); if (m && (m.type==='activities_updated' || m.event==='activities_updated')) refreshScoped(m.userId||m.user_id); if (m && (m.type==='goals_updated' || m.event==='goals_updated')) { dispatch(analyticsSlice.actions.invalidate()); dispatch(fetchAnalytics(store.getState().analytics.filters)); showToast('Goals updated. Refreshing analytics…','info'); } } catch { /* ignore */ } };
+            ws.onclose = ()=>{ ws=null; if (!wsTimer) wsTimer = setTimeout(()=>{ wsTimer=null; connectWS(); }, 3000); };
+            ws.onerror = ()=>{ try{ ws.close(); }catch{} };
+          } catch{}
+        }
+        connectSSE();
+        connectWS();
+
+        return ()=> { window.removeEventListener('storage', onStorage); try{ if(es) es.close(); }catch{}; try{ if(ws) ws.close(); }catch{}; if (wsTimer) clearTimeout(wsTimer); };
+      }, []);
+
+      return (
+        React.createElement('div', { className:'space-y-4' },
+          React.createElement(Filters, null),
+          status==='failed' && !store.getState().analytics.data ? React.createElement(FailureCard, null) : null,
+          React.createElement(GoalBanner, null),
+          React.createElement(WeeklyProgress, null),
+          status==='loading' && !store.getState().analytics.data ? React.createElement('div',{className:'card p-6 text-center text-slate-600'}, 'Fetching analytics data…') : null,
+          React.createElement(KPIs, null),
+          React.createElement('div', { className:'grid-auto' },
+            React.createElement(Donut, null),
+            React.createElement(WeeklyTrend, null)
+          ),
+          React.createElement('div', { className:'grid-auto' },
+            React.createElement(GoalsOverview, null),
+            React.createElement(Heatmap, null)
+          ),
+          React.createElement(Heat3D, null),
+          React.createElement(ScoreLine, null),
+          React.createElement(DataTable, null)
+        )
+      );
+    }
+
+    // Session guard
+    (function(){ const s=getSession(); if (!s) { window.location.replace('index.html'); } })();
+    // Bootstrap with cache if present when loading takes long
+    (function bootstrapFromCache(){ try{ const c=JSON.parse(localStorage.getItem('analytics_cache')||'null'); if (c && Date.now()-c.at < 10*60*1000){ const data=c.data; const pre=document.createElement('div'); pre.className='ascm-toast info'; pre.innerHTML='<span>Showing cached analytics (will refresh when online).</span><button class="close" aria-label="Dismiss">×</button>'; document.body.appendChild(pre); setTimeout(()=> pre.classList.add('show'), 10); setTimeout(()=> pre.classList.remove('show'), 5000); } }catch{} })();
+
+    ReactDOM.createRoot(document.getElementById('root')).render(
+        React.createElement(Provider, { store }, React.createElement(AnalyticsApp, null))
+      );
+    }
+  </script>
+</body>
+</html>

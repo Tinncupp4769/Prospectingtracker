@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Harness — Multi-user Role Streaming</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+    .frame { border:1px solid #E5E7EB; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,.05); }
+    .log { height: 140px; overflow: auto; background: #0b1020; color: #c7d2fe; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; padding: 8px 10px; border-radius: 8px; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <header class="brand-gradient text-white">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div>
+        <h1 class="text-base md:text-lg font-bold">Test Harness — Admin switches users while AE/AM stream activities</h1>
+        <p class="text-xs text-white/80">Validates real-time dashboard sync (storage + BroadcastChannel) and role-locked views</p>
+      </div>
+      <a id="home-button" href="app.html" class="btn-outline rounded-md px-3 py-2 text-sm">Home</a>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6 space-y-6">
+    <section class="card rounded-xl p-4">
+      <h2 class="font-semibold mb-3">1) Controls</h2>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="space-y-3">
+          <div class="flex items-center gap-2">
+            <label class="w-40 text-sm">Set session for Analytics:</label>
+            <select id="sessAnalytics" class="input rounded-md px-3 py-2 text-sm">
+              <option value='{"role":"admin","email":"admin@ascm.org","name":"Admin","id":"admin-1"}'>Admin</option>
+              <option value='{"role":"ae","email":"ae@ascm.org","name":"AE User","id":"ae-1"}'>AE</option>
+              <option value='{"role":"am","email":"am@ascm.org","name":"AM User","id":"am-1"}'>AM</option>
+            </select>
+            <button id="applySessAnalytics" class="btn-primary rounded-md px-3 py-2 text-sm">Apply</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="w-40 text-sm">Set session for Entry:</label>
+            <select id="sessEntry" class="input rounded-md px-3 py-2 text-sm">
+              <option value='{"role":"ae","email":"ae@ascm.org","name":"AE User","id":"ae-1"}'>AE</option>
+              <option value='{"role":"am","email":"am@ascm.org","name":"AM User","id":"am-1"}'>AM</option>
+              <option value='{"role":"admin","email":"admin@ascm.org","name":"Admin","id":"admin-1"}'>Admin</option>
+            </select>
+            <button id="applySessEntry" class="btn-primary rounded-md px-3 py-2 text-sm">Apply</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="w-40 text-sm">Entry Console:</label>
+            <select id="entryTarget" class="input rounded-md px-3 py-2 text-sm">
+              <option value="activity-entry-ae.html">AE Console</option>
+              <option value="activity-entry-am.html">AM Console</option>
+            </select>
+            <button id="loadEntry" class="btn-outline rounded-md px-3 py-2 text-sm">Load</button>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <div class="flex items-center gap-2">
+            <label class="w-40 text-sm">Stream activities:</label>
+            <select id="streamRole" class="input rounded-md px-3 py-2 text-sm">
+              <option value="ae">AE</option>
+              <option value="am">AM</option>
+              <option value="both">Both</option>
+            </select>
+            <button id="startStream" class="btn-accent rounded-md px-3 py-2 text-sm">Start</button>
+            <button id="stopStream" class="btn-outline rounded-md px-3 py-2 text-sm">Stop</button>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="pulse" class="btn-outline rounded-md px-3 py-2 text-sm">Send Sync Pulse</button>
+            <span class="text-xs text-slate-600">(Triggers dashboards via storage + BroadcastChannel)</span>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4">
+        <div id="log" class="log"></div>
+      </div>
+    </section>
+
+    <section class="grid md:grid-cols-2 gap-4">
+      <div>
+        <h3 class="font-semibold mb-2">Analytics (Admin can switch AE/AM)</h3>
+        <iframe id="frameAnalytics" class="frame w-full h-[560px] bg-white" src="analytics-dashboard.html"></iframe>
+      </div>
+      <div>
+        <h3 class="font-semibold mb-2">Entry Console</h3>
+        <iframe id="frameEntry" class="frame w-full h-[560px] bg-white" src="activity-entry-ae.html"></iframe>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const logEl = document.getElementById('log');
+    function log(msg){ const t = new Date().toLocaleTimeString(); logEl.textContent += `\n[${t}] ${msg}`; logEl.scrollTop = logEl.scrollHeight; }
+
+    function getFrameWin(id){ return document.getElementById(id)?.contentWindow; }
+
+    function setSessionInFrame(frameId, session){
+      try {
+        const w = getFrameWin(frameId); if (!w) return;
+        w.localStorage.setItem('ascm_session', JSON.stringify(session));
+        log(`Session set in ${frameId}: ${session.role}`);
+        // Reload to apply
+        w.location.reload();
+      } catch(e){ log(`Failed to set session in ${frameId}: ${e.message}`); }
+    }
+
+    document.getElementById('applySessAnalytics').addEventListener('click', () => {
+      const s = JSON.parse(document.getElementById('sessAnalytics').value);
+      setSessionInFrame('frameAnalytics', s);
+    });
+    document.getElementById('applySessEntry').addEventListener('click', () => {
+      const s = JSON.parse(document.getElementById('sessEntry').value);
+      setSessionInFrame('frameEntry', s);
+    });
+    document.getElementById('loadEntry').addEventListener('click', () => {
+      const url = document.getElementById('entryTarget').value;
+      document.getElementById('frameEntry').src = url;
+      log(`Loaded ${url} in entry frame`);
+    });
+
+    let streamTimer = null;
+    function broadcastPulse(){
+      try { localStorage.setItem('ascm_activities_updated', String(Date.now())); } catch{}
+      try { if (!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.postMessage({ type:'activities_updated', at: Date.now() }); } catch{}
+    }
+
+    async function postActivity(role){
+      const sess = { id: role==='am'?'am-1':'ae-1', name: role.toUpperCase()+" User" };
+      const payload = role==='am' ? {
+        role, userId: sess.id, userName: sess.name,
+        week: '2025-W38', category: ['up-sell','cross-sell','dormant'][Math.floor(Math.random()*3)],
+        callsMade: Math.floor(Math.random()*5), emailsSent: Math.floor(Math.random()*8),
+        meetingsBooked: Math.floor(Math.random()*2), successfulContacts: Math.floor(Math.random()*3),
+        pipelineGenerated: Math.floor(Math.random()*5000)*100, revenueClosed: 0,
+        date: Date.now(), createdAt: Date.now()
+      } : {
+        role, userId: sess.id, userName: sess.name,
+        week: '2025-W38',
+        callsMade: Math.floor(Math.random()*10), emailsSent: Math.floor(Math.random()*12),
+        linkedinMessages: Math.floor(Math.random()*6), meetingsBooked: Math.floor(Math.random()*3),
+        meetingsConducted: Math.floor(Math.random()*2), successfulContacts: Math.floor(Math.random()*4),
+        opportunitiesGenerated: Math.floor(Math.random()*2), referralsGenerated: Math.floor(Math.random()*1),
+        pipelineGenerated: Math.floor(Math.random()*8000)*100, revenueClosed: 0,
+        date: Date.now(), createdAt: Date.now()
+      };
+      try {
+        const res = await fetch('tables/activities', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload), credentials:'same-origin' });
+        if (!res.ok) { const t = await res.text(); throw new Error(res.status+" "+t.slice(0,120)); }
+        const obj = await res.json();
+        log(`Posted ${role} activity: ${obj.id||'(no id)'}`);
+        broadcastPulse();
+      } catch(e){ log(`POST failed (${role}): ${e.message}`); }
+    }
+
+    document.getElementById('startStream').addEventListener('click', () => {
+      const mode = document.getElementById('streamRole').value;
+      if (streamTimer) { clearInterval(streamTimer); streamTimer=null; }
+      streamTimer = setInterval(() => {
+        if (mode==='both') { postActivity('ae'); postActivity('am'); }
+        else { postActivity(mode); }
+      }, 2000);
+      log(`Streaming started (${mode}) every 2s…`);
+    });
+    document.getElementById('stopStream').addEventListener('click', () => {
+      if (streamTimer) clearInterval(streamTimer);
+      streamTimer = null;
+      log('Streaming stopped');
+    });
+
+    document.getElementById('pulse').addEventListener('click', () => { broadcastPulse(); log('Sync pulse sent'); });
+
+    // Default sessions
+    try {
+      setTimeout(()=>{
+        setSessionInFrame('frameAnalytics', { role:'admin', email:'admin@ascm.org', name:'Admin', id:'admin-1' });
+        setSessionInFrame('frameEntry', { role:'ae', email:'ae@ascm.org', name:'AE User', id:'ae-1' });
+      }, 700);
+    } catch{}
+  </script>
+</body>
+</html>

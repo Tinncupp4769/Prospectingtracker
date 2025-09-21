@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Users Console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+    .card { background:#fff; border:1px solid var(--ascm-border); border-radius:16px; box-shadow:0 10px 24px rgba(0,0,0,.06); }
+    .chip { display:inline-flex; align-items:center; border-radius:999px; font-size:11px; padding:2px 8px; }
+    .avatar-option { border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; cursor:pointer; }
+    .avatar-option.selected { outline:2px solid #006B36; }
+    .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <header class="brand-gradient text-white sticky top-0 z-30" id="header">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-white/10 grid place-items-center"><i class="fa-solid fa-user-gear"></i></div>
+        <div>
+          <h1 class="text-base font-bold">Users Console</h1>
+          <p class="text-xs text-white/80">Admin: manage users, roles and access</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a id="home-button" href="app.html" class="btn-outline px-3 py-2 rounded-md text-sm" data-hide-embed>Home</a>
+        <span id="apiStatus" class="px-2 py-1 text-xs rounded border bg-white/10 text-white border-white/20" title="Data source status">Checking…</span>
+        <button id="reloadBtn" class="btn-outline px-3 py-2 rounded-md text-sm">Reload</button>
+        <a href="admin-weights.html" class="btn-outline px-3 py-2 rounded-md text-sm" title="Leaderboard Weights"><i class="fa-solid fa-sliders mr-2"></i>Weights Console</a>
+        <a href="avatar-management.html" class="btn-outline px-3 py-2 rounded-md text-sm" title="Manage my avatar"><i class="fa-solid fa-user-circle mr-2"></i>My Avatar</a>
+        <button id="addUserBtn" class="btn-primary px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-user-plus mr-2"></i>Add User</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6">
+    <!-- Filters -->
+    <section class="grid gap-3 md:grid-cols-2 lg:grid-cols-4 mb-4">
+      <div class="relative">
+        <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400"></i>
+        <input id="searchInput" type="text" placeholder="Search by name or email" class="input w-full rounded-md pl-9 py-2">
+      </div>
+      <select id="filterRole" class="input rounded-md py-2">
+        <option value="">All Roles</option>
+        <option value="admin">Admin</option>
+        <option value="am">Account Manager</option>
+        <option value="ae">Account Executive</option>
+      </select>
+      <select id="filterStatus" class="input rounded-md py-2">
+        <option value="">All Statuses</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+      <div class="flex items-center gap-2">
+        <button id="bulkActivate" class="btn-accent px-3 py-2 rounded-md text-sm disabled:opacity-50" disabled><i class="fa-solid fa-toggle-on mr-2"></i>Activate</button>
+        <button id="bulkDeactivate" class="btn-outline px-3 py-2 rounded-md text-sm disabled:opacity-50" disabled><i class="fa-solid fa-toggle-off mr-2"></i>Deactivate</button>
+        <button id="bulkDelete" class="btn-outline px-3 py-2 rounded-md text-sm text-red-600 border-red-200 disabled:opacity-50" disabled><i class="fa-solid fa-trash mr-2"></i>Delete</button>
+      </div>
+    </section>
+
+    <!-- Users Table -->
+    <section class="overflow-x-auto bg-white border rounded-xl">
+      <table class="min-w-full">
+        <thead class="bg-slate-50 text-slate-700 text-xs">
+          <tr>
+            <th class="px-4 py-3 text-left w-10"><input id="selectAll" type="checkbox"></th>
+            <th class="px-4 py-3 text-left cursor-pointer" data-sort="name">Name <i class="fa-solid fa-sort text-slate-400"></i></th>
+            <th class="px-4 py-3 text-left cursor-pointer" data-sort="role">Role</th>
+            <th class="px-4 py-3 text-left">Email</th>
+            <th class="px-4 py-3 text-left">Active</th>
+            <th class="px-4 py-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="usersTbody" class="text-sm"></tbody>
+      </table>
+      <div id="emptyState" class="hidden p-8 text-center text-slate-500">No users found.</div>
+    </section>
+
+    <!-- Pagination -->
+    <div class="flex items-center justify-between mt-4">
+      <div class="text-sm text-slate-600">Showing <span id="rangeLabel">0–0</span> of <span id="totalLabel">0</span></div>
+      <div class="flex gap-2">
+        <button id="prevPage" class="btn-outline px-3 py-2 rounded-md text-sm">Prev</button>
+        <button id="nextPage" class="btn-outline px-3 py-2 rounded-md text-sm">Next</button>
+      </div>
+    </div>
+
+    <!-- Diagnostics -->
+    <section class="card p-4 mt-6">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="font-semibold">Diagnostics</h3>
+        <button id="runDiag" class="btn-outline px-3 py-1.5 rounded-md text-sm">Run</button>
+      </div>
+      <pre id="diagOut" class="text-xs bg-slate-50 p-3 rounded border max-h-64 overflow-y-auto">Ready.</pre>
+    </section>
+  </main>
+  <script>
+    (function(){ try{ const url=new URL(location.href); if (url.searchParams.get('embed')==='1'){ var h=document.getElementById('header'); if(h) h.style.display='none'; var hb=document.getElementById('home-button'); if(hb) hb.style.display='none'; } }catch{} })();
+  </script>
+
+  <!-- Add/Edit Modal -->
+  <div id="userModal" class="fixed inset-0 bg-black/40 hidden items-center justify-center p-4">
+    <div class="card rounded-xl w-full max-w-2xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 id="modalTitle" class="text-lg font-semibold">Add User</h3>
+        <button id="closeModal" class="text-slate-500 hover:text-slate-900"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div id="modalAlert" class="hidden rounded-md p-3 text-sm mb-3"></div>
+      <form id="userForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <input type="hidden" id="userId">
+        <div>
+          <label class="block text-sm font-medium">Full Name</label>
+          <input id="fName" type="text" class="input w-full rounded-md px-3 py-2" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Email</label>
+          <input id="fEmail" type="email" class="input w-full rounded-md px-3 py-2" required>
+        </div>
+        <div>
+          <label class="block text-sm font-medium">Role</label>
+          <select id="fRole" class="input w-full rounded-md px-3 py-2" required>
+            <option value="ae">Account Executive</option>
+            <option value="am">Account Manager</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="flex items-center gap-2 mt-7">
+          <input id="fActive" type="checkbox" class="rounded border-slate-300" checked>
+          <label for="fActive" class="text-sm">Active</label>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium">Avatar URL</label>
+          <div class="flex gap-2">
+            <input id="fAvatar" type="url" class="input w-full rounded-md px-3 py-2" placeholder="https://...">
+            <button type="button" id="genAvatars" class="btn-outline rounded-md px-3">Suggest</button>
+          </div>
+          <div id="avatarGrid" class="mt-3 grid grid-cols-6 gap-2"></div>
+          <p class="text-xs text-slate-500 mt-1">Tip: Click on an avatar to select it. Images from Boring Avatars CDN.</p>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium">Temporary Password</label>
+          <div class="flex gap-2">
+            <input id="fTempPassword" type="text" class="input w-full rounded-md px-3 py-2" placeholder="Auto-generate or enter" />
+            <button type="button" id="genPwd" class="btn-outline rounded-md px-3">Generate</button>
+          </div>
+          <p class="text-xs text-slate-500 mt-1">Password will be hashed (SHA-256) client-side before saving.</p>
+        </div>
+        <div class="md:col-span-2 flex justify-between gap-2 mt-2">
+          <div class="text-xs text-slate-500">User will appear across dashboards and tools automatically.</div>
+          <div class="flex gap-2">
+            <button type="button" id="cancelModal" class="btn-outline rounded-md px-4 py-2">Cancel</button>
+            <button type="submit" class="btn-primary rounded-md px-4 py-2">Save</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="ascm_toast" class="ascm-toast info" style="display:none"></div>
+
+  <script>
+    // ===== Admin gate =====
+    function getSession(){ try { return JSON.parse(localStorage.getItem('ascm_session')||'null'); } catch { return null; } }
+    const session = getSession(); if (!session) { window.location.replace('index.html'); throw new Error('No session'); } if ((session.role||'').toLowerCase()!=='admin') { window.location.replace('app.html'); throw new Error('RBAC: admin only'); }
+
+    // ===== Utilities =====
+    let API_BASE = 'tables/'; const API_BASE_CANDIDATES = ['tables/','/tables/'];
+    function normalizePath(p){ if (/^https?:\/\//i.test(p)) return p; if (p.startsWith('tables/')) return API_BASE + p.slice('tables/'.length); if (p.startsWith('/tables/')) return API_BASE + p.slice('/tables/'.length); return p; }
+    async function resolveApiBase(){ for (const base of API_BASE_CANDIDATES){ try{ const r=await fetch(`${base}users?limit=1`, {cache:'no-store', credentials:'same-origin'}); const ct=(r.headers.get('content-type')||'').toLowerCase(); if (r.ok && ct.includes('application/json')) { API_BASE=base; break; } }catch{} } }
+    const sleep=(ms)=> new Promise(r=>setTimeout(r,ms));
+    function looksLikeHtml(res){ const ct=(res.headers?.get?.('content-type')||'').toLowerCase(); return ct.includes('text/html'); }
+    function setApiStatus(mode, note){ const el=document.getElementById('apiStatus'); const base='px-2 py-1 text-xs rounded border '; if (mode==='live'){ el.className=base+'bg-emerald-50 border-emerald-200 text-emerald-700'; el.textContent='Live'; } else if (mode==='cached'){ el.className=base+'bg-blue-50 border-blue-200 text-blue-700'; el.textContent='Cached'; } else if (mode==='offline'){ el.className=base+'bg-red-50 border-red-200 text-red-700'; el.textContent='Offline'; } else { el.className=base+'bg-white/10 text-white border-white/20'; el.textContent= note||'Checking…'; } window._apiStatusMode = mode || 'checking'; }
+    async function apiRequest(method, path, body, tries=7){ let last=''; for (let i=0;i<tries;i++){ let url = normalizePath(path); const sep = url.includes('?') ? '&' : '?'; url = `${url}${sep}cb=${Date.now()}_${i}`; const res = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body: body!=null?JSON.stringify(body):undefined, cache:'no-store', credentials:'same-origin' }); if (res.status===401||res.status===403||looksLikeHtml(res)){ try{ last = await res.text(); }catch{} try{ const wu = normalizePath('tables/users?limit=1'); const wusep = wu.includes('?') ? '&' : '?'; await fetch(`${wu}${wusep}cb=${Date.now()}`, {cache:'no-store', credentials:'same-origin'}); }catch{} await sleep(800*(i+1)); continue; } return res; } throw new Error('API blocked '+last.slice(0,180)); }
+    async function apiJson(method, path, body){ const r = await apiRequest(method, path, body); if (!r.ok){ let t=''; try{t=await r.text();}catch{}; throw new Error(`${method} ${path} -> ${r.status} ${t.slice(0,200)}`); } if (r.status===204) return {}; try{ return await r.json(); }catch{ return {}; } }
+    async function sha256(str){ const enc = new TextEncoder().encode(str); const hash = await crypto.subtle.digest('SHA-256', enc); return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+    function showToast(msg,type){ const el=document.getElementById('ascm_toast'); el.style.display='block'; el.classList.remove('success','error','info','warn'); el.classList.add(type||'info'); el.innerHTML = `<span>${String(msg||'')}</span><button class='close' aria-label='Dismiss'>×</button>`; const btn = el.querySelector('.close'); if (btn) btn.onclick = ()=> el.classList.remove('show'); el.classList.add('show'); clearTimeout(showToast._t); showToast._t=setTimeout(()=>{ el.classList.remove('show'); }, 5000); }
+
+    // ===== Local fallback for blocked POST =====
+    function loadLocalUsers(){ try { return JSON.parse(localStorage.getItem('ascm_local_users')||'[]'); } catch { return []; } }
+    function saveLocalUsers(list){ try { localStorage.setItem('ascm_local_users', JSON.stringify(list)); } catch {} }
+    function upsertLocalUser(u){ const list = loadLocalUsers(); const idx = list.findIndex(x => x.id===u.id || (String(x.email||'').toLowerCase()===String(u.email||'').toLowerCase())); if (idx>=0) list[idx]=u; else list.push(u); saveLocalUsers(list); return u; }
+    function findLocalUserById(id){ return loadLocalUsers().find(x=>x.id===id)||null; }
+    function removeLocalUser(id){ saveLocalUsers(loadLocalUsers().filter(x=>x.id!==id)); }
+    function genLocalId(){ return 'local:'+ Date.now().toString(36) + ':' + Math.random().toString(36).slice(2,8); }
+    function isLocalId(id){ return String(id||'').startsWith('local:'); }
+
+    // Optimistic cache upsert to guarantee immediate UI updates (even if Live GET is stale)
+    function upsertByIdOrEmail(list, u){ const email=(String(u.email||'').toLowerCase()); const uid=String(u.id||''); let idx=list.findIndex(x=> String(x.id||'')===uid ); if (idx<0 && email){ idx=list.findIndex(x=> String(x.email||'').toLowerCase()===email); } if (idx>=0) list[idx] = { ...list[idx], ...u }; else list.push(u); return list; }
+    function optimisticUpsert(u, source){ try {
+        // Update cache used by this page and rest of app
+        let cached=[]; try{ cached = JSON.parse(localStorage.getItem('um_users')||'[]'); if (!Array.isArray(cached)) cached=[]; }catch{}
+        upsertByIdOrEmail(cached, u);
+        localStorage.setItem('um_users', JSON.stringify(cached));
+        localStorage.setItem('users', JSON.stringify(cached));
+        localStorage.setItem('um_users_updated', String(Date.now()));
+        // Stage into local users so fetchUsers() will keep showing it until server returns it
+        const staged = { ...u, _staged: true };
+        upsertLocalUser(staged);
+        // Re-render with current filters; if hidden by filters, reset filters to show it
+        // Show at the top of page 1 (user might otherwise be on a later page)
+        state.page = 1;
+        state.rows = applyFiltersAndSort(cached);
+        renderTable(state.rows);
+        const email = String(u.email||'').toLowerCase();
+        const visible = state.rows.some(x=> String(x.email||'').toLowerCase()===email);
+        if (!visible){
+          state.filters = { role:'', status:'', search:'' };
+          try{ document.getElementById('searchInput').value=''; document.getElementById('filterRole').value=''; document.getElementById('filterStatus').value=''; }catch{}
+          state.page = 1;
+          state.rows = applyFiltersAndSort(cached); renderTable(state.rows);
+          // If still not visible (e.g., due to sort/page), focus the user via search
+          const stillHidden = !state.rows.some(x=> String(x.email||'').toLowerCase()===email);
+          if (stillHidden){
+            state.filters.search = email;
+            try{ document.getElementById('searchInput').value=email; }catch{}
+            state.page = 1;
+            state.rows = applyFiltersAndSort(cached); renderTable(state.rows);
+            showToast('Showing saved user','info');
+          } else {
+            showToast('Filters were reset to show the newly saved user','info');
+          }
+        }
+        try { if (!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.postMessage({ type:'users_updated', at: Date.now(), source: source||'optimistic' }); } catch{}
+      } catch(e){ console.warn('optimisticUpsert failed', e); }
+    }
+
+    // ===== State =====
+    const state = { page:1, limit:10, total:0, sortField:'name', sortDir:'asc', selected:new Set(), filters:{ role:'', status:'', search:'' }, rows:[] };
+    const tbody = document.getElementById('usersTbody'); const emptyState=document.getElementById('emptyState'); const totalLabel=document.getElementById('totalLabel'); const rangeLabel=document.getElementById('rangeLabel'); const selectAll=document.getElementById('selectAll');
+
+    // ===== Avatars =====
+    function buildAvatarUrls(seed){ const s = encodeURIComponent(seed||'user'); const baseColors='006B36,3BB14A,82C341,21C0DB,F3F4F6'; return [
+      `https://source.boringavatars.com/beam/80/${s}?colors=${baseColors}`,
+      `https://source.boringavatars.com/ring/80/${s}?colors=${baseColors}`,
+      `https://source.boringavatars.com/bauhaus/80/${s}?colors=${baseColors}`,
+      `https://source.boringavatars.com/marble/80/${s}?colors=${baseColors}`,
+      `https://source.boringavatars.com/pixel/80/${s}?colors=${baseColors}`,
+      `https://source.boringavatars.com/sunset/80/${s}?colors=${baseColors}`,
+      `https://source.boringavatars.com/beam/80/${s+Math.random().toString(36).slice(2,6)}?colors=${baseColors}`,
+      `https://source.boringavatars.com/ring/80/${s+Math.random().toString(36).slice(2,6)}?colors=${baseColors}`,
+      `https://source.boringavatars.com/bauhaus/80/${s+Math.random().toString(36).slice(2,6)}?colors=${baseColors}`,
+      `https://source.boringavatars.com/marble/80/${s+Math.random().toString(36).slice(2,6)}?colors=${baseColors}`,
+      `https://source.boringavatars.com/pixel/80/${s+Math.random().toString(36).slice(2,6)}?colors=${baseColors}`,
+      `https://source.boringavatars.com/sunset/80/${s+Math.random().toString(36).slice(2,6)}?colors=${baseColors}`
+    ]; }
+    function renderAvatarGrid(seed){ const grid=document.getElementById('avatarGrid'); if (!grid) return; const urls = buildAvatarUrls(seed); grid.innerHTML = urls.map(u=>`<button type="button" class="avatar-option" data-url="${u}"><img src="${u}" alt="avatar" class="w-12 h-12"></button>`).join(''); Array.from(grid.children).forEach(btn=> btn.addEventListener('click', ()=>{ Array.from(grid.children).forEach(x=>x.classList.remove('selected')); btn.classList.add('selected'); document.getElementById('fAvatar').value = btn.dataset.url; showToast('Avatar selected','success'); })); }
+
+    // ===== Fetch logic =====
+    async function fetchAllUsers(pageSize=500){ // Prefer a single fat fetch first (more reliable behind WAF/CDN)
+      try { const fat = await apiJson('GET','tables/users?limit=2000'); if (fat && Array.isArray(fat.data)) return fat.data; } catch(e1){}
+      const all=[]; let page=1, total=0, seen=0, guard=0; const byId=new Set(); const byEmail=new Set();
+      try{
+        do{
+          const j=await apiJson('GET',`tables/users?page=${page}&limit=${pageSize}`);
+          const rows=j.data||[];
+          for(const u of rows){ const id=String(u.id||''); const em=String(u.email||'').toLowerCase(); if (id && !byId.has(id)){ byId.add(id); all.push(u); } else if (em && !byEmail.has(em)){ byEmail.add(em); all.push(u); } }
+          total = j.total || all.length; seen += rows.length; page++; guard++; if (guard>2000) break;
+        } while(seen < total && page < 2000);
+        if (!all.length){ const fat2=await apiJson('GET','tables/users?limit=2000'); return fat2.data||[]; }
+        return all;
+      } catch(e2){ try{ const j=await apiJson('GET','tables/users?limit=2000'); return j.data||[]; } catch(e3){ throw e3; } }
+    }
+
+    function applyFiltersAndSort(rows){ const f=state.filters; let out=[...(rows||[])]; if (f.search){ const q=f.search; out=out.filter(u=> (u.name||'').toLowerCase().includes(q) || (u.email||'').toLowerCase().includes(q)); } if (f.role){ out=out.filter(u=> (u.role||'')===f.role); } if (f.status){ out=out.filter(u=> f.status==='active'? u.is_active!==false : u.is_active===false); } out.sort((a,b)=>{ const fld=state.sortField; const dir=state.sortDir==='asc'?1:-1; const va=(a[fld]||'').toString().toLowerCase(); const vb=(b[fld]||'').toString().toLowerCase(); return va>vb?dir:va<vb?-dir:0; }); return out; }
+
+    function renderTable(rows){ const start=(state.page-1)*state.limit; const pageRows=rows.slice(start, start+state.limit); if (!pageRows.length){ tbody.innerHTML=''; emptyState.classList.remove('hidden'); } else { emptyState.classList.add('hidden'); tbody.innerHTML = pageRows.map(u=>{ const active = u.is_active!==false; const img = (window.Avatars ? Avatars.img2x(u, 32, 'rounded-full') : `<img src="${u.avatar_url||`https://source.boringavatars.com/beam/40/${encodeURIComponent(u.email||u.name||'user')}`}" class="w-8 h-8 rounded-full" alt="${u.name||''}">`); return `<tr class="border-t">
+          <td class="px-4 py-3"><input type="checkbox" data-id="${u.id}" class="rowChk"></td>
+          <td class="px-4 py-3">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8">${img}</div>
+              <div>
+                <div class="font-medium">${u.name||'-'} ${(String(u.id||'').startsWith('local:')||String(u.id||'').startsWith('temp:')||u._staged)?'<span class=\"ml-2 chip bg-blue-50 text-blue-700\">LOCAL</span>':''}</div>
+                <div class="text-xs text-slate-500">${u.email||''}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-4 py-3">${u.role||'-'}</td>
+          <td class="px-4 py-3">${u.email||''}</td>
+          <td class="px-4 py-3">${active?'<span class="chip bg-emerald-50 text-emerald-700">Active</span>':'<span class="chip bg-red-50 text-red-600">Inactive</span>'}</td>
+          <td class="px-4 py-3 text-right">
+            <button class="text-slate-600 hover:text-slate-900 mr-3" data-action="edit" data-id="${u.id}" title="Edit"><i class="fa-solid fa-pen-to-square"></i></button>
+            <button class="text-slate-600 hover:text-slate-900 mr-3" data-action="password" data-id="${u.id}" title="Reset Password"><i class="fa-solid fa-key"></i></button>
+            <button class="${active?'text-red-600':'text-emerald-700'} hover:opacity-80" data-action="toggle" data-id="${u.id}" title="${active?'Deactivate':'Activate'}"><i class="fa-solid ${active?'fa-user-slash':'fa-user-check'}"></i></button>
+            <button class="text-slate-600 hover:text-red-700 ml-3" data-action="delete" data-id="${u.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>`; }).join('');
+        // Wire
+        document.querySelectorAll('.rowChk').forEach(chk=> chk.addEventListener('change', (e)=>{ const id=e.target.dataset.id; e.target.checked? state.selected.add(id) : state.selected.delete(id); updateBulkState(); }));
+        tbody.querySelectorAll('button[data-action]').forEach(btn=> btn.addEventListener('click', onRowAction));
+      }
+      state.total = rows.length; totalLabel.textContent = state.total; const end = Math.min(start + pageRows.length, state.total); rangeLabel.textContent = state.total? `${start+1}–${end}`:'0–0'; selectAll.checked=false; state.selected.clear(); updateBulkState(); }
+
+    function updateBulkState(){ const n=state.selected.size; document.getElementById('bulkActivate').disabled = n===0; document.getElementById('bulkDeactivate').disabled = n===0; document.getElementById('bulkDelete').disabled = n===0; }
+
+    async function fetchUsers(){ try{ let rows = await fetchAllUsers(500); const local = loadLocalUsers(); const serverEmails = new Set(rows.map(u=> String(u.email||'').toLowerCase()));
+      // prune staged/local entries that now exist on server (by email)
+      const prunedLocal = (local||[]).filter(u => !serverEmails.has(String(u.email||'').toLowerCase()));
+      if (prunedLocal.length !== (local||[]).length) saveLocalUsers(prunedLocal);
+      rows = rows.concat(prunedLocal); // merge LOCAL/STAGED that server doesn't have yet
+      rows = rows.filter(u=> !u.deleted);
+      // cache for other pages
+      try { localStorage.setItem('um_users', JSON.stringify(rows)); localStorage.setItem('users', JSON.stringify(rows)); localStorage.setItem('um_users_ts', String(Date.now())); } catch{}
+      setApiStatus('live');
+      state.rows = applyFiltersAndSort(rows); renderTable(state.rows);
+    } catch(e){ console.warn('fetchUsers failed', e); try{ let cached = JSON.parse(localStorage.getItem('um_users')||'[]'); if (!cached.length){ try{ cached = JSON.parse(localStorage.getItem('users')||'[]'); }catch{} }
+        if (cached.length){ setApiStatus('cached'); state.rows = applyFiltersAndSort(cached); renderTable(state.rows); }
+        else { setApiStatus('offline'); renderTable([]); }
+      } catch{ setApiStatus('offline'); renderTable([]); }
+      scheduleAutoRecover(); }
+    }
+
+    function scheduleAutoRecover(){ if (window._umRecoverTimer) return; const attempt = async ()=>{ if (document.hidden) return; if (window._apiStatusMode==='live'){ clearInterval(window._umRecoverTimer); window._umRecoverTimer=null; return; } try{ await fetch(normalizePath('tables/users?limit=1'), {cache:'no-store', credentials:'same-origin'}); await fetchUsers(); setApiStatus('live'); clearInterval(window._umRecoverTimer); window._umRecoverTimer=null; } catch(e){ /* continue */ } }; window._umRecoverTimer=setInterval(attempt, 15000); attempt(); }
+
+    // ===== Row actions =====
+    function onRowAction(e){ const id = e.currentTarget.dataset.id; const action = e.currentTarget.dataset.action; if (action==='edit') return openEdit(id); if (action==='password') return resetPassword(id); if (action==='toggle') return toggleActive(id); if (action==='delete') return removeUser(id); }
+
+    async function resetPassword(id){ const pwd = prompt('Enter a new temporary password (leave empty to auto-generate)'); const np = (pwd && pwd.trim()) ? pwd.trim() : crypto.getRandomValues(new Uint32Array(4)).join('-'); try { if (isLocalId(id)){ const u=findLocalUserById(id)||{}; u.password_hash = await sha256(np); upsertLocalUser(u); } else { await apiJson('PATCH', `tables/users/${id}`, { password_hash: await sha256(np) }); } showToast('Password reset. Share securely.','success'); } catch(err){ console.error(err); showToast('Reset failed','error'); } }
+
+    async function toggleActive(id){ try { if (isLocalId(id)){ const u=findLocalUserById(id)||{}; upsertLocalUser({ ...u, is_active: u.is_active===false }); } else { const cur = await apiJson('GET', `tables/users/${id}`); await apiJson('PATCH', `tables/users/${id}`, { is_active: cur.is_active===false }); } await fetchUsers(); showToast('User status updated','success'); } catch(err){ console.error(err); showToast('Action failed','error'); } }
+
+    async function removeUser(id){ if (!confirm('This will remove the user. Continue?')) return; try{ if (isLocalId(id)) removeLocalUser(id); else await apiJson('DELETE', `tables/users/${id}`); await fetchUsers(); showToast('User deleted','success'); } catch(err){ console.error(err); showToast('Delete failed','error'); } }
+
+    // ===== Modal =====
+    const userModal=document.getElementById('userModal'); const modalTitle=document.getElementById('modalTitle'); const modalAlert=document.getElementById('modalAlert'); const userForm=document.getElementById('userForm');
+    function showModal(){ userModal.classList.remove('hidden'); userModal.classList.add('flex'); }
+    function hideModal(){ userModal.classList.add('hidden'); userModal.classList.remove('flex'); }
+    function showModalAlert(msg,type){ modalAlert.className='alert rounded-md p-3 text-sm mb-3'; if (type==='error') modalAlert.classList.add('error'); if (type==='warn') modalAlert.classList.add('warn'); modalAlert.textContent=msg; modalAlert.classList.remove('hidden'); }
+
+    function openAdd(){ modalTitle.textContent='Add User'; userForm.reset(); document.getElementById('userId').value=''; document.getElementById('fActive').checked=true; document.getElementById('avatarGrid').innerHTML=''; showModal(); suggestAvatars(); }
+    async function openEdit(id){ let u=null; if (isLocalId(id)) u=findLocalUserById(id); else u=await apiJson('GET', `tables/users/${id}`); modalTitle.textContent='Edit User'; document.getElementById('userId').value=id; document.getElementById('fName').value=u.name||''; document.getElementById('fEmail').value=u.email||''; document.getElementById('fRole').value=u.role||'ae'; document.getElementById('fActive').checked = u.is_active !== false; document.getElementById('fAvatar').value=u.avatar_url||''; showModal(); suggestAvatars(); }
+
+    function suggestAvatars(){ const email=document.getElementById('fEmail').value||'user'; renderAvatarGrid(email); }
+
+    document.getElementById('addUserBtn').addEventListener('click', openAdd);
+    document.getElementById('closeModal').addEventListener('click', hideModal);
+    document.getElementById('cancelModal').addEventListener('click', hideModal);
+    document.getElementById('genPwd').addEventListener('click', ()=>{ const pwd = crypto.getRandomValues(new Uint32Array(4)).join('-'); document.getElementById('fTempPassword').value=pwd; });
+    document.getElementById('genAvatars').addEventListener('click', suggestAvatars);
+
+    userForm.addEventListener('submit', async (e)=>{
+      e.preventDefault(); modalAlert.classList.add('hidden');
+      const id = document.getElementById('userId').value;
+      const payload = {
+        name: document.getElementById('fName').value.trim(),
+        email: document.getElementById('fEmail').value.trim().toLowerCase(),
+        role: document.getElementById('fRole').value,
+        is_active: document.getElementById('fActive').checked,
+        avatar_url: document.getElementById('fAvatar').value.trim()
+      };
+      const tempPwd = document.getElementById('fTempPassword').value.trim();
+      if (tempPwd) payload.password_hash = await sha256(tempPwd);
+      try {
+        if (id){
+          if (isLocalId(id)) {
+            const cur = findLocalUserById(id)||{}; const merged = { ...cur, ...payload, id };
+            upsertLocalUser(merged);
+            optimisticUpsert(merged, 'local_edit');
+          } else {
+            let updated=null; try{ updated = await apiJson('PATCH', `tables/users/${id}`, payload); } catch{}
+            const saved = updated && updated.id ? updated : { id, ...payload };
+            optimisticUpsert(saved, 'patch');
+          }
+        } else {
+          try {
+            const created = await apiJson('POST', 'tables/users', { ...payload, last_login: Date.now() });
+            const saved = created && created.id ? created : { id: 'temp:'+Date.now().toString(36), ...payload };
+            optimisticUpsert(saved, 'post');
+            // stage in local so UI keeps showing even if GET is stale
+            upsertLocalUser({ ...saved, _staged:true });
+          } catch (postErr){
+            // Blocked POST -> save local
+            const localUser = { id: genLocalId(), ...payload, created_at: Date.now(), _local:true };
+            upsertLocalUser(localUser);
+            optimisticUpsert(localUser, 'local_post');
+            showModalAlert('Server blocked POST — saved locally only. Allow POST on /tables/* or use Deployment Diagnostics.', 'warn');
+            showToast('User saved locally (server blocked).', 'warn');
+          }
+        }
+        hideModal();
+        // Reconcile with Live in the background
+        fetchUsers().catch(()=>{});
+        showToast('User saved','success');
+        // Broadcast to other tabs/pages
+        try { localStorage.setItem('um_users_updated', String(Date.now())); } catch{}
+        try { if (!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.postMessage({ type:'users_updated', at: Date.now() }); } catch{}
+      } catch(err){ console.error(err); showModalAlert('Save failed: '+String(err?.message||err).slice(0,200), 'error'); showToast('Could not save user','error'); }
+    });
+
+    // ===== Filters, Sorting, Paging =====
+    document.getElementById('searchInput').addEventListener('input', e=>{ state.filters.search = (e.target.value||'').toLowerCase(); state.page=1; state.rows = applyFiltersAndSort(JSON.parse(localStorage.getItem('um_users')||'[]')||state.rows); renderTable(state.rows); });
+    document.getElementById('filterRole').addEventListener('change', e=>{ state.filters.role = e.target.value; state.page=1; state.rows = applyFiltersAndSort(JSON.parse(localStorage.getItem('um_users')||'[]')||state.rows); renderTable(state.rows); });
+    document.getElementById('filterStatus').addEventListener('change', e=>{ state.filters.status = e.target.value; state.page=1; state.rows = applyFiltersAndSort(JSON.parse(localStorage.getItem('um_users')||'[]')||state.rows); renderTable(state.rows); });
+    document.querySelectorAll('th[data-sort]').forEach(th=> th.addEventListener('click', ()=>{ const field=th.dataset.sort; state.sortField=field; state.sortDir= state.sortDir==='asc'?'desc':'asc'; state.page=1; state.rows = applyFiltersAndSort(JSON.parse(localStorage.getItem('um_users')||'[]')||state.rows); renderTable(state.rows); }));
+    document.getElementById('prevPage').addEventListener('click', ()=>{ if (state.page>1){ state.page--; renderTable(state.rows); } });
+    document.getElementById('nextPage').addEventListener('click', ()=>{ const max = Math.ceil(state.total/state.limit)||1; if (state.page<max){ state.page++; renderTable(state.rows); } });
+    selectAll.addEventListener('change', (e)=>{ tbody.querySelectorAll('.rowChk').forEach(chk => { chk.checked=e.target.checked; const id=chk.dataset.id; e.target.checked? state.selected.add(id) : state.selected.delete(id); }); updateBulkState(); });
+
+    // ===== Bulk actions =====
+    document.getElementById('bulkActivate').addEventListener('click', ()=>bulkToggle(true));
+    document.getElementById('bulkDeactivate').addEventListener('click', ()=>bulkToggle(false));
+    document.getElementById('bulkDelete').addEventListener('click', bulkDelete);
+    async function bulkToggle(val){ try{ const ids = Array.from(state.selected); await Promise.all(ids.map(async id=>{ if (isLocalId(id)){ const u=findLocalUserById(id)||{}; upsertLocalUser({ ...u, is_active: val }); } else { await apiJson('PATCH', `tables/users/${id}`, { is_active: val }); } })); state.selected.clear(); await fetchUsers(); showToast(`${val?'Activated':'Deactivated'} ${ids.length} user${ids.length===1?'':'s'}`,'success'); } catch(err){ console.error(err); showToast('Bulk action failed','error'); } }
+    async function bulkDelete(){ if (!confirm('Delete selected users?')) return; try{ const ids = Array.from(state.selected); await Promise.all(ids.map(async id=>{ if (isLocalId(id)) removeLocalUser(id); else await apiJson('DELETE', `tables/users/${id}`); })); state.selected.clear(); await fetchUsers(); showToast(`Deleted ${ids.length} user${ids.length===1?'':'s'}`,'success'); } catch(err){ console.error(err); showToast('Bulk delete failed','error'); } }
+
+    // ===== Reload button =====
+    document.getElementById('reloadBtn').addEventListener('click', async ()=>{ setApiStatus('checking','Warming up…'); try { try{ await fetch(normalizePath('tables/users?limit=1'), {cache:'no-store', credentials:'same-origin'}); }catch{} await fetchUsers(); } catch(e){ console.warn('Reload failed', e); }
+    });
+
+    // ===== Diagnostics =====
+    document.getElementById('runDiag').addEventListener('click', async ()=>{ const out=document.getElementById('diagOut'); out.textContent='Running…'; try{ const probe = await apiJson('GET','tables/users?limit=1'); const fields = Object.keys((probe.schema?.fields||{})).join(', '); const total = probe.total||0; out.textContent = `API OK\nTotal users: ${total}\nSchema fields: ${fields}`; } catch(e){ out.textContent = 'API FAIL: '+ String(e?.message||e); }
+    });
+
+    // ===== Init =====
+    (async function init(){ setApiStatus('checking'); // instant cached render if present
+      try{ let cached = JSON.parse(localStorage.getItem('um_users')||'[]'); if (!Array.isArray(cached)) cached=[]; if (!cached.length){ // seed baseline from current session to avoid blank UI in Live
+          try{ const sess = getSession(); if (sess && sess.email){ const localSeed = { id:'local:seed:'+Date.now().toString(36), name: sess.name||sess.email, email: (sess.email||'').toLowerCase(), role: (sess.role||'ae'), is_active:true, avatar_url: sess.avatar_url||`https://source.boringavatars.com/beam/40/${encodeURIComponent(sess.email||sess.name||'user')}`, _local:true, created_at: Date.now() }; cached = [localSeed]; localStorage.setItem('um_users', JSON.stringify(cached)); localStorage.setItem('users', JSON.stringify(cached)); } }catch{} }
+        if (cached.length){ state.rows = applyFiltersAndSort(cached); renderTable(state.rows); setApiStatus('cached'); } } catch{}
+      await resolveApiBase();
+      try{ const wu = normalizePath('tables/users?limit=1'); const wusep = wu.includes('?') ? '&' : '?'; await fetch(`${wu}${wusep}cb=${Date.now()}`, {cache:'no-store', credentials:'same-origin'}); }catch{}
+      await fetchUsers();
+      document.addEventListener('visibilitychange', ()=>{ if (!document.hidden) fetchUsers().catch(()=>{}); });
+      window.addEventListener('storage', (e)=>{ if (e.key==='um_users' || e.key==='um_users_updated'){ fetchUsers().catch(()=>{}); } });
+    })();
+  </script>
+  <script src="js/avatars.js"></script>
+</body>
+</html>

@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Entry Console - Sales Prospecting Tracker</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="ascm/css/theme.css">
+    
+    <style>
+        :root {
+            --primary: #1E3A8A;
+            --secondary: #14B8A6;
+            --success: #22C55E;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --neutral: #9CA3AF;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Form Input Styles */
+        .form-input {
+            transition: all 0.2s ease;
+        }
+        
+        .form-input:focus {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        /* Success Animation */
+        @keyframes successPulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+        }
+        
+        .success-animation {
+            animation: successPulse 0.5s ease;
+        }
+        
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Tab Styles */
+        .tab-button {
+            position: relative;
+            padding: 12px 24px;
+            font-weight: 500;
+            color: #6B7280;
+            transition: all 0.2s;
+        }
+        
+        .tab-button.active {
+            color: var(--primary);
+        }
+        
+        .tab-button.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary);
+        }
+        
+        /* Validation Styles */
+        .input-error {
+            border-color: var(--danger) !important;
+            background-color: #FEF2F2;
+        }
+        
+        .error-message {
+            color: var(--danger);
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+        
+        /* Section Card */
+        .section-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        /* Quick Stats */
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="app" class="min-h-screen">
+        
+        <!-- Header -->
+        <header class="brand-gradient text-white sticky top-0 z-50">
+            <div class="container mx-auto px-4">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-teal-500 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-plus-circle text-white text-lg"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-lg font-bold text-gray-900">Activity Entry Console</h1>
+                            <p class="text-xs text-gray-500">Log Your Sales Activities</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <a id="home-button" href="app.html" class="btn-outline rounded-md px-3 py-2 text-sm">
+                            <i class="fas fa-house mr-2"></i>Home
+                        </a>
+                        <button onclick="window.location.href='sales-dashboard-modular.html'" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                            <i class="fas fa-chart-line mr-2"></i>View Dashboard
+                        </button>
+                        <span id="apiStatus" class="px-2 py-1 text-xs rounded border bg-slate-100 border-slate-200 text-slate-600" title="Data source status">Checking…</span>
+                        <div class="flex items-center space-x-3">
+                            <div class="text-right">
+                                <p class="text-sm font-medium text-gray-900" id="currentUser">John Doe</p>
+                                <p class="text-xs text-gray-500" id="userRole">Account Executive</p>
+                            </div>
+                            <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-gray-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- Main Content -->
+        <main class="container mx-auto px-4 py-6">
+            
+            <!-- Quick Stats Row -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="stat-card">
+                    <div class="text-3xl font-bold" id="todayActivities">0</div>
+                    <div class="text-sm opacity-90">Today's Activities</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                    <div class="text-3xl font-bold" id="weekActivities">0</div>
+                    <div class="text-sm opacity-90">This Week</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                    <div class="text-3xl font-bold" id="monthActivities">0</div>
+                    <div class="text-sm opacity-90">This Month</div>
+                </div>
+                <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                    <div class="text-3xl font-bold" id="successRate">0%</div>
+                    <div class="text-sm opacity-90">Success Rate</div>
+                </div>
+            </div>
+            
+            <!-- Activity Type Tabs -->
+            <div class="bg-white rounded-lg shadow-sm mb-6">
+                <div class="flex border-b border-gray-200">
+                    <button class="tab-button active" data-type="prospecting">
+                        <i class="fas fa-search-dollar mr-2"></i>Prospecting
+                    </button>
+                    <button class="tab-button" data-type="outreach">
+                        <i class="fas fa-phone-volume mr-2"></i>Outreach
+                    </button>
+                    <button class="tab-button" data-type="meetings">
+                        <i class="fas fa-handshake mr-2"></i>Meetings
+                    </button>
+                    <button class="tab-button" data-type="deals">
+                        <i class="fas fa-trophy mr-2"></i>Deals
+                    </button>
+                </div>
+                
+                <!-- Form Content -->
+                <form id="activityForm" class="p-6">
+                    
+                    <!-- Prospecting Tab Content -->
+                    <div id="prospecting-content" class="tab-content">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Prospecting Activities</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-bullseye mr-1"></i>Accounts Targeted
+                                </label>
+                                <input type="number" name="accountsTargeted" min="0" 
+                                       class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="Enter number of accounts">
+                                <span class="error-message hidden"></span>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-search mr-1"></i>Research Hours
+                                </label>
+                                <input type="number" name="researchHours" min="0" step="0.5"
+                                       class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="Hours spent on research">
+                                <span class="error-message hidden"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Outreach Tab Content -->
+                    <div id="outreach-content" class="tab-content hidden">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Outreach Activities</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-phone mr-1"></i>Calls Made
+                                </label>
+                                <input type="number" name="callsMade" min="0"
+                                       class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="Number of calls">
+                                <span class="error-message hidden"></span>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-envelope mr-1"></i>Emails Sent
+                                </label>
+                                <input type="number" name="emailsSent" min="0"
+                                       class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="Number of emails">
+                                <span class="error-message hidden"></span>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fab fa-linkedin mr-1"></i>LinkedIn Messages
+                                </label>
+                                <input type="number" name="linkedinMessages" min="0"
+                                       class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="LinkedIn outreach">
+                                <span class="error-message hidden"></span>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-check-circle mr-1"></i>Successful Contacts
+                                </label>
+                                <input type="number" name="successfulContacts" min="0"
+                                       class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="Positive responses">
+                                <span class="error-message hidden"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Meetings Tab Content -->
+                    <div id="meetings-content" class="tab-content hidden">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Meeting Activities</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-calendar-check mr-1"></i>Meetings Booked
+                                </label>
+                                <input type="number" name="meetingsBooked" min="0"
+                                       class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="New meetings scheduled">
+                                <span class="error-message hidden"></span>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-video mr-1"></i>Meetings Conducted
+                                </label>
+                                <input type="number" name="meetingsConducted" min="0"
+                                       class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="Meetings completed">
+                                <span class="error-message hidden"></span>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-presentation mr-1"></i>Presentations (optional)
+                                </label>
+                                <input type="number" name="demosGiven" min="0"
+                                       class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="Product demonstrations">
+                                <span class="error-message hidden"></span>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-users mr-1"></i>Attendees
+                                </label>
+                                <input type="number" name="attendees" min="0"
+                                       class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="Total attendees">
+                                <span class="error-message hidden"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Deals Tab Content -->
+                    <div id="deals-content" class="tab-content hidden">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Deal Activities</h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-lightbulb mr-1"></i>Opportunities Generated
+                                </label>
+                                <input type="number" name="opportunitiesGenerated" min="0"
+                                       class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="New opportunities">
+                                <span class="error-message hidden"></span>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-funnel-dollar mr-1"></i>Pipeline Generated ($)
+                                </label>
+                                <input type="number" name="pipelineGenerated" min="0" step="1000"
+                                       class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="Pipeline value">
+                                <span class="error-message hidden"></span>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-dollar-sign mr-1"></i>Revenue Closed ($)
+                                </label>
+                                <input type="number" name="revenueClosed" min="0" step="1000"
+                                       class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="Closed revenue">
+                                <span class="error-message hidden"></span>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-handshake mr-1"></i>Deals Won
+                                </label>
+                                <input type="number" name="dealsWon" min="0"
+                                       class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                       placeholder="Number of wins">
+                                <span class="error-message hidden"></span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Common Fields -->
+                    <div class="mt-6 pt-6 border-t border-gray-200">
+                        <h4 class="text-md font-semibold text-gray-900 mb-4">Additional Information</h4>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-calendar mr-1"></i>Activity Date
+                                </label>
+                                <input type="date" name="activityDate" required
+                                       class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <span class="error-message hidden"></span>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-tag mr-1"></i>Category
+                                </label>
+                                <select name="category" required
+                                        class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <option value="">Select Category</option>
+                                    <option value="new-business">New Business</option>
+                                    <option value="cross-sell">Cross-Sell</option>
+                                    <option value="up-sell">Up-Sell</option>
+                                    <option value="renewal">Renewal</option>
+                                    <option value="dormant">Dormant Activation</option>
+                                </select>
+                                <span class="error-message hidden"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-sticky-note mr-1"></i>Notes
+                            </label>
+                            <textarea name="notes" rows="3"
+                                      class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                      placeholder="Add any additional notes or comments..."></textarea>
+                        </div>
+                        
+                        <!-- Account Manager Specific Fields -->
+                        <div id="amSpecificFields" class="hidden mt-4">
+                            <h4 class="text-md font-semibold text-gray-900 mb-4">Account Manager Metrics</h4>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        <i class="fas fa-ad mr-1"></i>ABM Campaigns
+                                    </label>
+                                    <input type="number" name="abmCampaigns" min="0"
+                                           class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                           placeholder="General ABM">
+                                    <span class="error-message hidden"></span>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        <i class="fas fa-arrow-up mr-1"></i>Cross-Sell ABM
+                                    </label>
+                                    <input type="number" name="crossSellAbmCampaigns" min="0"
+                                           class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                           placeholder="Cross-sell campaigns">
+                                    <span class="error-message hidden"></span>
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                                        <i class="fas fa-chart-line mr-1"></i>Up-Sell ABM
+                                    </label>
+                                    <input type="number" name="upSellAbmCampaigns" min="0"
+                                           class="form-input w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                           placeholder="Up-sell campaigns">
+                                    <span class="error-message hidden"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Form Actions -->
+                    <div class="mt-6 flex justify-between items-center">
+                        <button type="button" id="resetBtn" class="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                            <i class="fas fa-undo mr-2"></i>Reset Form
+                        </button>
+                        
+                        <div class="flex space-x-3">
+                            <button type="button" id="saveBtn" class="px-6 py-2 bg-white border border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
+                                <i class="fas fa-save mr-2"></i>Save Draft
+                            </button>
+                            <button type="submit" id="submitBtn" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center">
+                                <i class="fas fa-paper-plane mr-2"></i>
+                                <span>Submit Activity</span>
+                                <div class="spinner ml-2 hidden"></div>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Recent Entries -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Your Recent Entries</h3>
+                <div id="recentEntries" class="space-y-2">
+                    <!-- Will be populated dynamically -->
+                    <div class="text-center py-4 text-gray-500">
+                        <i class="fas fa-history text-2xl mb-2"></i>
+                        <p>No recent entries yet</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Success Modal -->
+        <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+            <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4 success-animation">
+                <div class="text-center">
+                    <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-check text-green-600 text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Activity Logged Successfully!</h3>
+                    <p class="text-gray-600 mb-4">Your activity has been recorded and will appear in the dashboard.</p>
+                    <div class="flex space-x-3 justify-center">
+                        <button onclick="closeSuccessModal()" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
+                            Close
+                        </button>
+                        <button onclick="window.location.href='sales-dashboard-modular.html'" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            View Dashboard
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Activity Entry JavaScript -->
+    <script>
+        // API base detection and status badge
+        let API_BASE = 'tables/';
+        const API_BASE_CANDIDATES = ['tables/','/tables/'];
+        function normalizePath(p){
+            if (/^https?:\/\//i.test(p)) return p;
+            if (p.startsWith('tables/')) return API_BASE + p.slice('tables/'.length);
+            if (p.startsWith('/tables/')) return API_BASE + p.slice('/tables/'.length);
+            return p;
+        }
+        async function resolveApiBase(){
+            for (const base of API_BASE_CANDIDATES){
+                try {
+                    const r = await fetch(`${base}activities?limit=1`, { cache:'no-store', credentials:'same-origin' });
+                    const ct = (r.headers.get('content-type')||'').toLowerCase();
+                    if (r.ok && ct.includes('application/json')) { API_BASE = base; break; }
+                } catch {}
+            }
+        }
+        function setApiStatus(mode){
+            window._apiStatusMode = mode || 'checking';
+            const el = document.getElementById('apiStatus');
+            if (!el) return;
+            const base = 'px-2 py-1 text-xs rounded border ';
+            if (mode==='live'){ el.className = base+'bg-emerald-50 border-emerald-200 text-emerald-700'; el.textContent='Live'; }
+            else if (mode==='cached'){ el.className = base+'bg-blue-50 border-blue-200 text-blue-700'; el.textContent='Cached'; }
+            else if (mode==='offline'){ el.className = base+'bg-red-50 border-red-200 text-red-700'; el.textContent='Offline'; }
+            else { el.className = base+'bg-slate-100 border-slate-200 text-slate-600'; el.textContent='Checking…'; }
+        }
+
+        // Cloudflare-resilient API helpers
+        const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
+        function looksLikeHtml(res){ const ct=(res.headers?.get?.('content-type')||'').toLowerCase(); return ct.includes('text/html'); }
+        async function apiRequest(method, path, body, tries=7){ let lastText=''; for (let i=0;i<tries;i++){ let url = normalizePath(path); const sep = url.includes('?') ? '&' : '?'; url = `${url}${sep}cb=${Date.now()}_${i}`; const res = await fetch(url, { method, headers:{'Content-Type':'application/json'}, body: body!=null?JSON.stringify(body):undefined, cache:'no-store', credentials:'same-origin' }); if(res.status===401||res.status===403)||looksLikeHtml(res){ try{ lastText=await res.text(); }catch{} try{ let wu=normalizePath('tables/activities?limit=1'); const wusep = wu.includes('?') ? '&' : '?'; await fetch(`${wu}${wusep}cb=${Date.now()}`,{ cache:'no-store', credentials:'same-origin' }); }catch{} await sleep(800*(i+1)); continue; } return res; } throw new Error('API blocked or failed '+lastText.slice(0,180)); }
+
+// Auto-recovery loop to keep entry console live
+function scheduleAutoRecover(){ if (window._entryRecoverTimer) return; const attempt = async()=>{ if (document.hidden) return; if (window._apiStatusMode==='live'){ clearInterval(window._entryRecoverTimer); window._entryRecoverTimer=null; return; } try{ await fetch(normalizePath('tables/activities?limit=1'),{ cache:'no-store', credentials:'same-origin' }); if (window.activityEntry){ await window.activityEntry.loadRecentEntries(); await window.activityEntry.updateStats(); } setApiStatus('live'); clearInterval(window._entryRecoverTimer); window._entryRecoverTimer=null; }catch(e){ /* keep trying */ } }; window._entryRecoverTimer = setInterval(attempt, 15000); attempt(); }
+        async function apiJson(method, path, body, tries=3){ const res=await apiRequest(method,path,body,tries); if(!res.ok){ let t=''; try{ t=await res.text(); }catch{}; throw new Error(`${method} ${path} -> ${res.status} ${t.slice(0,160)}`); } if(res.status===204) return {}; try{ return await res.json(); }catch{ return {}; } }
+
+        // Activity Entry Controller
+        class ActivityEntry {
+            constructor() {
+                this.currentUser = null;
+                this.currentTab = 'prospecting';
+                this.formData = {};
+                this.recentEntries = [];
+                
+                this.init();
+            }
+            
+            async init() {
+                await this.loadUserData();
+                this.setupEventListeners(); this.setupRealtimeSync();
+                this.setDefaultDate();
+                await this.loadRecentEntries();
+                await this.updateStats();
+            }
+            
+            async loadUserData() {
+                // Prefer ascm_session; fallback to legacy currentUser
+                const sessStr = localStorage.getItem('ascm_session');
+                if (sessStr) {
+                    try {
+                        const s = JSON.parse(sessStr);
+                        this.currentUser = { id: s.id, name: s.name || s.email || 'User', email: s.email, role: (s.role||'ae').toLowerCase() };
+                    } catch { this.currentUser = null; }
+                }
+                if (!this.currentUser) {
+                    const storedUser = localStorage.getItem('currentUser');
+                    if (storedUser) {
+                        const u = JSON.parse(storedUser);
+                        u.role = (u.role||'ae').toLowerCase();
+                        this.currentUser = u;
+                    } else {
+                        this.currentUser = { id: 'user1', name: 'John Doe', email: 'john.doe@company.com', role: 'ae' };
+                    }
+                }
+                
+                // Update UI
+                document.getElementById('currentUser').textContent = this.currentUser.name;
+                document.getElementById('userRole').textContent = 
+                    this.currentUser.role === 'am' ? 'Account Manager' : 'Account Executive';
+                
+                // Show AM fields if user is AM
+                if (this.currentUser.role === 'am') {
+                    document.getElementById('amSpecificFields').classList.remove('hidden');
+                } else {
+                    document.getElementById('amSpecificFields').classList.add('hidden');
+                }
+            }
+            
+            setupEventListeners() {
+                // Tab switching
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.switchTab(e.target.closest('.tab-button').dataset.type);
+                    });
+                });
+                
+                // Form submission
+                document.getElementById('activityForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.submitActivity();
+                });
+                // Undo last entry
+                document.getElementById('undoBtn').addEventListener('click', ()=> this.undoLastEntry());
+                
+                // Reset button
+                document.getElementById('resetBtn').addEventListener('click', () => {
+                    this.resetForm();
+                });
+                
+                // Save draft button
+                document.getElementById('saveBtn').addEventListener('click', () => {
+                    this.saveDraft();
+                });
+                
+                // Real-time validation
+                document.querySelectorAll('input, select, textarea').forEach(input => {
+                    input.addEventListener('blur', () => this.validateField(input));
+                    input.addEventListener('input', () => {
+                        if (input.classList.contains('input-error')) {
+                            this.validateField(input);
+                        }
+                    });
+                });
+            }
+            
+            switchTab(tabName) {
+                // Update tab buttons
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[data-type="${tabName}"]`).classList.add('active');
+                
+                // Hide all content
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.add('hidden');
+                });
+                
+                // Show selected content
+                document.getElementById(`${tabName}-content`).classList.remove('hidden');
+                
+                this.currentTab = tabName;
+            }
+            
+            setDefaultDate() {
+                const today = new Date().toISOString().split('T')[0];
+                document.querySelector('[name="activityDate"]').value = today;
+            }
+            
+            validateField(field) {
+                const value = field.value.trim();
+                const errorSpan = field.nextElementSibling;
+                let isValid = true;
+                let errorMessage = '';
+                
+                // Required validation
+                if (field.hasAttribute('required') && !value) {
+                    isValid = false;
+                    errorMessage = 'This field is required';
+                }
+                
+                // Number validation
+                if (field.type === 'number' && value) {
+                    const num = parseFloat(value);
+                    if (isNaN(num) || num < 0) {
+                        isValid = false;
+                        errorMessage = 'Please enter a valid positive number';
+                    }
+                }
+                
+                // Date validation
+                if (field.type === 'date' && value) {
+                    const date = new Date(value);
+                    const today = new Date();
+                    today.setHours(23, 59, 59, 999);
+                    if (date > today) {
+                        isValid = false;
+                        errorMessage = 'Date cannot be in the future';
+                    }
+                }
+                
+                // Update UI
+                if (isValid) {
+                    field.classList.remove('input-error');
+                    if (errorSpan) {
+                        errorSpan.textContent = '';
+                        errorSpan.classList.add('hidden');
+                    }
+                } else {
+                    field.classList.add('input-error');
+                    if (errorSpan) {
+                        errorSpan.textContent = errorMessage;
+                        errorSpan.classList.remove('hidden');
+                    }
+                }
+                
+                return isValid;
+            }
+            
+            validateForm() {
+                let isValid = true;
+                const requiredFields = document.querySelectorAll('[required]');
+                
+                requiredFields.forEach(field => {
+                    if (!this.validateField(field)) {
+                        isValid = false;
+                    }
+                });
+                
+                // Check that at least one metric is filled
+                const metricFields = document.querySelectorAll('input[type="number"]:not([name="researchHours"])');
+                const hasMetrics = Array.from(metricFields).some(field => field.value && parseFloat(field.value) > 0);
+                
+                if (!hasMetrics) {
+                    isValid = false;
+                    this.showNotification('Please enter at least one activity metric', 'error');
+                }
+                
+                return isValid;
+            }
+            
+            loadActivitiesCache(){ try{ return JSON.parse(localStorage.getItem('activities')||'[]'); }catch{return [];} }
+            saveActivitiesCache(list){ try{ localStorage.setItem('activities', JSON.stringify(list)); }catch{} }
+            upsertActivitiesCache(rec){ const list=this.loadActivitiesCache(); const idx=list.findIndex(x=> String(x.id||'')===String(rec.id||'')); if (idx>=0) list[idx]=rec; else list.push(rec); this.saveActivitiesCache(list); }
+            removeFromActivitiesCache(id){ const list=this.loadActivitiesCache().filter(x=> String(x.id||'')!==String(id||'')); this.saveActivitiesCache(list); }
+            setupRealtimeSync(){ try{ if(!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); }catch{} }
+            async audit(action, details){ try{ await apiJson('POST','tables/audit_logs', { action, target_table:'activities', target_id: details?.id||'', actor_id: this.currentUser?.id||'', actor_email: this.currentUser?.email||'', details, timestamp: Date.now() }); }catch{} }
+
+            async submitActivity() {
+                if (!this.validateForm()) {
+                    return;
+                }
+                
+                // Show loading state
+                const submitBtn = document.getElementById('submitBtn');
+                const btnText = submitBtn.querySelector('span');
+                const spinner = submitBtn.querySelector('.spinner');
+                
+                submitBtn.disabled = true;
+                btnText.textContent = 'Submitting...';
+                spinner.classList.remove('hidden');
+                
+                // Collect form data
+                const formData = new FormData(document.getElementById('activityForm'));
+                const activityData = {
+                    userId: this.currentUser.id,
+                    userName: this.currentUser.name,
+                    role: this.currentUser.role,
+                    type: this.currentTab,
+                    date: formData.get('activityDate'),
+                    category: formData.get('category'),
+                    notes: formData.get('notes'),
+                    // Metrics
+                    accountsTargeted: parseInt(formData.get('accountsTargeted')) || 0,
+                    callsMade: parseInt(formData.get('callsMade')) || 0,
+                    emailsSent: parseInt(formData.get('emailsSent')) || 0,
+                    linkedinMessages: parseInt(formData.get('linkedinMessages')) || 0,
+                    successfulContacts: parseInt(formData.get('successfulContacts')) || 0,
+                    meetingsBooked: parseInt(formData.get('meetingsBooked')) || 0,
+                    meetingsConducted: parseInt(formData.get('meetingsConducted')) || 0,
+                    opportunitiesGenerated: parseInt(formData.get('opportunitiesGenerated')) || 0,
+                    pipelineGenerated: parseFloat(formData.get('pipelineGenerated')) || 0,
+                    revenueClosed: parseFloat(formData.get('revenueClosed')) || 0,
+                    // AM specific
+                    abmCampaigns: parseInt(formData.get('abmCampaigns')) || 0,
+                    crossSellAbmCampaigns: parseInt(formData.get('crossSellAbmCampaigns')) || 0,
+                    upSellAbmCampaigns: parseInt(formData.get('upSellAbmCampaigns')) || 0,
+                    generalAbmCampaigns: parseInt(formData.get('abmCampaigns')) || 0,
+                    dormantAbmCampaigns: formData.get('category') === 'dormant' ? parseInt(formData.get('abmCampaigns')) || 0 : 0,
+                    // Calculate week number
+                    week: this.getWeekNumber(new Date(formData.get('activityDate'))),
+                    createdAt: Date.now()
+                };
+                
+                try {
+                    // Submit to API (CF-resilient)
+                    let saved = null;
+                    try{
+                        const res = await apiJson('POST','tables/activities', activityData);
+                        saved = { ...(res||{}), ...activityData };
+                        if (!saved.id) saved.id = res?.id || ('temp:'+Date.now().toString(36));
+                    } catch(postErr){
+                        // Fallback: save locally so dashboards update immediately
+                        saved = { id: 'local:'+Date.now().toString(36), ...activityData };
+                        this.showNotification('Saved locally (network blocked). Will sync when available.', 'info');
+                    }
+                    // Persist in local activities cache for instant dashboard updates
+                    this.upsertActivitiesCache(saved);
+                    // Store "last entry" for undo
+                    try{ localStorage.setItem('entry_last_id', saved.id); localStorage.setItem('entry_last_record', JSON.stringify(saved)); }catch{}
+                    // Broadcast update to other tabs
+                    try { localStorage.setItem('ascm_activities_updated', String(Date.now())); } catch {}
+                    try { if (!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.postMessage({ type:'activities_updated', at: Date.now() }); } catch {}
+                    // Best-effort audit log
+                    try{ await this.audit('activity_add', { id: saved.id, type: saved.type, date: saved.date, metrics: { callsMade:saved.callsMade, emailsSent:saved.emailsSent, meetingsBooked:saved.meetingsBooked, pipelineGenerated:saved.pipelineGenerated, revenueClosed:saved.revenueClosed } }); }catch{}
+                    // Show success modal
+                    document.getElementById('successModal').classList.remove('hidden');
+                    // Reset form
+                    this.resetForm();
+                    // Refresh stats and recent entries
+                    await this.loadRecentEntries();
+                    await this.updateStats();
+                    
+                } catch (error) {
+                    console.error('Error submitting activity:', error);
+                    this.showNotification('Failed to submit activity. Please try again.', 'error');
+                    scheduleAutoRecover();
+                } finally {
+                    // Reset button state
+                    submitBtn.disabled = false;
+                    btnText.textContent = 'Submit Activity';
+                    spinner.classList.add('hidden');
+                }
+            }
+
+            async undoLastEntry(){
+                try{
+                    const id = localStorage.getItem('entry_last_id');
+                    if (!id){ this.showNotification('No recent entry to undo', 'info'); return; }
+                    if (String(id).startsWith('local:') || String(id).startsWith('temp:')){
+                        this.removeFromActivitiesCache(id);
+                        try{ localStorage.removeItem('entry_last_id'); localStorage.removeItem('entry_last_record'); }catch{}
+                        // Broadcast
+                        try { localStorage.setItem('ascm_activities_updated', String(Date.now())); } catch {}
+                        try { if (!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.postMessage({ type:'activities_reset', at: Date.now(), id }); } catch {}
+                        this.showNotification('Undid local entry', 'success');
+                        await this.loadRecentEntries(); await this.updateStats();
+                        return;
+                    }
+                    // Live delete
+                    await apiJson('DELETE', `tables/activities/${id}`);
+                    // Also remove from local cache if present
+                    this.removeFromActivitiesCache(id);
+                    try{ localStorage.removeItem('entry_last_id'); localStorage.removeItem('entry_last_record'); }catch{}
+                    try { localStorage.setItem('ascm_activities_updated', String(Date.now())); } catch {}
+                    try { if (!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.postMessage({ type:'activities_reset', at: Date.now(), id }); } catch {}
+                    try{ await this.audit('activity_delete', { id }); }catch{}
+                    this.showNotification('Last entry removed', 'success');
+                    await this.loadRecentEntries(); await this.updateStats();
+                }catch(e){ console.warn('Undo failed', e); this.showNotification('Could not undo last entry', 'error'); }
+            }
+            
+            getWeekNumber(date) {
+                // ISO week number (1-53)
+                const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+                const dayNum = d.getUTCDay() || 7;
+                d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+                const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+                const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+                return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2,'0')}`;
+            }
+            
+            saveDraft() {
+                const formData = new FormData(document.getElementById('activityForm'));
+                const draft = {};
+                
+                for (let [key, value] of formData.entries()) {
+                    draft[key] = value;
+                }
+                
+                localStorage.setItem('activityDraft', JSON.stringify(draft));
+                this.showNotification('Draft saved successfully', 'success');
+            }
+            
+            loadDraft() {
+                const draft = localStorage.getItem('activityDraft');
+                if (draft) {
+                    const data = JSON.parse(draft);
+                    Object.keys(data).forEach(key => {
+                        const field = document.querySelector(`[name="${key}"]`);
+                        if (field) {
+                            field.value = data[key];
+                        }
+                    });
+                }
+            }
+            
+            resetForm() {
+                document.getElementById('activityForm').reset();
+                this.setDefaultDate();
+                
+                // Clear validation errors
+                document.querySelectorAll('.input-error').forEach(field => {
+                    field.classList.remove('input-error');
+                });
+                document.querySelectorAll('.error-message').forEach(msg => {
+                    msg.textContent = '';
+                    msg.classList.add('hidden');
+                });
+                
+                // Reset to first tab
+                this.switchTab('prospecting');
+            }
+            
+            async loadRecentEntries() {
+                try {
+                    const data = await apiJson('GET', 'tables/activities?limit=5&sort=-createdAt');
+                    const userEntries = data.data?.filter(entry => entry.userId === this.currentUser.id && (entry.role||this.currentUser.role)===this.currentUser.role) || [];
+                    this.recentEntries = userEntries;
+                    try{ localStorage.setItem('entry_recent', JSON.stringify(this.recentEntries)); }catch{}
+                    this.displayRecentEntries();
+                    setApiStatus('live');
+                } catch (error) {
+                    console.error('Error loading recent entries:', error);
+                    try{
+                        const cached = JSON.parse(localStorage.getItem('entry_recent')||'[]');
+                        this.recentEntries=cached; this.displayRecentEntries();
+                        setApiStatus(cached.length ? 'cached' : 'offline');
+                    }catch{}
+                    scheduleAutoRecover();
+                }
+            }
+            
+            displayRecentEntries() {
+                const container = document.getElementById('recentEntries');
+                
+                if (this.recentEntries.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-4 text-gray-500">
+                            <i class="fas fa-history text-2xl mb-2"></i>
+                            <p>No recent entries yet</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                container.innerHTML = this.recentEntries.map(entry => {
+                    const date = new Date(entry.date || entry.createdAt);
+                    const metrics = [];
+                    
+                    if (entry.callsMade > 0) metrics.push(`${entry.callsMade} calls`);
+                    if (entry.emailsSent > 0) metrics.push(`${entry.emailsSent} emails`);
+                    if (entry.meetingsBooked > 0) metrics.push(`${entry.meetingsBooked} meetings`);
+                    if (entry.opportunitiesGenerated > 0) metrics.push(`${entry.opportunitiesGenerated} opportunities`);
+                    
+                    return `
+                        <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                            <div>
+                                <p class="font-medium text-gray-900">${entry.type?.charAt(0).toUpperCase() + entry.type?.slice(1) || 'Activity'}</p>
+                                <p class="text-sm text-gray-600">${metrics.join(', ') || 'No metrics'}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm text-gray-500">${date.toLocaleDateString()}</p>
+                                <p class="text-xs text-gray-400">${date.toLocaleTimeString()}</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            async updateStats() {
+                try {
+                    const data = await apiJson('GET', 'tables/activities?limit=1000');
+                    const userActivities = data.data?.filter(a => a.userId === this.currentUser.id && (a.role||this.currentUser.role)===this.currentUser.role) || [];
+                    try{ localStorage.setItem('entry_stats_source', JSON.stringify(userActivities)); }catch{}
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const weekStart = new Date(today);
+                    weekStart.setDate(today.getDate() - today.getDay());
+                    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                    // Calculate stats
+                    const todayCount = userActivities.filter(a => {
+                        const date = new Date(a.date || a.createdAt);
+                        date.setHours(0, 0, 0, 0);
+                        return date.getTime() === today.getTime();
+                    }).length;
+                    const weekCount = userActivities.filter(a => {
+                        const date = new Date(a.date || a.createdAt);
+                        return date >= weekStart;
+                    }).length;
+                    const monthCount = userActivities.filter(a => {
+                        const date = new Date(a.date || a.createdAt);
+                        return date >= monthStart;
+                    }).length;
+                    const successCount = userActivities.reduce((sum, a) => sum + (a.successfulContacts || 0), 0);
+                    const totalOutreach = userActivities.reduce((sum, a) => sum + (a.callsMade || 0) + (a.emailsSent || 0) + (a.linkedinMessages || 0), 0);
+                    const successRate = totalOutreach > 0 ? ((successCount / totalOutreach) * 100).toFixed(1) : 0;
+                    // Update UI
+                    document.getElementById('todayActivities').textContent = todayCount;
+                    document.getElementById('weekActivities').textContent = weekCount;
+                    document.getElementById('monthActivities').textContent = monthCount;
+                    document.getElementById('successRate').textContent = `${successRate}%`;
+                    setApiStatus('live');
+                } catch (error) {
+                    console.error('Error updating stats:', error);
+                    try{
+                        const cached = JSON.parse(localStorage.getItem('entry_stats_source')||'[]');
+                        const userActivities=cached; // reuse logic
+                        const today = new Date(); today.setHours(0,0,0,0);
+                        const weekStart = new Date(today); weekStart.setDate(today.getDate() - today.getDay());
+                        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+                        const todayCount = userActivities.filter(a=>{ const d=new Date(a.date||a.createdAt); d.setHours(0,0,0,0); return d.getTime()===today.getTime(); }).length;
+                        const weekCount = userActivities.filter(a=>{ const d=new Date(a.date||a.createdAt); return d>=weekStart; }).length;
+                        const monthCount = userActivities.filter(a=>{ const d=new Date(a.date||a.createdAt); return d>=monthStart; }).length;
+                        const successCount = userActivities.reduce((s,a)=> s+(a.successfulContacts||0),0);
+                        const totalOutreach = userActivities.reduce((s,a)=> s+(a.callsMade||0)+(a.emailsSent||0)+(a.linkedinMessages||0),0);
+                        const successRate = totalOutreach>0 ? ((successCount/totalOutreach)*100).toFixed(1) : 0;
+                        document.getElementById('todayActivities').textContent=todayCount;
+                        document.getElementById('weekActivities').textContent=weekCount;
+                        document.getElementById('monthActivities').textContent=monthCount;
+                        document.getElementById('successRate').textContent=`${successRate}%`;
+                        setApiStatus(cached.length ? 'cached' : 'offline');
+                    }catch{}
+                    scheduleAutoRecover();
+                }
+            }
+            
+            showNotification(message, type = 'info') {
+                // Unified global toast using .ascm-toast
+                let el = document.getElementById('ascm_toast');
+                if (!el) { el = document.createElement('div'); el.id='ascm_toast'; el.className='ascm-toast info'; document.body.appendChild(el); }
+                el.classList.remove('success','error','info');
+                el.classList.add(type||'info');
+                el.textContent = String(message||'');
+                el.classList.add('show');
+                clearTimeout(this._toastTimer);
+                this._toastTimer = setTimeout(()=>{ el.classList.remove('show'); }, 2200);
+            }
+        }
+        
+        // Helper function to close success modal
+        function closeSuccessModal() {
+            document.getElementById('successModal').classList.add('hidden');
+        }
+        
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', async () => {
+            setApiStatus('checking');
+            await resolveApiBase();
+            window.activityEntry = new ActivityEntry();
+            // Start background recovery for entry console as well
+            scheduleAutoRecover();
+        });
+    </script>
+</body>
+</html>

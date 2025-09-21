@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Entry - Analytics Testing</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .form-input:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .success-message {
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="min-h-screen py-12">
+        <div class="max-w-4xl mx-auto px-4">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">Activity Entry Form</h1>
+                <p class="text-gray-600 mt-2">Add sales activities to test the analytics dashboard</p>
+                <div class="mt-4 space-x-4">
+                    <a href="analytics-dashboard.html" class="text-blue-600 hover:text-blue-700">
+                        <i class="fas fa-chart-line mr-2"></i>View Analytics Dashboard
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Success Message -->
+            <div id="successMessage" class="hidden mb-6 bg-green-50 border-l-4 border-green-400 p-4 success-message">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-check-circle text-green-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-green-700">Activity added successfully! Check the analytics dashboard for real-time updates.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form -->
+            <form id="activityForm" class="bg-white rounded-lg shadow-sm p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-6">Enter Activity Details</h2>
+                
+                <!-- Account Executive Metrics -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">
+                        <i class="fas fa-user-tie mr-2 text-blue-500"></i>Account Executive Metrics
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Calls Made</label>
+                            <input type="number" name="callsMade" min="0" value="0"
+                                   class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Emails Sent</label>
+                            <input type="number" name="emailsSent" min="0" value="0"
+                                   class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">LinkedIn Messages</label>
+                            <input type="number" name="linkedinMessages" min="0" value="0"
+                                   class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Vidyard Videos</label>
+                            <input type="number" name="vidyardVideos" min="0" value="0"
+                                   class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Meetings Booked</label>
+                            <input type="number" name="meetingsBooked" min="0" value="0"
+                                   class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Meetings Conducted</label>
+                            <input type="number" name="meetingsConducted" min="0" value="0"
+                                   class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Successful Contacts</label>
+                            <input type="number" name="successfulContacts" min="0" value="0"
+                                   class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Opportunities Generated</label>
+                            <input type="number" name="opportunitiesGenerated" min="0" value="0"
+                                   class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Referrals Generated</label>
+                            <input type="number" name="referralsGenerated" min="0" value="0"
+                                   class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Pipeline Generated ($)</label>
+                            <input type="number" name="pipelineGenerated" min="0" step="1000" value="0"
+                                   class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Revenue Closed ($)</label>
+                            <input type="number" name="revenueClosed" min="0" step="1000" value="0"
+                                   class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Account Manager Metrics -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">
+                        <i class="fas fa-users mr-2 text-green-500"></i>Account Manager Metrics
+                    </h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Accounts Targeted</label>
+                            <input type="number" name="accountsTargeted" min="0" value="0"
+                                   class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">General ABM Campaigns</label>
+                            <input type="number" name="generalAbmCampaigns" min="0" value="0"
+                                   class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Dormant ABM Campaigns</label>
+                            <input type="number" name="dormantAbmCampaigns" min="0" value="0"
+                                   class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Cross-Sell ABM Campaigns</label>
+                            <input type="number" name="crossSellAbmCampaigns" min="0" value="0"
+                                   class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Up-Sell ABM Campaigns</label>
+                            <input type="number" name="upSellAbmCampaigns" min="0" value="0"
+                                   class="form-input w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Segment Metrics -->
+                <div class="mb-6">
+                    <h3 class="text-lg font-medium text-gray-900 mb-4">
+                        <i class="fas fa-chart-pie mr-2 text-purple-500"></i>Segment-Specific Metrics (AM)
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Dormant -->
+                        <div class="border-l-4 border-red-400 pl-4">
+                            <h4 class="font-medium text-gray-700 mb-2">Dormant Accounts</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                                <input type="number" name="dormantAccounts" placeholder="Accounts" min="0" value="0"
+                                       class="form-input px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="number" name="dormantCalls" placeholder="Calls" min="0" value="0"
+                                       class="form-input px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="number" name="dormantEmails" placeholder="Emails" min="0" value="0"
+                                       class="form-input px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="number" name="dormantMeetings" placeholder="Meetings" min="0" value="0"
+                                       class="form-input px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="number" name="dormantPipeline" placeholder="Pipeline $" min="0" step="1000" value="0"
+                                       class="form-input px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            </div>
+                        </div>
+                        
+                        <!-- Cross-Sell -->
+                        <div class="border-l-4 border-blue-400 pl-4">
+                            <h4 class="font-medium text-gray-700 mb-2">Cross-Sell Accounts</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                                <input type="number" name="crossSellAccounts" placeholder="Accounts" min="0" value="0"
+                                       class="form-input px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="number" name="crossSellCalls" placeholder="Calls" min="0" value="0"
+                                       class="form-input px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="number" name="crossSellEmails" placeholder="Emails" min="0" value="0"
+                                       class="form-input px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="number" name="crossSellMeetings" placeholder="Meetings" min="0" value="0"
+                                       class="form-input px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="number" name="crossSellPipeline" placeholder="Pipeline $" min="0" step="1000" value="0"
+                                       class="form-input px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            </div>
+                        </div>
+                        
+                        <!-- Up-Sell -->
+                        <div class="border-l-4 border-green-400 pl-4">
+                            <h4 class="font-medium text-gray-700 mb-2">Up-Sell Accounts</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-5 gap-3">
+                                <input type="number" name="upSellAccounts" placeholder="Accounts" min="0" value="0"
+                                       class="form-input px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="number" name="upSellCalls" placeholder="Calls" min="0" value="0"
+                                       class="form-input px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="number" name="upSellEmails" placeholder="Emails" min="0" value="0"
+                                       class="form-input px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="number" name="upSellMeetings" placeholder="Meetings" min="0" value="0"
+                                       class="form-input px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                                <input type="number" name="upSellPipeline" placeholder="Pipeline $" min="0" step="1000" value="0"
+                                       class="form-input px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex justify-between items-center pt-6 border-t border-gray-200">
+                    <div class="space-x-3">
+                        <button type="button" onclick="fillSampleData()" 
+                                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                            <i class="fas fa-magic mr-2"></i>Fill Sample Data
+                        </button>
+                        <button type="button" onclick="clearForm()" 
+                                class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                            <i class="fas fa-eraser mr-2"></i>Clear
+                        </button>
+                    </div>
+                    
+                    <button type="submit" 
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-plus-circle mr-2"></i>Add Activity
+                    </button>
+                </div>
+            </form>
+            
+            <!-- Quick Actions -->
+            <div class="mt-8 bg-white rounded-lg shadow-sm p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Quick Test Actions</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button onclick="addHighVolumeActivity()" 
+                            class="px-4 py-3 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors">
+                        <i class="fas fa-rocket mr-2"></i>Add High Volume Activity
+                    </button>
+                    
+                    <button onclick="addSuccessfulDeal()" 
+                            class="px-4 py-3 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
+                        <i class="fas fa-trophy mr-2"></i>Add Successful Deal
+                    </button>
+                    
+                    <button onclick="addMultipleDays()" 
+                            class="px-4 py-3 bg-orange-100 text-orange-700 rounded-lg hover:bg-orange-200 transition-colors">
+                        <i class="fas fa-calendar-plus mr-2"></i>Add 7 Days of Data
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Form submission handler
+        document.getElementById('activityForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const formData = new FormData(this);
+            const activity = {
+                id: `activity-${Date.now()}`,
+                date: Date.now(),
+                userId: 'user1',
+                userName: 'John Doe'
+            };
+            
+            // Convert form data to activity object
+            for (let [key, value] of formData.entries()) {
+                activity[key] = parseInt(value) || 0;
+            }
+            
+            // Save to localStorage
+            saveActivity(activity);
+            
+            // Show success message
+            showSuccess();
+            
+            // Trigger real-time update event
+            window.dispatchEvent(new Event('activityAdded'));
+            
+            // Reset form
+            this.reset();
+        });
+        
+        function saveActivity(activity) {
+            try {
+                // Get existing activities
+                const activities = JSON.parse(localStorage.getItem('activities') || '[]');
+                
+                // Add new activity
+                activities.push(activity);
+                
+                // Save back to localStorage
+                localStorage.setItem('activities', JSON.stringify(activities));
+                
+                console.log('Activity saved:', activity);
+            } catch (error) {
+                console.error('Error saving activity:', error);
+            }
+        }
+        
+        function showSuccess() {
+            const message = document.getElementById('successMessage');
+            message.classList.remove('hidden');
+            
+            setTimeout(() => {
+                message.classList.add('hidden');
+            }, 5000);
+        }
+        
+        function fillSampleData() {
+            document.querySelector('[name="callsMade"]').value = Math.floor(Math.random() * 20) + 5;
+            document.querySelector('[name="emailsSent"]').value = Math.floor(Math.random() * 40) + 10;
+            document.querySelector('[name="linkedinMessages"]').value = Math.floor(Math.random() * 15) + 3;
+            document.querySelector('[name="meetingsBooked"]').value = Math.floor(Math.random() * 5) + 1;
+            document.querySelector('[name="successfulContacts"]').value = Math.floor(Math.random() * 10) + 2;
+            document.querySelector('[name="opportunitiesGenerated"]').value = Math.floor(Math.random() * 3) + 1;
+            document.querySelector('[name="pipelineGenerated"]').value = (Math.floor(Math.random() * 10) + 1) * 10000;
+        }
+        
+        function clearForm() {
+            document.getElementById('activityForm').reset();
+        }
+        
+        function addHighVolumeActivity() {
+            const activity = {
+                id: `high-${Date.now()}`,
+                date: Date.now(),
+                userId: 'user1',
+                userName: 'John Doe',
+                callsMade: 50,
+                emailsSent: 100,
+                linkedinMessages: 30,
+                vidyardVideos: 10,
+                meetingsBooked: 15,
+                meetingsConducted: 10,
+                successfulContacts: 25,
+                opportunitiesGenerated: 5,
+                referralsGenerated: 3,
+                pipelineGenerated: 250000,
+                revenueClosed: 0,
+                accountsTargeted: 20
+            };
+            
+            saveActivity(activity);
+            showSuccess();
+            window.dispatchEvent(new Event('activityAdded'));
+        }
+        
+        function addSuccessfulDeal() {
+            const activity = {
+                id: `deal-${Date.now()}`,
+                date: Date.now(),
+                userId: 'user1',
+                userName: 'John Doe',
+                callsMade: 10,
+                emailsSent: 20,
+                linkedinMessages: 5,
+                meetingsBooked: 3,
+                meetingsConducted: 3,
+                successfulContacts: 3,
+                opportunitiesGenerated: 1,
+                pipelineGenerated: 150000,
+                revenueClosed: 150000
+            };
+            
+            saveActivity(activity);
+            showSuccess();
+            window.dispatchEvent(new Event('activityAdded'));
+        }
+        
+        function addMultipleDays() {
+            const now = Date.now();
+            const dayMs = 24 * 60 * 60 * 1000;
+            
+            for (let i = 0; i < 7; i++) {
+                const activity = {
+                    id: `multi-${Date.now()}-${i}`,
+                    date: now - (i * dayMs),
+                    userId: 'user1',
+                    userName: 'John Doe',
+                    callsMade: Math.floor(Math.random() * 20) + 5,
+                    emailsSent: Math.floor(Math.random() * 40) + 10,
+                    linkedinMessages: Math.floor(Math.random() * 15) + 3,
+                    meetingsBooked: Math.floor(Math.random() * 5) + 1,
+                    meetingsConducted: Math.floor(Math.random() * 3),
+                    successfulContacts: Math.floor(Math.random() * 10) + 2,
+                    opportunitiesGenerated: Math.floor(Math.random() * 3),
+                    pipelineGenerated: Math.floor(Math.random() * 100000),
+                    revenueClosed: i % 3 === 0 ? Math.floor(Math.random() * 50000) : 0
+                };
+                
+                saveActivity(activity);
+            }
+            
+            showSuccess();
+            window.dispatchEvent(new Event('activityAdded'));
+        }
+    </script>
+</body>
+</html>

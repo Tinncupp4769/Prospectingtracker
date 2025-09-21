@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login (JWT)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="bg-slate-50 min-h-screen grid place-items-center">
+  <div class="card w-full max-w-md p-6">
+    <div class="mb-4">
+      <h1 class="text-xl font-bold">Sign in</h1>
+      <p class="text-sm text-slate-600">Use your email and password</p>
+    </div>
+    <div class="space-y-3">
+      <div>
+        <label class="text-sm">Email</label>
+        <input id="email" type="email" class="input w-full px-3 py-2 rounded" placeholder="admin@example.com">
+      </div>
+      <div>
+        <label class="text-sm">Password</label>
+        <input id="password" type="password" class="input w-full px-3 py-2 rounded" placeholder="••••••••">
+      </div>
+      <button id="loginBtn" class="btn-primary w-full px-3 py-2 rounded">Login</button>
+      <div id="err" class="text-sm text-red-700"></div>
+    </div>
+  </div>
+
+  <div id="ascm_toast" class="ascm-toast info" role="status" aria-live="polite"></div>
+
+  <script>
+    const API_BASES=['','/']; // same-origin
+    function showToast(msg,type='info'){ try{ const t=document.getElementById('ascm_toast'); t.className=`ascm-toast ${type}`; t.innerHTML=`<span>${String(msg||'')}</span><button class='close' aria-label='Dismiss'>×</button>`; const btn=t.querySelector('.close'); if(btn){ btn.onclick=()=> t.classList.remove('show'); } t.classList.add('show'); clearTimeout(showToast._t); showToast._t=setTimeout(()=> t.classList.remove('show'), 5000);}catch{} }
+    async function doLogin(){
+      const email=document.getElementById('email').value.trim();
+      const password=document.getElementById('password').value;
+      document.getElementById('err').textContent='';
+      for (const base of API_BASES){
+        try{
+          const r=await fetch(`${base}login`,{ method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ email, password })});
+          const ct=(r.headers.get('content-type')||'').toLowerCase();
+          if (!r.ok){ const e= ct.includes('application/json')? (await r.json()) : { error:`HTTP ${r.status}`}; document.getElementById('err').textContent=e.error||'Login failed'; return; }
+          const data = await r.json();
+          if (data && data.token){ localStorage.setItem('authToken', data.token); showToast('Logged in','success'); location.replace('app.html'); return; }
+        }catch(e){ /* try next base */ }
+      }
+      document.getElementById('err').textContent='Login failed';
+    }
+    document.getElementById('loginBtn').addEventListener('click', doLogin);
+    document.addEventListener('keydown', (e)=>{ if (e.key==='Enter') doLogin(); });
+  </script>
+</body>
+</html>

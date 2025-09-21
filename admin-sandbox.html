@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Sandbox: Simulate Entries — ASCM</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+    .card { background:#fff; border:1px solid #e5e7eb; border-radius:16px; box-shadow:0 10px 24px rgba(0,0,0,.06); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .hint { font-size:12px; color:#64748b; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <header class="brand-gradient text-white" id="header">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-white/10 grid place-items-center"><i class="fa-solid fa-flask text-white"></i></div>
+        <div>
+          <h1 class="text-base font-bold">Admin Sandbox: Simulate Entries</h1>
+          <p class="text-xs text-white/80">Dry-run only — no live writes</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a id="home-button" href="app.html" class="btn-outline px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-house mr-2"></i>Home</a>
+      </div>
+    </div>
+  </header>
+  <script>
+    (function(){ try{ const url=new URL(location.href); if (url.searchParams.get('embed')==='1'){ var h=document.getElementById('header'); if(h) h.style.display='none'; var hb=document.getElementById('home-button'); if(hb) hb.style.display='none'; } }catch{} })();
+  </script>
+
+  <main class="max-w-5xl mx-auto px-6 py-6 space-y-4">
+    <div class="card p-4">
+      <div class="flex items-center justify-between">
+        <div>
+          <div class="font-semibold">Simulation Controls</div>
+          <div class="hint">Generate activity entries locally and preview their impact. Nothing is written to tables/.</div>
+        </div>
+        <label class="inline-flex items-center gap-2 text-sm"><input id="simBroadcast" type="checkbox" class="rounded" /> Emit sandbox events (separate channel)</label>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+        <div>
+          <label class="text-sm">User</label>
+          <select id="simUser" class="input rounded px-3 py-2 text-sm w-full"></select>
+        </div>
+        <div>
+          <label class="text-sm">Role</label>
+          <select id="simRole" class="input rounded px-3 py-2 text-sm w-full">
+            <option value="ae">AE</option>
+            <option value="am">AM</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-sm">Date</label>
+          <input id="simDate" type="date" class="input rounded px-3 py-2 text-sm w-full" />
+        </div>
+        <div>
+          <label class="text-sm">Count</label>
+          <input id="simCount" type="number" class="input rounded px-3 py-2 text-sm w-full" value="10" min="1" max="100" />
+        </div>
+      </div>
+      <div class="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div><label class="text-sm">Calls</label><input id="m_calls" type="number" class="input rounded px-3 py-2 text-sm w-full" value="5" min="0" /></div>
+        <div><label class="text-sm">Emails</label><input id="m_emails" type="number" class="input rounded px-3 py-2 text-sm w-full" value="10" min="0" /></div>
+        <div><label class="text-sm">Meetings</label><input id="m_meet" type="number" class="input rounded px-3 py-2 text-sm w-full" value="1" min="0" /></div>
+        <div><label class="text-sm">Pipeline ($)</label><input id="m_pipe" type="number" class="input rounded px-3 py-2 text-sm w-full" value="1000" min="0" step="100" /></div>
+      </div>
+      <div class="mt-4 flex items-center gap-2">
+        <button id="btnSimulate" class="btn-primary px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-play mr-2"></i>Simulate</button>
+        <button id="btnClear" class="btn-outline px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-trash mr-2"></i>Clear Sandbox</button>
+        <span id="simStatus" class="px-2 py-1 text-xs rounded border bg-slate-100 border-slate-200 text-slate-600">Idle</span>
+      </div>
+    </div>
+
+    <div class="card p-4">
+      <div class="font-semibold mb-2">Sandbox Store</div>
+      <pre id="storeOut" class="mono text-xs bg-slate-50 border rounded p-3 overflow-auto" style="max-height:320px">[]</pre>
+    </div>
+
+    <div class="card p-4">
+      <div class="font-semibold mb-2">JSON Summary</div>
+      <pre id="jsonOut" class="mono text-xs bg-slate-50 border rounded p-3 overflow-auto" style="max-height:240px">{}</pre>
+    </div>
+  </main>
+
+  <div id="ascm_toast" class="ascm-toast info" role="status" aria-live="polite"></div>
+
+  <script>
+    (function(){
+      // Admin gate (client-only)
+      try {
+        const s = JSON.parse(localStorage.getItem('ascm_session')||'null');
+        if (!s || String((s.role||'').toLowerCase())!=='admin') { alert('Admin only.'); location.replace('index.html'); return; }
+      } catch {}
+
+      const qs = (s)=> document.querySelector(s);
+      const now = ()=> Date.now();
+      const STORE_KEY = 'ascm_sandbox_entries';
+
+      function showToast(msg,type){ const el=qs('#ascm_toast'); if(!el) return; el.className='ascm-toast '+(type||'info'); el.innerHTML='<span>'+msg+'</span><button class="close" aria-label="Dismiss">×</button>'; const b=el.querySelector('.close'); if(b) b.onclick=()=> el.classList.remove('show'); el.classList.add('show'); setTimeout(()=> el.classList.remove('show'), 4000); }
+
+      function loadUsers(){
+        let rows=[]; try{ const j=JSON.parse(localStorage.getItem('users')||'[]'); if(Array.isArray(j)&&j.length) rows=j; }catch{}
+        try{ const um=JSON.parse(localStorage.getItem('um_users')||'[]'); if(Array.isArray(um)&&um.length) rows=um; }catch{}
+        try{ const s=JSON.parse(localStorage.getItem('ascm_session')||'null'); if (rows.length===0 && s) rows=[{id:s.id, name:s.name||s.email||s.id, email:s.email||'', role:s.role||'ae'}]; }catch{}
+        return rows.filter(u=> !u.deleted && u.is_active!==false);
+      }
+
+      function hydrateUsers(){
+        const sel = qs('#simUser'); const u = loadUsers();
+        sel.innerHTML = u.map(x=> `<option value="${x.id}">${x.name||x.email||x.id}</option>`).join('');
+      }
+
+      function readStore(){ try{ return JSON.parse(localStorage.getItem(STORE_KEY)||'[]'); }catch{ return []; } }
+      function writeStore(arr){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(arr)); }catch{} }
+      function renderStore(){ qs('#storeOut').textContent = JSON.stringify(readStore(), null, 2); }
+
+      function simulate(){
+        const uid = qs('#simUser').value;
+        const role = qs('#simRole').value;
+        const date = qs('#simDate').value || new Date().toISOString().slice(0,10);
+        const count = Math.max(1, parseInt(qs('#simCount').value||'1',10));
+        const calls = Math.max(0, parseInt(qs('#m_calls').value||'0',10));
+        const emails = Math.max(0, parseInt(qs('#m_emails').value||'0',10));
+        const meetings = Math.max(0, parseInt(qs('#m_meet').value||'0',10));
+        const pipeline = Math.max(0, parseFloat(qs('#m_pipe').value||'0'));
+        const arr=[];
+        for(let i=0;i<count;i++){
+          arr.push({ id: 'sbx_'+Math.random().toString(36).slice(2), userId: uid, userName:'Sandbox', role, date: new Date(date).toISOString(), callsMade: calls, emailsSent: emails, meetingsBooked: meetings, pipelineGenerated: pipeline, submitted: true, _sandbox: true, _at: now() });
+        }
+        const store = readStore(); store.push(...arr); writeStore(store); renderStore();
+        const summary = { status:'ok', mode:'sandbox', generated: arr.length, at: now(), sample: arr[0]||null };
+        qs('#jsonOut').textContent = JSON.stringify(summary, null, 2);
+        qs('#simStatus').textContent = 'Simulated '+arr.length+' entries';
+        if (qs('#simBroadcast').checked){ try{ if(!window._ascmSandboxChan) window._ascmSandboxChan = new BroadcastChannel('ascm_sandbox'); window._ascmSandboxChan.postMessage({ type:'sandbox_entries_updated', at: now(), userId: uid }); }catch{} try{ localStorage.setItem('ascm_sandbox_updated', String(now())); }catch{} }
+        showToast('Simulation complete (no live writes).','success');
+      }
+
+      function clearStore(){ writeStore([]); renderStore(); qs('#jsonOut').textContent='{}'; qs('#simStatus').textContent='Cleared'; showToast('Sandbox cleared.','info'); }
+
+      document.addEventListener('DOMContentLoaded', ()=>{
+        hydrateUsers(); renderStore();
+        const dt = qs('#simDate'); if (dt) dt.value = new Date().toISOString().slice(0,10);
+        qs('#btnSimulate').addEventListener('click', simulate);
+        qs('#btnClear').addEventListener('click', clearStore);
+      });
+    })();
+  </script>
+</body>
+</html>

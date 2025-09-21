@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KPI Snapshot Debugger — Admin</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <header class="brand-gradient text-white">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-white/10 grid place-items-center"><i class="fa-solid fa-bug"></i></div>
+        <div>
+          <h1 class="text-base font-bold">KPI Snapshot Debugger</h1>
+          <p class="text-xs text-white/80">Compare live KPI-Lite vs /kpi-summary snapshot</p>
+        </div>
+      </div>
+      <a href="sales-dashboard-modular.html" class="btn-outline px-3 py-2 rounded-md text-sm">Dashboard</a>
+    </div>
+  </header>
+  <main class="max-w-6xl mx-auto px-6 py-6">
+    <div class="card p-4 border rounded-lg bg-white mb-4">
+      <div class="flex items-center gap-3 mb-3">
+        <label class="text-sm text-slate-700">User ID</label>
+        <input id="uid" class="input rounded-md px-3 py-2 text-sm" placeholder="user-id">
+        <label class="text-sm text-slate-700">Role</label>
+        <select id="role" class="input rounded-md px-3 py-2 text-sm"><option>ae</option><option>am</option></select>
+        <label class="text-sm text-slate-700">Period</label>
+        <select id="period" class="input rounded-md px-3 py-2 text-sm"><option>week</option><option>month</option><option>7days</option><option>all</option></select>
+        <button id="run" class="btn-primary rounded-md px-3 py-2 text-sm"><i class="fa-solid fa-play mr-2"></i>Run</button>
+      </div>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div>
+          <h3 class="font-semibold mb-2">Live (KPI-Lite)</h3>
+          <pre id="live" class="text-xs bg-slate-50 p-3 rounded border max-h-96 overflow-y-auto">—</pre>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-2">Snapshot (/kpi-summary)</h3>
+          <pre id="snap" class="text-xs bg-slate-50 p-3 rounded border max-h-96 overflow-y-auto">—</pre>
+        </div>
+      </div>
+      <div class="mt-4">
+        <h3 class="font-semibold mb-2">Diff</h3>
+        <pre id="diff" class="text-xs bg-slate-50 p-3 rounded border max-h-96 overflow-y-auto">—</pre>
+      </div>
+    </div>
+  </main>
+  <script src="js/kpi-lite.js"></script>
+  <script>
+    function getSession(){ try { return JSON.parse(localStorage.getItem('ascm_session')||'null'); } catch{ return null; } }
+    const sess = getSession(); if(!sess || (String(sess.role||'').toLowerCase()!=='admin')){ location.replace('index.html'); }
+    async function fetchSnapshot(uid, role){ try{ const r=await fetch('/kpi-summary?userId='+encodeURIComponent(uid)+'&role='+role+'&cb='+Date.now(), {cache:'no-store'}); if(!r.ok) return null; return await r.json(); }catch{return null;} }
+    function diffObj(a,b){ try{ const out={}; const keys = Array.from(new Set([...Object.keys(a||{}), ...Object.keys(b||{})])); keys.forEach(k=>{ if (JSON.stringify(a?.[k])!==JSON.stringify(b?.[k])) out[k] = { live: a?.[k], snap: b?.[k] }; }); return out; }catch{ return { error:'diff failed' }; } }
+    document.getElementById('run').addEventListener('click', async ()=>{
+      const uid=(document.getElementById('uid').value||'').trim(); const role=(document.getElementById('role').value||'ae'); const period=document.getElementById('period').value||'week';
+      if(!uid){ alert('Enter user ID'); return; }
+      await window.kpiLite.load(uid, role, period);
+      const live = window.kpiLite.buildViewModel(window.kpiLite.compute());
+      const snap = await fetchSnapshot(uid, role);
+      document.getElementById('live').textContent = JSON.stringify(live, null, 2);
+      document.getElementById('snap').textContent = JSON.stringify(snap, null, 2);
+      const d = diffObj(live?.groups?.Financials?.[0]?.current? live : live, snap||{});
+      document.getElementById('diff').textContent = JSON.stringify(d, null, 2);
+    });
+  </script>
+</body>
+</html>

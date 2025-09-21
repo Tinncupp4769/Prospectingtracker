@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard & User Features Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold mb-2 text-gray-800">
+                <i class="fas fa-chart-line text-indigo-600 mr-2"></i>
+                Dashboard & User Features Test Suite
+            </h1>
+            <p class="text-gray-600">Comprehensive testing for user edit, act as user, and dashboard metrics</p>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Quick Actions</h2>
+            <div class="flex flex-wrap gap-3">
+                <button onclick="window.open('index.html', '_blank')" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                    <i class="fas fa-external-link-alt mr-2"></i>Open Main App
+                </button>
+                <button onclick="runAllTests()" class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700">
+                    <i class="fas fa-play mr-2"></i>Run All Tests
+                </button>
+                <button onclick="clearTestResults()" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                    <i class="fas fa-eraser mr-2"></i>Clear Results
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Categories -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <!-- User Management Tests -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-bold mb-4 text-indigo-600">
+                    <i class="fas fa-users-cog mr-2"></i>User Management Tests
+                </h3>
+                <div class="space-y-3">
+                    <button onclick="testUserEdit()" class="w-full text-left px-4 py-2 bg-blue-50 hover:bg-blue-100 rounded transition">
+                        <i class="fas fa-edit mr-2 text-blue-600"></i>
+                        <span class="font-medium">Test User Edit Modal</span>
+                        <p class="text-sm text-gray-600 mt-1">Verify edit functionality creates proper modal with all fields</p>
+                    </button>
+                    
+                    <button onclick="testActAsUser()" class="w-full text-left px-4 py-2 bg-purple-50 hover:bg-purple-100 rounded transition">
+                        <i class="fas fa-user-shield mr-2 text-purple-600"></i>
+                        <span class="font-medium">Test Act As User</span>
+                        <p class="text-sm text-gray-600 mt-1">Check dropdown population and user selection</p>
+                    </button>
+                    
+                    <button onclick="testUserDataIntegrity()" class="w-full text-left px-4 py-2 bg-green-50 hover:bg-green-100 rounded transition">
+                        <i class="fas fa-database mr-2 text-green-600"></i>
+                        <span class="font-medium">Test User Data Integrity</span>
+                        <p class="text-sm text-gray-600 mt-1">Verify users are properly stored and retrieved</p>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dashboard Tests -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h3 class="text-lg font-bold mb-4 text-green-600">
+                    <i class="fas fa-chart-bar mr-2"></i>Dashboard Tests
+                </h3>
+                <div class="space-y-3">
+                    <button onclick="testAEDashboard()" class="w-full text-left px-4 py-2 bg-blue-50 hover:bg-blue-100 rounded transition">
+                        <i class="fas fa-user-tie mr-2 text-blue-600"></i>
+                        <span class="font-medium">Test AE Dashboard</span>
+                        <p class="text-sm text-gray-600 mt-1">Verify pipeline, revenue, and all AE metrics</p>
+                    </button>
+                    
+                    <button onclick="testAMDashboard()" class="w-full text-left px-4 py-2 bg-purple-50 hover:bg-purple-100 rounded transition">
+                        <i class="fas fa-user-friends mr-2 text-purple-600"></i>
+                        <span class="font-medium">Test AM Dashboard</span>
+                        <p class="text-sm text-gray-600 mt-1">Check dormant accounts, cross-sell, up-sell metrics</p>
+                    </button>
+                    
+                    <button onclick="testDashboardToggle()" class="w-full text-left px-4 py-2 bg-yellow-50 hover:bg-yellow-100 rounded transition">
+                        <i class="fas fa-exchange-alt mr-2 text-yellow-600"></i>
+                        <span class="font-medium">Test Dashboard Toggle</span>
+                        <p class="text-sm text-gray-600 mt-1">Verify switching between AE/AM/Admin views</p>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Test Results</h2>
+            <div id="test-results" class="space-y-2"></div>
+        </div>
+
+        <!-- Data Inspector -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-bold mb-4 text-gray-800">Data Inspector</h2>
+            <div class="grid grid-cols-3 gap-3 mb-4">
+                <button onclick="inspectUsers()" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                    <i class="fas fa-users mr-2"></i>Inspect Users
+                </button>
+                <button onclick="inspectDashboardState()" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                    <i class="fas fa-tachometer-alt mr-2"></i>Dashboard State
+                </button>
+                <button onclick="inspectMetrics()" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                    <i class="fas fa-chart-pie mr-2"></i>Metrics Data
+                </button>
+            </div>
+            <div id="data-inspector" class="bg-gray-50 p-4 rounded font-mono text-sm overflow-auto max-h-96"></div>
+        </div>
+    </div>
+
+    <script>
+        // Test result logging
+        function logResult(testName, status, details = '') {
+            const resultsDiv = document.getElementById('test-results');
+            const resultDiv = document.createElement('div');
+            
+            const statusColors = {
+                'PASS': 'border-green-500 bg-green-50',
+                'FAIL': 'border-red-500 bg-red-50',
+                'INFO': 'border-blue-500 bg-blue-50',
+                'WARNING': 'border-yellow-500 bg-yellow-50'
+            };
+            
+            const statusIcons = {
+                'PASS': '✅',
+                'FAIL': '❌',
+                'INFO': 'ℹ️',
+                'WARNING': '⚠️'
+            };
+            
+            resultDiv.className = `p-3 rounded border-l-4 ${statusColors[status] || 'border-gray-500 bg-gray-50'}`;
+            resultDiv.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div class="flex-grow">
+                        <span class="font-semibold">${testName}</span>
+                        ${details ? `<p class="text-sm text-gray-600 mt-1">${details}</p>` : ''}
+                    </div>
+                    <span class="text-xl ml-3">${statusIcons[status] || '❓'}</span>
+                </div>
+            `;
+            
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        function clearTestResults() {
+            document.getElementById('test-results').innerHTML = '';
+        }
+
+        // User Management Tests
+        function testUserEdit() {
+            clearTestResults();
+            logResult('User Edit Function', 'INFO', 'Testing editUser function availability...');
+            
+            if (typeof window.parent.editUser === 'function') {
+                logResult('editUser Function', 'PASS', 'Function exists and is callable');
+                
+                // Check if users exist to edit
+                const users = JSON.parse(localStorage.getItem('unified_users') || '[]');
+                if (users.length > 0) {
+                    logResult('Users Available', 'PASS', `${users.length} users available for editing`);
+                    logResult('Test Instructions', 'INFO', 'Go to Users section in main app, click edit button on any user');
+                } else {
+                    logResult('Users Available', 'FAIL', 'No users found to edit');
+                }
+            } else {
+                logResult('editUser Function', 'FAIL', 'Function not found or not accessible');
+            }
+        }
+
+        function testActAsUser() {
+            clearTestResults();
+            logResult('Act As User Function', 'INFO', 'Testing act as user functionality...');
+            
+            if (typeof window.parent.setupActAsUser === 'function') {
+                logResult('setupActAsUser', 'PASS', 'Function exists');
+            } else {
+                logResult('setupActAsUser', 'FAIL', 'Function not found');
+            }
+            
+            if (typeof window.parent.confirmActAsUser === 'function') {
+                logResult('confirmActAsUser', 'PASS', 'Function exists');
+            } else {
+                logResult('confirmActAsUser', 'FAIL', 'Function not found');
+            }
+            
+            // Check for non-admin users
+            const users = JSON.parse(localStorage.getItem('unified_users') || '[]');
+            const nonAdminUsers = users.filter(u => u.role !== 'admin');
+            
+            if (nonAdminUsers.length > 0) {
+                logResult('Available Users', 'PASS', `${nonAdminUsers.length} non-admin users available to act as`);
+                logResult('Users List', 'INFO', nonAdminUsers.map(u => `${u.name} (${u.role})`).join(', '));
+            } else {
+                logResult('Available Users', 'WARNING', 'No non-admin users found');
+            }
+            
+            logResult('Test Instructions', 'INFO', 'Go to Users > Act As User tab to test dropdown and selection');
+        }
+
+        function testUserDataIntegrity() {
+            clearTestResults();
+            logResult('User Data Integrity', 'INFO', 'Checking user data storage...');
+            
+            const unifiedUsers = JSON.parse(localStorage.getItem('unified_users') || '[]');
+            const sptUsers = JSON.parse(localStorage.getItem('spt_users') || '[]');
+            
+            logResult('Unified Users', unifiedUsers.length > 0 ? 'PASS' : 'FAIL', 
+                     `${unifiedUsers.length} users in unified_users`);
+            logResult('SPT Users', sptUsers.length > 0 ? 'PASS' : 'WARNING', 
+                     `${sptUsers.length} users in spt_users`);
+            
+            // Check for required fields
+            if (unifiedUsers.length > 0) {
+                const user = unifiedUsers[0];
+                const requiredFields = ['id', 'firstName', 'lastName', 'email', 'role'];
+                const missingFields = requiredFields.filter(field => !user[field]);
+                
+                if (missingFields.length === 0) {
+                    logResult('User Schema', 'PASS', 'All required fields present');
+                } else {
+                    logResult('User Schema', 'WARNING', `Missing fields: ${missingFields.join(', ')}`);
+                }
+            }
+        }
+
+        // Dashboard Tests
+        function testAEDashboard() {
+            clearTestResults();
+            logResult('AE Dashboard Test', 'INFO', 'Testing Account Executive dashboard metrics...');
+            
+            const metricsToCheck = [
+                { id: 'ae-calls-value', name: 'Calls' },
+                { id: 'ae-emails-value', name: 'Emails' },
+                { id: 'ae-meetings-value', name: 'Meetings' },
+                { id: 'ae-pipeline-value', name: 'Pipeline Generated' },
+                { id: 'ae-revenue-value', name: 'Revenue' }
+            ];
+            
+            logResult('Required Metrics', 'INFO', 'Checking for AE-specific metrics...');
+            
+            // Check if updateAEDashboard function exists
+            if (typeof window.parent.updateAEDashboard === 'function') {
+                logResult('updateAEDashboard', 'PASS', 'Function exists');
+                
+                // List expected metrics
+                metricsToCheck.forEach(metric => {
+                    logResult(`${metric.name} Metric`, 'INFO', 
+                             `Should display in element: #${metric.id}`);
+                });
+                
+                logResult('Test Instructions', 'INFO', 
+                         'Switch to AE role in main app dashboard to verify all metrics display');
+            } else {
+                logResult('updateAEDashboard', 'FAIL', 'Function not found');
+            }
+        }
+
+        function testAMDashboard() {
+            clearTestResults();
+            logResult('AM Dashboard Test', 'INFO', 'Testing Account Manager dashboard metrics...');
+            
+            const dormantMetrics = [
+                'Dormant Account Calls',
+                'Dormant Account Emails',
+                'Dormant LinkedIn Messages',
+                'Dormant Vidyard Videos',
+                'Dormant ABM Campaigns',
+                'General ABM Campaigns'
+            ];
+            
+            const crossSellMetrics = [
+                'Cross-sell Opportunities',
+                'Up-sell Opportunities',
+                'Expansion Revenue'
+            ];
+            
+            logResult('Dormant Account Metrics', 'INFO', dormantMetrics.join(', '));
+            logResult('Cross-sell/Up-sell Metrics', 'INFO', crossSellMetrics.join(', '));
+            
+            // Check if updateAMDashboard function exists
+            if (typeof window.parent.updateAMDashboard === 'function') {
+                logResult('updateAMDashboard', 'PASS', 'Function exists');
+                logResult('Test Instructions', 'INFO', 
+                         'Switch to AM role in main app dashboard to verify unique AM metrics display');
+            } else {
+                logResult('updateAMDashboard', 'FAIL', 'Function not found');
+            }
+        }
+
+        function testDashboardToggle() {
+            clearTestResults();
+            logResult('Dashboard Toggle Test', 'INFO', 'Testing dashboard role switching...');
+            
+            // Check role selector
+            logResult('Role Options', 'INFO', 'Dashboard should support: AE, AM, Admin views');
+            
+            // Check toggle functions
+            const functions = ['showSection', 'updateAEDashboard', 'updateAMDashboard'];
+            functions.forEach(func => {
+                if (typeof window.parent[func] === 'function') {
+                    logResult(func, 'PASS', 'Function available');
+                } else {
+                    logResult(func, 'WARNING', 'Function not found');
+                }
+            });
+            
+            logResult('Test Instructions', 'INFO', 
+                     'Use role selector in main app to switch between AE/AM/Admin and verify correct dashboard loads');
+        }
+
+        // Data Inspector Functions
+        function inspectUsers() {
+            const users = JSON.parse(localStorage.getItem('unified_users') || '[]');
+            const html = users.map(u => `
+                <div class="mb-3 p-3 bg-white rounded border">
+                    <div class="font-bold text-indigo-600">${u.name || u.firstName + ' ' + u.lastName}</div>
+                    <div class="text-sm">
+                        <span class="text-gray-600">Email:</span> ${u.email}<br>
+                        <span class="text-gray-600">Role:</span> ${u.role} | 
+                        <span class="text-gray-600">Platform:</span> ${u.platformRole || 'user'}<br>
+                        <span class="text-gray-600">Status:</span> ${u.status || 'active'}
+                    </div>
+                </div>
+            `).join('');
+            
+            document.getElementById('data-inspector').innerHTML = 
+                `<h3 class="font-bold mb-2">Users (${users.length} total)</h3>` + html;
+        }
+
+        function inspectDashboardState() {
+            const state = {
+                authenticated: localStorage.getItem('spt_authenticated'),
+                currentRole: sessionStorage.getItem('current_role'),
+                actAsMode: sessionStorage.getItem('act_as_mode'),
+                actAsUser: sessionStorage.getItem('act_as_user'),
+                activities: JSON.parse(localStorage.getItem('spt_activities') || '[]').length,
+                goals: JSON.parse(localStorage.getItem('spt_goals') || '[]').length
+            };
+            
+            document.getElementById('data-inspector').innerHTML = 
+                '<h3 class="font-bold mb-2">Dashboard State</h3>' +
+                '<pre>' + JSON.stringify(state, null, 2) + '</pre>';
+        }
+
+        function inspectMetrics() {
+            const activities = JSON.parse(localStorage.getItem('spt_activities') || '[]');
+            
+            const metrics = {
+                totalActivities: activities.length,
+                calls: activities.filter(a => a.type === 'call').length,
+                emails: activities.filter(a => a.type === 'email').length,
+                meetings: activities.filter(a => a.type === 'meeting').length,
+                uniqueUsers: [...new Set(activities.map(a => a.userId))].length
+            };
+            
+            document.getElementById('data-inspector').innerHTML = 
+                '<h3 class="font-bold mb-2">Activity Metrics</h3>' +
+                '<pre>' + JSON.stringify(metrics, null, 2) + '</pre>';
+        }
+
+        // Run all tests
+        async function runAllTests() {
+            clearTestResults();
+            logResult('Test Suite', 'INFO', 'Running comprehensive dashboard and user tests...');
+            
+            // Run each test with delay
+            setTimeout(() => testUserEdit(), 100);
+            setTimeout(() => testActAsUser(), 300);
+            setTimeout(() => testUserDataIntegrity(), 500);
+            setTimeout(() => testAEDashboard(), 700);
+            setTimeout(() => testAMDashboard(), 900);
+            setTimeout(() => testDashboardToggle(), 1100);
+            
+            setTimeout(() => {
+                logResult('Test Suite Complete', 'PASS', 'All tests executed. Check results above.');
+            }, 1300);
+        }
+
+        // Initialize
+        window.addEventListener('load', () => {
+            console.log('Dashboard & User Features Test Suite loaded');
+            inspectUsers();
+        });
+    </script>
+    <script src="js/shims.js"></script>
+</body>
+</html>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCM Sync Health — Synthetic Transactions</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <style>
+    .badge { display:inline-flex; align-items:center; gap:6px; font-size:12px; padding:4px 8px; border-radius:999px; }
+    .ok { background:#E6F9EE; color:#066E3A; }
+    .warn { background:#FFF7E6; color:#92400E; }
+    .err { background:#FEE2E2; color:#991B1B; }
+    .card { background:#fff; border:1px solid var(--ascm-border); border-radius:14px; padding:16px; box-shadow:0 8px 18px rgba(0,0,0,.06); }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <header class="brand-gradient text-white">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-white/10 grid place-items-center"><i class="fa-solid fa-heart-pulse"></i></div>
+        <div>
+          <h1 class="text-base font-bold">ASCM Sync Health — Synthetic Transactions</h1>
+          <p class="text-xs text-white/80">End-to-end create/update/delete checks + latency</p>
+        </div>
+      </div>
+      <a id="home-button" href="app.html" class="btn-outline px-3 py-2 rounded-md text-sm">Back to App</a>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-6 py-6 grid gap-4">
+    <div class="card">
+      <div class="flex items-center justify-between">
+        <h2 class="font-semibold">Environment</h2>
+        <button id="runBtn" class="btn-primary rounded-md px-3 py-2 text-sm"><i class="fa-solid fa-play mr-2"></i>Run Synthetic Checks</button>
+      </div>
+      <div id="env" class="text-sm text-slate-600 mt-2"></div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="card">
+        <h3 class="font-semibold mb-2">Checks</h3>
+        <ul id="checks" class="space-y-2"></ul>
+      </div>
+      <div class="card">
+        <h3 class="font-semibold mb-2">Latency (ms)</h3>
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <div class="text-slate-500">Create</div>
+            <div id="latCreate" class="mono">—</div>
+          </div>
+          <div>
+            <div class="text-slate-500">Read</div>
+            <div id="latRead" class="mono">—</div>
+          </div>
+          <div>
+            <div class="text-slate-500">Update</div>
+            <div id="latUpdate" class="mono">—</div>
+          </div>
+          <div>
+            <div class="text-slate-500">Delete</div>
+            <div id="latDelete" class="mono">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 class="font-semibold mb-2">Log</h3>
+      <pre id="log" class="mono text-xs whitespace-pre-wrap"></pre>
+    </div>
+  </main>
+
+  <script>
+    function getSession(){ try { return JSON.parse(localStorage.getItem('ascm_session')||'null'); } catch { return null; } }
+    const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
+    function looksLikeHtml(res){ const ct=(res.headers.get('content-type')||'').toLowerCase(); return ct.includes('text/html'); }
+
+    function logLine(msg){ const el=document.getElementById('log'); el.textContent += msg + "\n"; }
+    function badge(status, text){ const cls = status==='ok'?'ok':status==='warn'?'warn':'err'; return `<span class="badge ${cls}">${text||status.toUpperCase()}</span>`; }
+
+    async function apiRequest(method, path, body, tries=3){
+      let lastText='';
+      for(let i=0;i<tries;i++){
+        const res = await fetch(path,{ method, headers:{'Content-Type':'application/json'}, body: body!=null?JSON.stringify(body):undefined, cache:'no-store', credentials:'same-origin' });
+        if (res.status===401 || res.status===403 || looksLikeHtml(res)){
+          try { lastText = await res.text(); } catch {}
+          try { await fetch('tables/users?limit=1',{ cache:'no-store', credentials:'same-origin' }); } catch{}
+          await sleep(1000);
+          continue;
+        }
+        return res;
+      }
+      throw new Error('API blocked: '+lastText.slice(0,200));
+    }
+    async function apiJson(method, path, body, tries=3){ const res=await apiRequest(method,path,body,tries); if(!res.ok){ let t=''; try{t=await res.text();}catch{}; throw new Error(method+' '+path+' -> '+res.status+' '+t.slice(0,200)); } if(res.status===204) return {}; try{ return await res.json(); }catch{ return {}; } }
+
+    function setEnv(){
+      const s=getSession();
+      const env = [
+        `User: ${s?.email||s?.name||'Unknown'} (${s?.role||'-'})`,
+        `Origin: ${location.origin}`,
+        `Path: ${location.pathname}`,
+        `Time: ${new Date().toLocaleString()}`
+      ].join('\n');
+      document.getElementById('env').textContent = env;
+    }
+
+    async function run(){
+      const checks = document.getElementById('checks'); checks.innerHTML='';
+      const addCheck=(name, status, extra='')=>{ const li=document.createElement('li'); li.innerHTML=`<div class="flex items-center justify-between"><div>${name}</div><div class="flex items-center gap-2">${extra}${badge(status)}</div></div>`; checks.appendChild(li); };
+
+      try{
+        setEnv();
+        logLine('Warmup…');
+        await apiRequest('GET','tables/activities?limit=1');
+        addCheck('Warmup', 'ok');
+
+        // Create
+        const startC = performance.now();
+        const s=getSession();
+        const created = await apiJson('POST','tables/activities',{
+          userId: s?.id||'tester', userName: s?.name||s?.email||'Tester', role: (s?.role||'ae').toLowerCase(),
+          callsMade:1, emailsSent:2, meetingsBooked:0, pipelineGenerated:0, revenueClosed:0,
+          category:'test', type:'test', date: new Date().toISOString(), week: 'TEST', createdAt: Date.now()
+        });
+        const latC = Math.round(performance.now()-startC); document.getElementById('latCreate').textContent = latC;
+        addCheck('Create activity', 'ok', `<span class="mono text-xs">${created.id||'-'}</span>`);
+        logLine('Created: '+JSON.stringify(created));
+
+        // Read
+        const startR = performance.now();
+        const got = await apiJson('GET', `tables/activities/${created.id}`);
+        const latR = Math.round(performance.now()-startR); document.getElementById('latRead').textContent = latR;
+        addCheck('Read activity', 'ok');
+        logLine('Read: '+JSON.stringify(got));
+
+        // Update
+        const startU = performance.now();
+        const upd = await apiJson('PATCH', `tables/activities/${created.id}`, { emailsSent:3 });
+        const latU = Math.round(performance.now()-startU); document.getElementById('latUpdate').textContent = latU;
+        addCheck('Update activity', 'ok');
+        logLine('Updated: '+JSON.stringify(upd));
+
+        // Delete
+        const startD = performance.now();
+        await apiRequest('DELETE', `tables/activities/${created.id}`);
+        const latD = Math.round(performance.now()-startD); document.getElementById('latDelete').textContent = latD;
+        addCheck('Delete activity', 'ok');
+        logLine('Deleted: '+created.id);
+
+        // Broadcast to dashboards
+        try { localStorage.setItem('ascm_activities_updated', String(Date.now())); } catch{}
+        try { if (!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.postMessage({ type:'activities_updated', at: Date.now() }); } catch{}
+
+      }catch(err){
+        console.error(err);
+        logLine('Error: '+err.message);
+        addCheck('Synthetic transaction', 'err');
+      }
+    }
+
+    document.getElementById('runBtn').addEventListener('click', run);
+    setEnv();
+  </script>
+</body>
+</html>

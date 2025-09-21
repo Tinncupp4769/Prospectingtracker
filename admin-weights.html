@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Leaderboard Weights</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+    .card { background:#fff; border:1px solid var(--ascm-border); border-radius:16px; box-shadow:0 10px 24px rgba(0,0,0,.06); }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <header class="brand-gradient text-white sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-white/10 grid place-items-center"><i class="fa-solid fa-sliders"></i></div>
+        <div>
+          <h1 class="text-base font-bold">Leaderboard Weights Console</h1>
+          <p class="text-xs text-white/80">Admin: edit metric weights per role</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <a id="home-button" href="app.html" class="btn-outline px-3 py-2 rounded-md text-sm">Home</a>
+        <a href="admin-users.html" class="btn-outline px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-users-gear mr-2"></i>Users Console</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6">
+    <section class="card p-4 mb-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-base font-semibold">Weights</h3>
+        <div class="flex items-center gap-2">
+          <label for="weightsScope" class="text-sm text-slate-600">Scope</label>
+          <select id="weightsScope" class="input rounded-md py-1.5 text-sm">
+            <option value="ae">AE</option>
+            <option value="am">AM</option>
+          </select>
+          <button id="weightsReload" class="btn-outline px-3 py-1.5 rounded-md text-sm">Reload</button>
+          <button id="weightsSave" class="btn-primary px-3 py-1.5 rounded-md text-sm"><i class="fa-solid fa-floppy-disk mr-2"></i>Save</button>
+          <span id="apiStatus" class="px-2 py-1 text-xs rounded border bg-slate-100 border-slate-200 text-slate-600">Checking…</span>
+        </div>
+      </div>
+      <div id="weightsGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+      <div id="weightsHint" class="text-xs text-slate-500 mt-2">Values apply only to the selected scope. Defaults are used when no weight exists for a metric.</div>
+    </section>
+
+    <section class="card p-4">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="font-semibold">Diagnostics</h3>
+        <button id="runDiag" class="btn-outline px-3 py-1.5 rounded-md text-sm">Run</button>
+      </div>
+      <pre id="diagOut" class="text-xs bg-slate-50 p-3 rounded border max-h-64 overflow-y-auto">Ready.</pre>
+    </section>
+  </main>
+
+  <script>
+    // lightweight toast for inline feedback
+    function ensureToast(){ if(document.getElementById('ascm_toast')) return; const t=document.createElement('div'); t.id='ascm_toast'; t.className='ascm-toast info'; document.body.appendChild(t); }
+    function showToast(msg,type='info'){ try{ ensureToast(); const t=document.getElementById('ascm_toast'); t.classList.remove('success','error','info'); t.classList.add(type||'info'); t.innerHTML = `<span>${String(msg||'')}</span><button class='close' aria-label='Dismiss'>×</button>`; const btn=t.querySelector('.close'); if(btn) btn.onclick=()=> t.classList.remove('show'); t.classList.add('show'); clearTimeout(showToast._timer); showToast._timer=setTimeout(()=>{ t.classList.remove('show');},5000);}catch{ console.log('[toast]',msg); }
+    }
+
+    // Admin gate
+    function getSession(){ try { return JSON.parse(localStorage.getItem('ascm_session')||'null'); } catch { return null; } }
+    const session = getSession(); if (!session) { window.location.replace('index.html'); throw new Error('No session'); } if ((session.role||'').toLowerCase()!=='admin') { window.location.replace('app.html'); throw new Error('RBAC: admin only'); }
+
+    let API_BASE='tables/'; const API_BASE_CANDIDATES=['tables/','/tables/'];
+    function normalizePath(p){ if (/^https?:\/\//i.test(p)) return p; if (p.startsWith('tables/')) return API_BASE+p.slice('tables/'.length); if (p.startsWith('/tables/')) return API_BASE+p.slice('/tables/'.length); return p; }
+    async function resolveApiBase(){ for (const base of API_BASE_CANDIDATES){ try{ const r=await fetch(`${base}leaderboard_weights?limit=1`,{cache:'no-store', credentials:'same-origin'}); const ct=(r.headers.get('content-type')||'').toLowerCase(); if (r.ok && ct.includes('application/json')){ API_BASE=base; break; } }catch{} } }
+    const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+    function looksLikeHtml(res){ const ct=(res.headers?.get?.('content-type')||'').toLowerCase(); return ct.includes('text/html'); }
+    function setApiStatus(mode){ window._apiStatusMode = mode || 'checking'; const el=document.getElementById('apiStatus'); const base='px-2 py-1 text-xs rounded border '; if(mode==='live'){ el.className=base+'bg-emerald-50 border-emerald-200 text-emerald-700'; el.textContent='Live'; } else if(mode==='cached'){ el.className=base+'bg-blue-50 border-blue-200 text-blue-700'; el.textContent='Cached'; } else if(mode==='offline'){ el.className=base+'bg-red-50 border-red-200 text-red-700'; el.textContent='Offline'; } else if(mode==='queued'){ el.className=base+'bg-amber-50 border-amber-200 text-amber-700'; el.textContent='Queued'; } else { el.className=base+'bg-slate-100 border-slate-200 text-slate-600'; el.textContent='Checking…'; } }
+    async function apiRequest(method, path, body, tries=7){ let last=''; for (let i=0;i<tries;i++){ let url = normalizePath(path); const sep = url.includes('?') ? '&' : '?'; url = `${url}${sep}cb=${Date.now()}_${i}`; const res=await fetch(url, { method, headers:{'Content-Type':'application/json'}, body: body!=null?JSON.stringify(body):undefined, cache:'no-store', credentials:'same-origin' }); if (res.status===401||res.status===403||looksLikeHtml(res)){ try{ last=await res.text(); }catch{} try{ let wu = normalizePath('tables/leaderboard_weights?limit=1'); const wusep = wu.includes('?') ? '&' : '?'; await fetch(`${wu}${wusep}cb=${Date.now()}`, {cache:'no-store', credentials:'same-origin'}); }catch{} await sleep(800*(i+1)); continue; } return res; } throw new Error('API blocked '+last.slice(0,180)); }
+    async function apiJson(method, path, body){ const r=await apiRequest(method,path,body); if (!r.ok){ let t=''; try{t=await r.text();}catch{}; throw new Error(`${method} ${path} -> ${r.status} ${t.slice(0,200)}`);} if (r.status===204) return {}; try{ return await r.json(); }catch{ return {}; } }
+
+    const DEFAULT_WEIGHTS = { callsMade:1, emailsSent:1, linkedinMessages:1, vidyardVideos:1, meetingsBooked:6, successfulContacts:3, meetingsConducted:5, opportunitiesGenerated:8, referralsGenerated:4, pipelineGenerated:12, revenueClosed:15, accountsTargeted:2, generalAbmCampaigns:3, crossSellAbmCampaigns:3, upSellAbmCampaigns:3, dormantAbmCampaigns:3 };
+    const AE_METRICS=['callsMade','emailsSent','linkedinMessages','vidyardVideos','meetingsBooked','successfulContacts','meetingsConducted','opportunitiesGenerated','referralsGenerated','pipelineGenerated','revenueClosed'];
+    const AM_EXTRA=['accountsTargeted','generalAbmCampaigns','crossSellAbmCampaigns','upSellAbmCampaigns','dormantAbmCampaigns'];
+    function metricsForScope(scope){ return scope==='am' ? [...AE_METRICS, ...AM_EXTRA] : AE_METRICS; }
+
+    function renderWeightsGrid(values, scope){ const grid=document.getElementById('weightsGrid'); const keys=metricsForScope(scope); grid.innerHTML = keys.map(k=>{ const val=Number(values?.[k] ?? DEFAULT_WEIGHTS[k])||0; return `<label class="block text-sm"><div class="text-slate-700">${k}</div><input type="number" step="0.1" data-weight="${k}" class="input w-full rounded-md px-3 py-2 mt-1" value="${val}"></label>`; }).join(''); }
+    function collectWeightsFromGrid(){ const inputs=document.querySelectorAll('#weightsGrid [data-weight]'); const map={}; inputs.forEach(inp=> map[inp.dataset.weight]=Number(inp.value)||0); return map; }
+
+    async function loadWeights(scope){ const base={...DEFAULT_WEIGHTS}; try{ const j=await apiJson('GET','tables/leaderboard_weights?limit=1000'); const rows=j.data||[]; rows.filter(w=>String(w.role_scope||'')===String(scope)).forEach(w=>{ const k=String(w.metric||''); if (!k) return; base[k]=Number(w.weight)||0; }); // overlay any local overrides to ensure admin sees latest values even if POST was blocked
+      try{ const cachedOverride = JSON.parse(localStorage.getItem('lb_weights_'+scope)||'null'); if (cachedOverride && typeof cachedOverride==='object'){ Object.assign(base, cachedOverride); } }catch{}
+      localStorage.setItem('lb_weights_'+scope, JSON.stringify(base)); setApiStatus('live'); renderWeightsGrid(base, scope); } catch(e){ console.warn('loadWeights failed', e); try{ const cached=JSON.parse(localStorage.getItem('lb_weights_'+scope)||'null'); if (cached){ setApiStatus('cached'); renderWeightsGrid(cached, scope); return; } }catch{} setApiStatus('offline'); renderWeightsGrid(base, scope); }
+    }
+
+    // Lightweight async queue for blocked POSTs
+    function loadQueue(){ try{ return JSON.parse(localStorage.getItem('lb_weights_queue')||'[]'); }catch{return [];} }
+    function saveQueue(q){ try{ localStorage.setItem('lb_weights_queue', JSON.stringify(q)); }catch{} }
+    function enqueueWeight(item){ const q=loadQueue(); q.push({ ...item, attempts:0, nextAt:Date.now() }); saveQueue(q); try{ setApiStatus('queued'); }catch{} }
+    async function processQueueOnce(){ const q=loadQueue(); const now=Date.now(); const keep=[]; let didWork=false; for(const it of q){ if (it.nextAt>now){ keep.push(it); continue; } try{ await apiJson('POST','tables/leaderboard_weights', { metric: it.metric, weight: it.weight, role_scope: it.scope, updated_by: it.updated_by, updated_at: Date.now() }); didWork=true; } catch(e){ it.attempts=(it.attempts||0)+1; const backoff = Math.min(120000, 1000 * Math.pow(2, Math.min(it.attempts,6))); it.nextAt = Date.now() + backoff; keep.push(it); } } saveQueue(keep); try{ if (keep.length){ setApiStatus('queued'); } else { setApiStatus('live'); } }catch{} if (didWork){ try{ localStorage.setItem('lb_weights_updated', String(Date.now())); if (!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.postMessage({ type:'lb_weights_updated', at: Date.now() }); }catch{} } }
+    function startQueue(){ if (window._lbQueueTimer) return; window._lbQueueTimer=setInterval(processQueueOnce, 3000); processQueueOnce(); }
+
+    async function saveWeights(scope){ const vals = collectWeightsFromGrid(); const sess=getSession(); // Optimistic local save + broadcast so Leaderboard applies immediately
+      try{ localStorage.setItem('lb_weights_'+scope, JSON.stringify(vals)); localStorage.setItem('lb_weights_updated', String(Date.now())); }catch{}
+      try{ if (!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.postMessage({ type:'lb_weights_updated', scope, at: Date.now() }); }catch{}
+      // Persist to API using PATCH when possible to avoid POST blocks; fallback to POST with queue
+      try{
+        const j=await apiJson('GET','tables/leaderboard_weights?limit=1000'); const rows=j.data||[]; const existing=new Map(); rows.filter(w=> String(w.role_scope||'')===String(scope)).forEach(w=> existing.set(String(w.metric||''), String(w.id||'')));
+        const updates=[]; const creates=[]; for (const [metric, weight] of Object.entries(vals)){ const id = existing.get(metric); if (id){ updates.push({ id, payload:{ weight:Number(weight)||0, updated_by: sess?.email||sess?.id||'admin', updated_at: Date.now() } }); } else { creates.push({ scope, metric, weight:Number(weight)||0, updated_by: sess?.email||sess?.id||'admin' }); } }
+        if (updates.length){ await Promise.all(updates.map(u=> apiJson('PATCH', `tables/leaderboard_weights/${u.id}`, u.payload))); }
+        if (creates.length){ try{ await Promise.all(creates.map(c=> apiJson('POST','tables/leaderboard_weights', { metric:c.metric, weight:c.weight, role_scope: scope, updated_by: c.updated_by, updated_at: Date.now() }))); } catch(ePost){ // enqueue each failed create
+            for (const c of creates){ enqueueWeight({ scope, metric:c.metric, weight:c.weight, updated_by: c.updated_by }); }
+          }
+        }
+        showToast('Weights saved','success');
+      } catch(e){
+        // If we failed even before attempting (e.g., GET blocked), enqueue all metrics for POST
+        for (const [metric, weight] of Object.entries(vals)){ enqueueWeight({ scope, metric, weight:Number(weight)||0, updated_by: sess?.email||sess?.id||'admin' }); }
+        startQueue();
+        setApiStatus('queued');
+        showToast('Server unavailable; using local weights. Retrying in background.','info');
+      }
+      startQueue();
+    }
+
+    document.getElementById('weightsScope').addEventListener('change', e=> loadWeights(e.target.value||'ae'));
+    document.getElementById('weightsReload').addEventListener('click', ()=> loadWeights(document.getElementById('weightsScope').value||'ae'));
+    document.getElementById('weightsSave').addEventListener('click', ()=> saveWeights(document.getElementById('weightsScope').value||'ae'));
+
+    document.getElementById('runDiag').addEventListener('click', async ()=>{ const out=document.getElementById('diagOut'); out.textContent='Running…'; try{ const probe=await apiJson('GET','tables/leaderboard_weights?limit=1'); const total=probe.total||0; out.textContent=`API OK\nRows: ${total}`; }catch(e){ out.textContent='API FAIL: '+String(e?.message||e); }
+      try{ const q=JSON.parse(localStorage.getItem('lb_weights_queue')||'[]'); out.textContent += `\nQueue: ${q.length} item(s)`; }catch{}
+    });
+
+    (async function init(){ await resolveApiBase(); startQueue(); await loadWeights('ae'); })();
+  </script>
+</body>
+</html>

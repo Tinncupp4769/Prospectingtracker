@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASCM Prospecting — Landing</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <!-- React + Babel for standalone demo -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    :root {
+      /* Brand palette — adjust to official ASCM specs as needed */
+      --ascm-navy: #003466;      /* Primary header/brand */
+      --ascm-blue: #005B96;      /* Buttons/highlights */
+      --ascm-teal: #14B8A6;      /* Accents/active */
+      --ascm-light: #F5F5F5;     /* Page/background */
+      --ascm-white: #FFFFFF;     /* Cards/text containers */
+      --text: #0F172A;           /* Slate-like dark text */
+      --muted: #475569;          /* Muted text */
+      --shadow: 0 10px 24px rgba(0,0,0,.08);
+      --shadow-lg: 0 16px 36px rgba(0,0,0,.12);
+      --radius: 16px;
+    }
+
+    html, body { height: 100%; }
+    body { margin: 0; font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background: var(--ascm-light); color: var(--text); }
+
+    .header {
+      background: linear-gradient(135deg, var(--ascm-navy), var(--ascm-blue));
+      color: #fff;
+      padding: 24px 20px;
+    }
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 20px; }
+
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand .logo { width: 40px; height: 40px; border-radius: 12px; background: rgba(255,255,255,.15); display: grid; place-items: center; }
+    .brand h1 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: .2px; }
+    .brand p { margin: 2px 0 0; font-size: 12px; opacity: .9; }
+
+    .logout {
+      border: 1px solid rgba(255,255,255,.35);
+      color: #fff; background: transparent; border-radius: 10px; padding: 8px 12px; cursor: pointer;
+    }
+    .logout:hover { background: rgba(255,255,255,.12); }
+
+    .welcome { margin-top: 16px; }
+    .welcome h2 { margin: 0; font-size: 28px; font-weight: 800; }
+    .welcome p  { margin: 8px 0 0; font-size: 14px; opacity: .9; }
+
+    main { padding: 28px 0 42px; }
+
+    .grid { display: grid; gap: 18px; grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    @media (min-width: 700px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+    .card {
+      background: var(--ascm-white); border-radius: var(--radius); box-shadow: var(--shadow);
+      padding: 20px; display: flex; align-items: center; gap: 16px; cursor: pointer; border: 1px solid #E5E7EB;
+      transform: translateZ(0); transition: transform .15s ease, box-shadow .2s ease, border-color .15s ease;
+    }
+    .card:hover, .card:focus-within { transform: translateY(-2px); box-shadow: var(--shadow-lg); border-color: rgba(0,0,0,.08); }
+    .card:focus-visible { outline: 3px solid var(--ascm-teal); outline-offset: 3px; }
+
+    .card .icon {
+      width: 56px; height: 56px; border-radius: 14px; display: grid; place-items: center; color: #fff; font-size: 22px;
+      background: linear-gradient(135deg, var(--ascm-blue), var(--ascm-teal));
+      flex: 0 0 auto;
+    }
+    .card .content { display: grid; gap: 4px; }
+    .card .title { font-size: 16px; font-weight: 700; color: var(--text); }
+    .card .desc { font-size: 13px; color: var(--muted); }
+
+    .badge { margin-left: 8px; font-size: 11px; font-weight: 700; color: var(--ascm-navy); background: #E6F1FF; padding: 3px 8px; border-radius: 999px; }
+
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    // LandingPage — ASCM-branded landing after login
+    // Props:
+    // - user: { name: string, role: 'admin' | 'ae' | string }
+    // - onNavigate: (path: string) => void
+    // Brand customization: change CSS variables in :root or override via props/theme
+
+    const defaultTheme = {
+      navy:  getComputedStyle(document.documentElement).getPropertyValue('--ascm-navy').trim() || '#003466',
+      blue:  getComputedStyle(document.documentElement).getPropertyValue('--ascm-blue').trim() || '#005B96',
+      teal:  getComputedStyle(document.documentElement).getPropertyValue('--ascm-teal').trim() || '#14B8A6'
+    };
+
+    function Card({ title, desc, icon, onClick }) {
+      // Accessible, clickable card
+      const handleKey = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick?.(); }
+      };
+      return (
+        <div className="card" role="link" tabIndex={0} onClick={onClick} onKeyDown={handleKey} aria-label={title}>
+          <div className="icon" aria-hidden="true">{icon}</div>
+          <div className="content">
+            <div className="title">{title}</div>
+            <div className="desc">{desc}</div>
+          </div>
+        </div>
+      );
+    }
+
+    function getFirstName(name = '') {
+      const trimmed = String(name).trim();
+      if (!trimmed) return 'there';
+      return trimmed.split(' ')[0];
+    }
+
+    const LandingPage = ({ user, onNavigate }) => {
+      const isAdmin = (user?.role || '').toLowerCase() === 'admin';
+      const goto = (path) => onNavigate ? onNavigate(path) : window.location.assign(path);
+
+      const tiles = [
+        {
+          key: 'activity',
+          title: 'Enter Your Prospecting Activity',
+          desc: 'Quickly log calls, emails, meetings, and more.',
+          icon: <i className="fa-solid fa-pen-to-square"></i>,
+          path: 'activity-entry.html'
+        },
+        {
+          key: 'dashboard',
+          title: 'Activity Overview Dashboard',
+          desc: 'Track performance, trends, and targets.',
+          icon: <i className="fa-solid fa-chart-line"></i>,
+          path: 'sales-dashboard-modular.html'
+        },
+        {
+          key: 'leaderboard',
+          title: 'Leaderboard',
+          desc: 'See how you and your team rank.',
+          icon: <i className="fa-solid fa-trophy"></i>,
+          // TODO: Replace with a dedicated leaderboard route when available
+          path: 'analytics-dashboard.html#leaderboard'
+        }
+      ];
+
+      const adminTile = {
+        key: 'admin',
+        title: <>{'User Administration'}<span className="badge" aria-label="Admin only">ADMIN</span></>,
+        desc: 'Manage users, roles, and permissions.',
+        icon: <i className="fa-solid fa-user-gear"></i>,
+        path: 'user-management.html'
+      };
+
+      return (
+        <div>
+          <header className="header">
+            <div className="container">
+              <div className="topbar">
+                <div className="brand" aria-label="ASCM Prospecting">
+                  <div className="logo"><i className="fa-solid fa-diagram-project"></i></div>
+                  <div>
+                    <h1>ASCM Sales Prospecting Tracker</h1>
+                    <p>Turn outreach into outcomes</p>
+                  </div>
+                </div>
+                <button className="logout" onClick={() => {
+                  try { localStorage.removeItem('ascm_session'); } catch {}
+                  window.location.assign('index.html');
+                }}>
+                  <i className="fa-solid fa-arrow-right-from-bracket" style={{ marginRight: 8 }}></i>
+                  Logout
+                </button>
+              </div>
+
+              <div className="welcome">
+                <h2>Welcome back, {getFirstName(user?.name || user?.email)} 👋</h2>
+                <p>Your hub to log activity, view performance, and manage your workspace.</p>
+              </div>
+            </div>
+          </header>
+
+          <main>
+            <div className="container">
+              <div className="grid" role="navigation" aria-label="Primary">
+                {tiles.map(t => (
+                  <Card key={t.key} title={t.title} desc={t.desc} icon={t.icon} onClick={() => goto(t.path)} />
+                ))}
+                {isAdmin && (
+                  <Card key={adminTile.key} title={adminTile.title} desc={adminTile.desc} icon={adminTile.icon} onClick={() => goto(adminTile.path)} />
+                )}
+              </div>
+            </div>
+          </main>
+        </div>
+      );
+    };
+
+    // Example: hydrate from existing client-side session (demo only)
+    function getSession(){
+      try { return JSON.parse(localStorage.getItem('ascm_session')||'null'); } catch { return null; }
+    }
+
+    const session = getSession() || { name: 'Guest User', email: 'guest@example.com', role: 'ae' };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(
+      <LandingPage user={session} />
+    );
+  </script>
+</body>
+</html>

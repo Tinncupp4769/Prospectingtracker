@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activity Sync Test Harness</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <div class="max-w-3xl mx-auto p-6">
+    <h1 class="text-xl font-bold mb-2">Activity Sync Test Harness</h1>
+    <p class="text-sm text-slate-600 mb-4">Use this page to validate real-time synchronization of activities across tabs, including admin impersonation scope. Open this page and <a href="activity-entry-ae.html" class="link">an Entry console</a> plus <a class="link" href="sales-dashboard-modular.html">the Modular Dashboard</a> in separate tabs.</p>
+
+    <div class="grid gap-4">
+      <div class="card p-4 bg-white border rounded-xl">
+        <h2 class="font-semibold mb-2">Events</h2>
+        <div class="text-xs text-slate-500 mb-2">Listening to localStorage and BroadcastChannel('ascm_sync')</div>
+        <div id="events" class="text-sm whitespace-pre-wrap h-60 overflow-auto bg-slate-50 border rounded p-2"></div>
+        <div class="mt-3 flex gap-2">
+          <button id="clear" class="btn-outline px-3 py-2 rounded-md text-sm">Clear</button>
+          <button id="emitForActive" class="btn-primary px-3 py-2 rounded-md text-sm">Emit activities_updated for Active User</button>
+          <button id="emitForOther" class="btn-outline px-3 py-2 rounded-md text-sm">Emit activities_updated for Other User</button>
+        </div>
+      </div>
+
+      <div class="card p-4 bg-white border rounded-xl">
+        <h2 class="font-semibold mb-2">Current Context</h2>
+        <div id="ctx" class="text-sm"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function getSession(){ try { return JSON.parse(localStorage.getItem('ascm_session')||'null'); } catch { return null; } }
+    function getImpersonation(){ try { return JSON.parse(localStorage.getItem('ascm_impersonate')||'null'); } catch { return null; } }
+    function log(msg){ const el=document.getElementById('events'); const ts=new Date().toLocaleTimeString(); el.textContent += `\n[${ts}] ${msg}`; el.scrollTop = el.scrollHeight; }
+    function refreshCtx(){ const sess=getSession(); const imp=getImpersonation(); const uid = imp?.id || sess?.id || '(none)'; const role = (imp?.role || sess?.role || 'ae'); document.getElementById('ctx').textContent = `Session: ${sess?.email||'-'} · Role: ${sess?.role||'-'} · Active user scope: ${uid} (${role})`; }
+
+    window.addEventListener('storage', (e)=>{ if (e.key==='ascm_activities_updated' || e.key==='ascm_impersonate'){ log(`storage: ${e.key} -> ${e.newValue}`); refreshCtx(); } });
+    try {
+      window._ascmChan = window._ascmChan || new BroadcastChannel('ascm_sync');
+      window._ascmChan.onmessage = (e)=>{ log(`broadcast: ${JSON.stringify(e?.data||{})}`); };
+    } catch{}
+
+    document.getElementById('clear').onclick = ()=>{ document.getElementById('events').textContent=''; };
+    document.getElementById('emitForActive').onclick = ()=>{
+      const sess = getSession(); const imp=getImpersonation(); const uid=imp?.id||sess?.id||'test-user';
+      try{ localStorage.setItem('ascm_activities_updated', String(Date.now())); }catch{}
+      try{ window._ascmChan?.postMessage({ type:'activities_updated', at: Date.now(), userId: uid }); }catch{}
+      log(`emitted activities_updated for userId=${uid}`);
+    };
+    document.getElementById('emitForOther').onclick = ()=>{
+      const uid = 'other-'+Date.now().toString(36);
+      try{ localStorage.setItem('ascm_activities_updated', String(Date.now())); }catch{}
+      try{ window._ascmChan?.postMessage({ type:'activities_updated', at: Date.now(), userId: uid }); }catch{}
+      log(`emitted activities_updated for userId=${uid}`);
+    };
+
+    refreshCtx();
+  </script>
+</body>
+</html>

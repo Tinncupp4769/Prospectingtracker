@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activity Entry — Router</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <script>
+    (function(){
+      try {
+        const s = JSON.parse(localStorage.getItem('ascm_session')||'null');
+        if (!s) { window.location.replace('index.html'); return; }
+        const role = (s.role||'').toLowerCase();
+        if (role === 'am') window.location.replace('activity-entry-am.html');
+        else window.location.replace('activity-entry-ae.html');
+      } catch {
+        window.location.replace('index.html');
+      }
+    })();
+  </script>
+</head>
+<body>
+  <noscript>Please enable JavaScript to continue.</noscript>
+</body>
+</html>

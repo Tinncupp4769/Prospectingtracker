@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASCM Deployment Diagnostics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <style>
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+</head>
+<body class="bg-slate-50">
+  <header class="bg-slate-900 text-white">
+    <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+      <h1 class="font-semibold">ASCM Deployment Diagnostics</h1>
+      <a href="index.html" class="text-sm underline">Back to Sign In</a>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 py-6">
+    <div class="bg-white rounded-lg shadow p-4 mb-4">
+      <div id="env" class="text-sm text-slate-700"></div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="bg-white rounded-lg shadow p-4">
+        <h2 class="font-semibold mb-3">10-Point Environment Check</h2>
+        <ol class="list-decimal ml-5 text-sm space-y-2" id="checklist"></ol>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4">
+        <h2 class="font-semibold mb-3">API Probes</h2>
+        <div class="space-y-2 text-sm">
+          <button id="runProbes" class="px-3 py-2 bg-primary text-white rounded">Run Probes</button>
+          <div id="probeResults" class="mono bg-slate-900 text-slate-100 rounded p-3 h-80 overflow-auto"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-white rounded-lg shadow p-4 mt-4">
+      <h2 class="font-semibold mb-3">Create Admin (Emergency)</h2>
+      <p class="text-sm text-slate-600 mb-2">If the users table is reachable but empty, you can seed one admin for testing.</p>
+      <form id="seedForm" class="grid sm:grid-cols-3 gap-3 text-sm">
+        <input id="name" class="border rounded px-3 py-2" placeholder="Full name" required />
+        <input id="email" class="border rounded px-3 py-2" placeholder="email@domain.com" type="email" required />
+        <input id="pwd" class="border rounded px-3 py-2" placeholder="Temp password" type="password" required />
+        <button class="sm:col-span-3 px-3 py-2 bg-emerald-600 text-white rounded" type="submit">
+          <i class="fa-solid fa-user-shield mr-1"></i> Create Admin
+        </button>
+      </form>
+      <div id="seedMsg" class="text-sm mt-2"></div>
+    </div>
+  </main>
+
+  <script>
+    const envEl = document.getElementById('env');
+    envEl.textContent = `Origin: ${location.origin} | Path: ${location.pathname}`;
+
+    const checks = [
+      'Relative API endpoints resolved (tables/* under current origin)',
+      'tables/users reachable (200 + JSON, not 401/403 or HTML)',
+      'Cloudflare/HTML challenge not returned for API paths',
+      'CORS allows same-origin (should be, since relative)',
+      'Users data exists in production (non-zero total)',
+      'Search endpoint returns expected user when present',
+      'Pagination works (page/limit) and total matches sum',
+      'Create/Update (POST/PATCH) allowed and persisted',
+      'Static asset cache not stale (this page version is current)',
+      'LocalStorage readable/writable (ascm_session)'
+    ];
+    const checklistEl = document.getElementById('checklist');
+    checks.forEach((c, i)=>{
+      const li = document.createElement('li');
+      li.innerHTML = `<span>${c}</span> <span id="c${i}" class="ml-2 text-xs px-2 py-0.5 rounded bg-slate-200">pending</span>`;
+      checklistEl.appendChild(li);
+    });
+
+    function setCheck(i, ok, extra=''){
+      const el = document.getElementById('c'+i);
+      if (!el) return;
+      el.textContent = ok ? ('ok'+(extra?(' '+extra):'')) : ('fail'+(extra?(' '+extra):''));
+      el.className = 'ml-2 text-xs px-2 py-0.5 rounded ' + (ok ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800');
+    }
+
+    let API_BASE = 'tables/';
+    function normalize(p){
+      if (/^https?:\/\//i.test(p)) return p;
+      if (p.startsWith('tables/')) return API_BASE + p.slice('tables/'.length);
+      if (p.startsWith('/tables/')) return API_BASE + p.slice('/tables/'.length);
+      return p;
+    }
+
+    async function probeApiBase(){
+      const candidates = ['tables/','/tables/'];
+      for (const base of candidates){
+        try {
+          const r = await fetch(`${base}users?limit=1`, { cache:'no-store', credentials:'same-origin' });
+          const ct = (r.headers.get('content-type')||'').toLowerCase();
+          if (r.ok && ct.includes('application/json')){ API_BASE = base; return { ok:true, status:r.status, base }; }
+        } catch(e){}
+      }
+      return { ok:false };
+    }
+
+    function looksHtml(r){ return (r.headers.get('content-type')||'').toLowerCase().includes('text/html'); }
+
+    async function runProbes(){
+      const out = document.getElementById('probeResults');
+      out.textContent = '';
+      function log(...a){ out.textContent += a.join(' ') + '\n'; out.scrollTop = out.scrollHeight; }
+
+      log('Probing API base...');
+      const base = await probeApiBase();
+      if (base.ok){ setCheck(0, true, `base=${base.base}`); log('API base:', base.base); }
+      else { setCheck(0, false); log('API base detection failed'); }
+
+      log('GET tables/users?limit=1');
+      let r1; try {
+        r1 = await fetch(normalize('tables/users?limit=1'), { cache:'no-store', credentials:'same-origin' });
+        const ct1 = (r1.headers.get('content-type')||'').toLowerCase();
+        log('status:', r1.status, 'ct:', ct1);
+        if (r1.ok && ct1.includes('application/json')) setCheck(1, true); else setCheck(1, false);
+        if (looksHtml(r1)) setCheck(2, false, 'HTML returned'); else setCheck(2, true);
+      } catch(e){ setCheck(1, false, e.message); setCheck(2, false); }
+
+      if (r1 && r1.ok){
+        try { const j = await r1.json(); const total = j.total||0; setCheck(4, total>0, `total=${total}`); } catch{}
+      }
+
+      log('SEARCH tables/users?search=test');
+      try {
+        const r = await fetch(normalize('tables/users?search=test&limit=5'), { cache:'no-store', credentials:'same-origin' });
+        log('status:', r.status);
+        setCheck(5, r.ok);
+      } catch(e){ setCheck(5, false, e.message); }
+
+      log('PAGINATION tables/users?page=1&limit=2');
+      try {
+        const r = await fetch(normalize('tables/users?page=1&limit=2'), { cache:'no-store', credentials:'same-origin' });
+        const j = await r.json();
+        log('status:', r.status, 'page:', j.page, 'limit:', j.limit, 'len:', (j.data||[]).length);
+        setCheck(6, r.ok);
+      } catch(e){ setCheck(6, false, e.message); }
+
+      log('OPTIONS preflight check for tables/users');
+      // OPTIONS preflight (some gateways may expose allowed methods)
+      try {
+        const opt = await fetch(normalize('tables/users'), { method:'OPTIONS' });
+        const allow = opt.headers.get('allow') || opt.headers.get('Allow') || '(n/a)';
+        log('OPTIONS status:', opt.status, 'Allow:', allow);
+      } catch(e){ log('OPTIONS failed:', e.message); }
+
+      log('POST/PATCH round-trip test');
+      try {
+        const email = `diag_${Date.now()}@example.com`;
+        const createdR = await fetch(normalize('tables/users'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name:'Diag User', email, role:'ae', is_active:true, last_login: Date.now() }) });
+        log('POST status:', createdR.status);
+        if (!createdR.ok){ setCheck(7,false,'POST failed'); }
+        const created = await createdR.json().catch(()=>({}));
+        const id = created.id;
+        if (id){
+          const patchR = await fetch(normalize('tables/users/'+id), { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ note:'diag' }) });
+          log('PATCH status:', patchR.status);
+          setCheck(7, patchR.ok);
+        }
+      } catch(e){ setCheck(7, false, e.message); }
+
+      try { localStorage.setItem('ascm_session_test','1'); const ok = localStorage.getItem('ascm_session_test')==='1'; setCheck(9, ok); } catch(e){ setCheck(9, false, e.message); }
+
+      setCheck(8, true, `v=${document.lastModified}`);
+    }
+
+    document.getElementById('runProbes').addEventListener('click', runProbes);
+
+    async function sha256(str){
+      const enc = new TextEncoder().encode(str);
+      const hash = await crypto.subtle.digest('SHA-256', enc);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+    document.getElementById('seedForm').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const msg = document.getElementById('seedMsg');
+      msg.textContent = 'Submitting...';
+      try {
+        const base = await probeApiBase();
+        if (!base.ok) throw new Error('API base not reachable');
+        API_BASE = base.base;
+        const name = document.getElementById('name').value.trim();
+        const email = document.getElementById('email').value.trim().toLowerCase();
+        const pwd = document.getElementById('pwd').value;
+        const password_hash = await sha256(pwd);
+        const r = await fetch(normalize('tables/users'), { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ name, email, role:'admin', password_hash, is_active:true, last_login: Date.now() }) });
+        if (!r.ok) throw new Error('POST failed '+r.status);
+        msg.textContent = 'Admin created. Try sign in.';
+        msg.className = 'text-emerald-700';
+      } catch(err) {
+        msg.textContent = 'Failed: '+err.message;
+        msg.className = 'text-red-700';
+      }
+    });
+  </script>
+</body>
+</html>

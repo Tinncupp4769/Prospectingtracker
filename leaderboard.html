@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCM Leaderboards</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="ascm/css/theme.css">
+  <script src="js/theme.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <script src="js/avatars.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+    .card { background: #fff; border: 1px solid var(--ascm-border); border-radius: 16px; box-shadow: 0 8px 20px rgba(0,0,0,.06); }
+    .toggle-group { position: relative; }
+    .toggle-group .toggle-indicator { position:absolute; top:4px; left:4px; height: calc(100% - 8px); width: 0; background:#fff; border-radius: 8px; box-shadow: 0 6px 14px rgba(0,0,0,.12); transition: all .2s ease; z-index:0; }
+    .toggle-group button { position: relative; z-index: 1; }
+    .toggle-btn-active { color: var(--ascm-green) !important; font-weight: 700; }
+    .badge { border-radius: 999px; padding: 2px 8px; font-size: 11px; }
+    /* Leaderboard cards */
+    /* Compact list leaderboard */
+    .lb-list { display:flex; flex-direction:column; gap:10px; }
+    .lb-row { display:grid; grid-template-columns: 56px 1fr 180px 110px; align-items:center; gap:12px; background:#fff; border:1px solid var(--ascm-border); border-radius:14px; padding:10px 12px; box-shadow: 0 8px 18px rgba(0,0,0,.05); }
+    @media (max-width: 640px){ .lb-row { grid-template-columns: 44px 1fr 80px; } .lb-score { grid-column: 3 / 4; } }
+    .lb-rank-sm { font-weight:900; color:#0f172a; background: linear-gradient(135deg, var(--ascm-green-primary), var(--ascm-green-light)); -webkit-background-clip:text; background-clip:text; }
+    .avatar { width:56px; height:56px; border-radius:9999px; overflow:hidden; display:block; }
+    .avatar img { width:100%; height:100%; object-fit:cover; display:block; }
+    .prog { height:8px; background:#EAF3EC; border-radius:999px; overflow:hidden; }
+    .prog > span { display:block; height:100%; background: linear-gradient(90deg, var(--ascm-green-primary), var(--ascm-green)); width:0; transition: width .35s ease; }
+    .you-badge { font-size:10px; font-weight:800; background:#E6F1FF; color:#003766; border-radius:999px; padding:2px 6px; margin-left:8px; }
+    .meta { font-size:11px; color:#64748b; }
+    .icon-toolbar { display:flex; flex-wrap:wrap; gap:6px; }
+    .icon-toggle { border:1px solid var(--ascm-border); background:#fff; color:#334155; padding:6px 8px; border-radius:10px; font-size:14px; display:inline-flex; align-items:center; gap:6px; cursor:pointer; transition: all .15s ease; }
+    .icon-toggle i { opacity:.8; }
+    .icon-toggle.active { background: rgba(33,192,219,0.12); color:#0f172a; border-color: rgba(33,192,219,0.35); box-shadow: 0 6px 14px rgba(0,0,0,.06); }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen">
+  <header class="brand-gradient text-white" id="header">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-white/10 grid place-items-center"><i class="fa-solid fa-ranking-star text-white"></i></div>
+        <div>
+          <h1 class="text-base font-bold">ASCM Leaderboards</h1>
+          <p class="text-xs text-white/80">AM, AE, and Combined rankings with live data</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <a id="home-button" href="app.html" class="btn-outline px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-house mr-2"></i>Home</a>
+      </div>
+    </div>
+  </header>
+  <script>
+    (function(){ try{ const url=new URL(location.href); if (url.searchParams.get('embed')==='1'){ var h=document.getElementById('header'); if(h) h.style.display='none'; var hb=document.getElementById('home-button'); if(hb) hb.style.display='none'; } }catch{} })();
+  </script>
+
+  <main class="max-w-7xl mx-auto px-6 py-6">
+    <!-- Controls -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
+      <div class="flex items-center gap-3 flex-wrap">
+        <div id="roleHelp" class="text-xs text-slate-500 italic hidden md:inline">Board access is role-restricted. Admins can view AM, AE, and Combined. Sellers see their board + Combined.</div>
+        <span id="apiStatus" class="px-2 py-1 text-xs rounded border bg-slate-100 border-slate-200 text-slate-600" title="Data source status">Checking…</span>
+        <span id="goalsStatusChip" class="px-2 py-1 text-xs rounded border bg-amber-50 border-amber-200 text-amber-700 hidden"></span>
+        <div class="toggle-group inline-flex bg-slate-100 rounded-lg p-1 relative overflow-hidden" role="tablist" aria-label="Board">
+          <span class="toggle-indicator" id="boardIndicator"></span>
+          <button class="px-3 py-1.5 rounded-md text-sm font-medium toggle-btn-active" data-board="am">AM</button>
+          <button class="px-3 py-1.5 rounded-md text-sm font-medium" data-board="ae">AE</button>
+          <button class="px-3 py-1.5 rounded-md text-sm font-medium" data-board="combined">Combined</button>
+        </div>
+        <div class="toggle-group inline-flex bg-slate-100 rounded-lg p-1 relative overflow-hidden" role="tablist" aria-label="Period">
+          <span class="toggle-indicator" id="periodIndicator"></span>
+          <button class="px-3 py-1.5 rounded-md text-sm font-medium toggle-btn-active" data-period="week">Week</button>
+          <button class="px-3 py-1.5 rounded-md text-sm font-medium" data-period="month">Month</button>
+        </div>
+        <div id="amCatGroup" class="toggle-group inline-flex bg-slate-100 rounded-lg p-1 relative overflow-hidden hidden" role="tablist" aria-label="AM Category">
+          <span class="toggle-indicator" id="catIndicator"></span>
+          <button class="px-3 py-1.5 rounded-md text-sm font-medium toggle-btn-active" data-cat="all">All</button>
+          <button class="px-3 py-1.5 rounded-md text-sm font-medium" data-cat="up-sell">Up-Sell</button>
+          <button class="px-3 py-1.5 rounded-md text-sm font-medium" data-cat="cross-sell">Cross-Sell</button>
+          <button class="px-3 py-1.5 rounded-md text-sm font-medium" data-cat="dormant">Dormant</button>
+        </div>
+        <button id="refreshBtn" class="btn-outline px-3 py-2 rounded-md text-sm"><i class="fa-solid fa-rotate mr-2"></i>Refresh</button>
+        <button id="diagToggle" class="btn-outline px-2 py-1 rounded text-xs" title="Diagnostics"><i class="fa-solid fa-bug"></i></button>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="metricToolbar" class="icon-toolbar" aria-label="Metric Picker"></div>
+        <select id="metricPicker" multiple class="border rounded px-2 py-1 text-sm min-w-[220px] hidden" title="Pick metrics to rank by (or leave empty for weighted overall)"></select>
+        <div class="flex items-center gap-1">
+          <label for="rowMetricSelect" class="text-xs text-slate-600">Row metric</label>
+          <select id="rowMetricSelect" class="border rounded px-2 py-1 text-xs">
+            <option value="pipelineGenerated">Pipeline</option>
+            <option value="meetingsBooked">Meetings</option>
+            <option value="emailsSent">Emails</option>
+            <option value="callsMade">Calls</option>
+          </select>
+        </div>
+        <button id="clearMetrics" class="btn-outline px-2 py-1 rounded text-sm">Clear</button>
+      </div>
+    </div>
+
+    <!-- Weights Panel (Admin) -->
+    <div id="weightsPanel" class="card p-4 mb-6 hidden">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold">Metric Weights</h3>
+        <button id="saveWeights" class="btn-primary rounded-md px-3 py-1.5 text-sm"><i class="fa-solid fa-floppy-disk mr-2"></i>Save</button>
+      </div>
+      <div id="weightsGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+    </div>
+
+    <!-- Leaderboard Cards -->
+    <div class="card p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 id="boardTitle" class="font-semibold">Leaderboard</h3>
+        <div class="text-xs text-slate-500 flex items-center gap-2">
+          <span id="periodLabel">—</span>
+          <span id="liveBadge" class="badge bg-emerald-100 text-emerald-700 hidden"><i class="fa-solid fa-bolt mr-1"></i>Live</span>
+        </div>
+      </div>
+      <div id="youHint" class="text-xs text-slate-600 mb-2"></div>
+      <div id="lbPodium" class="podium mb-4"></div>
+      <div id="risingStars" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-4"></div>
+      <div id="lbList" class="lb-list"></div>
+      <div id="lbEmpty" class="hidden p-6 text-center text-slate-500 text-sm">No data for this selection.</div>
+    </div>
+
+    <!-- Diagnostics Panel -->
+    <details id="diagPanel" class="card p-3 mt-4 hidden">
+      <summary class="text-sm font-semibold cursor-pointer">Diagnostics</summary>
+      <div class="grid md:grid-cols-3 gap-3 text-xs mt-2">
+        <div><div class="text-slate-500">API Base</div><div id="diagApiBase">tables/</div></div>
+        <div><div class="text-slate-500">Activities</div><div id="diagActs">0</div></div>
+        <div><div class="text-slate-500">Users</div><div id="diagUsers">0</div></div>
+        <div><div class="text-slate-500">Board · Period</div><div id="diagBoard">—</div></div>
+        <div><div class="text-slate-500">Status</div><div id="diagStatus">Checking…</div></div>
+        <div><div class="text-slate-500">Last Errors</div><div id="diagErr">—</div></div>
+      </div>
+    </details>
+
+    <div id="toast" class="ascm-toast info" style="display:none"></div>
+  </main>
+
+  <script>
+    // Accessibility and UX: set period options to include Today/All
+    (function augmentPeriods(){ try{ const bar=document.querySelector('[aria-label="Period"]'); if(!bar) return; const btns=bar.querySelectorAll('button'); const hasToday=[...btns].some(b=>b.dataset.period==='today'); if(!hasToday){ const today=document.createElement('button'); today.className='px-3 py-1.5 rounded-md text-sm font-medium'; today.dataset.period='today'; today.textContent='Today'; bar.appendChild(today); const all=document.createElement('button'); all.className='px-3 py-1.5 rounded-md text-sm font-medium'; all.dataset.period='all'; all.textContent='All'; bar.appendChild(all); } }catch{} })();
+    function getSession(){ try { return JSON.parse(localStorage.getItem('ascm_session')||'null'); } catch { return null; } }
+    const sleep=(ms)=>new Promise(r=>setTimeout(r,ms));
+    function looksLikeHtml(res){ const ct=(res.headers?.get?.('content-type')||'').toLowerCase(); return ct.includes('text/html'); }
+    // API base detection and normalization
+    let API_BASE = 'tables/';
+    const API_BASE_CANDIDATES = ['tables/','/tables/'];
+    function normalizePath(p){ if (/^https?:\/\//i.test(p)) return p; if (p.startsWith('tables/')) return API_BASE + p.slice('tables/'.length); if (p.startsWith('/tables/')) return API_BASE + p.slice('/tables/'.length); return p; }
+    async function resolveApiBase(){ for (const base of API_BASE_CANDIDATES){ try{ const r = await fetch(`${base}activities?limit=1`, { cache:'no-store', credentials:'same-origin' }); const ct=(r.headers.get('content-type')||'').toLowerCase(); if (r.ok && ct.includes('application/json')){ API_BASE = base; const d=document.getElementById('diagApiBase'); if(d) d.textContent=API_BASE; break; } }catch{} } }
+    function setApiStatus(mode){ window._apiStatusMode = mode || 'checking'; const el=document.getElementById('apiStatus'); if(!el) return; const base='px-2 py-1 text-xs rounded border '; if(mode==='live'){ el.className=base+'bg-emerald-50 border-emerald-200 text-emerald-700'; el.textContent='Live'; } else if(mode==='cached'){ el.className=base+'bg-blue-50 border-blue-200 text-blue-700'; el.textContent='Cached'; } else if(mode==='offline'){ el.className=base+'bg-red-50 border-red-200 text-red-700'; el.textContent='Offline'; } else { el.className=base+'bg-slate-100 border-slate-200 text-slate-600'; el.textContent='Checking…'; } const st=document.getElementById('diagStatus'); if(st) st.textContent = el.textContent; }
+    async function apiRequest(method, path, body, tries=5){
+      let warned=false; let lastErr=''; for(let i=0;i<tries;i++){
+        let url = normalizePath(path); const sep=url.includes('?')?'&':'?'; url = `${url}${sep}cb=${Date.now()}_${i}`;
+        const ctrl = new AbortController(); const t = setTimeout(()=>ctrl.abort('timeout'), 9000 + i*1500);
+        try {
+          const res = await fetch(url,{ method, headers:{'Content-Type':'application/json'}, body: body!=null?JSON.stringify(body):undefined, cache:'no-store', credentials:'same-origin', signal: ctrl.signal });
+          clearTimeout(t);
+          if(res.status===401||res.status===403||looksLikeHtml(res)){
+            if(!warned){warned=true;}
+            try{ let wu=normalizePath('tables/activities?limit=1'); const wsep=wu.includes('?')?'&':'?'; await fetch(`${wu}${wsep}cb=${Date.now()}`,{cache:'no-store',credentials:'same-origin'}); }catch{}
+            await sleep(600 + Math.min(2000, 300*i) + Math.floor(Math.random()*250));
+            continue;
+          }
+          return res;
+        } catch(e){
+          lastErr = String(e?.message||e);
+          await sleep(600 + Math.min(2000, 300*i) + Math.floor(Math.random()*250));
+          continue;
+        } finally { clearTimeout(t); }
+      }
+      const de=document.getElementById('diagErr'); if(de) de.textContent = lastErr||'API blocked';
+      throw new Error('API blocked');
+    }
+
+    // Auto-recovery loop shared in this page
+    function scheduleAutoRecover(){ if (window._lbRecoverTimer) return; const attempt = async()=>{ if (document.hidden) return; if (window._apiStatusMode==='live'){ clearInterval(window._lbRecoverTimer); window._lbRecoverTimer=null; return; } try{ await fetch(normalizePath('tables/activities?limit=1'),{cache:'no-store',credentials:'same-origin'}); await refreshAll(); setApiStatus('live'); clearInterval(window._lbRecoverTimer); window._lbRecoverTimer=null; }catch(e){ /* keep trying */ } }; window._lbRecoverTimer = setInterval(attempt, 15000); attempt(); }
+    function showToast(msg,type){ const el=document.getElementById('toast'); if(!el) return; el.style.display='block'; el.className='ascm-toast '+(type||'info'); el.innerHTML = `<span>${String(msg||'')}</span><button class='close' aria-label='Dismiss'>×</button>`; const btn=el.querySelector('.close'); if(btn) btn.onclick=()=> el.classList.remove('show'); el.classList.add('show'); clearTimeout(showToast._t); showToast._t=setTimeout(()=> el.classList.remove('show'), 4000); }
+    async function apiJson(method, path, body, tries=3){ const res=await apiRequest(method,path,body,tries); if(!res.ok){ throw new Error(method+' '+path+' -> '+res.status); } if(res.status===204) return {}; try{ return await res.json(); }catch{ return {}; } }
+
+    const DEFAULT_WEIGHTS = {
+      // shared
+      callsMade:1, emailsSent:1, linkedinMessages:1, vidyardVideos:1,
+      meetingsBooked:6, successfulContacts:3, meetingsConducted:5, opportunitiesGenerated:8, referralsGenerated:4,
+      pipelineGenerated:12, revenueClosed:15,
+      // am
+      accountsTargeted:2, generalAbmCampaigns:3, crossSellAbmCampaigns:3, upSellAbmCampaigns:3, dormantAbmCampaigns:3
+    };
+
+    // Session-based defaults and access control
+    const __sess = getSession();
+    const __role = (String(__sess?.role||'').toLowerCase());
+    const __isAdmin = (__role==='admin');
+    const __allowedBoards = __isAdmin ? ['am','ae','combined'] : (__role==='ae' ? ['ae','combined'] : ['am','combined']);
+    const __defaultBoard = __isAdmin ? 'am' : (__role==='ae' ? 'ae' : 'am');
+
+    const state = { board: __defaultBoard, period:'week', metrics:[], weights:{ ae:{...DEFAULT_WEIGHTS}, am:{...DEFAULT_WEIGHTS} }, activities:[], users:[], isAdmin: __isAdmin, amCategory:'all', rowMetric: (localStorage.getItem('lb_row_metric')||'pipelineGenerated') };
+
+    function enforceAllowedBoard(){ if (!__allowedBoards.includes(state.board)) state.board = __defaultBoard; }
+
+    function startOfWeek(d){ const x=new Date(d); const day=(x.getDay()+6)%7; x.setHours(0,0,0,0); x.setDate(x.getDate()-day); return x; }
+    function startOfMonth(d){ const x=new Date(d); x.setDate(1); x.setHours(0,0,0,0); return x; }
+
+    async function loadUsers(){ try{ const j=await apiJson('GET','tables/users?limit=2000'); state.users=(j.data||[]).filter(u=>!u.deleted); } catch(e){ try{ state.users = JSON.parse(localStorage.getItem('um_users')||localStorage.getItem('users')||'[]'); }catch{ state.users=[]; } } const du=document.getElementById('diagUsers'); if(du) du.textContent=String(state.users.length); }
+    function normalizeActivity(a){ const id=a.id||a._id||a.uuid||`${a.userId||a.user_id||'u'}-${a.createdAt||a.date||''}`; const date=new Date(a.date||a.createdAt||0); const role=String(a.role||'').toLowerCase(); const uid=a.userId||a.user_id||null; const keys=['accountsTargeted','callsMade','emailsSent','linkedinMessages','vidyardVideos','abmCampaigns','meetingsBooked','successfulContacts','meetingsConducted','opportunitiesGenerated','referralsGenerated','pipelineGenerated','revenueClosed','generalAbmCampaigns','crossSellAbmCampaigns','upSellAbmCampaigns','dormantAbmCampaigns']; const m={}; keys.forEach(k=> m[k]=Number(a[k]||0)||0); return { id, date, role, userId:uid, ...m, raw:a, _ts: (new Date(a.createdAt||a.date||0).getTime()||0) }; }
+function dedupeActivities(rows){ const seen=new Set(); const out=[]; for(const r of rows){ const a=normalizeActivity(r); const day=new Date(a.date); day.setHours(0,0,0,0); const sig=JSON.stringify({u:a.userId,d:day.getTime(),role:a.role,m:{ acc:a.accountsTargeted,calls:a.callsMade,emails:a.emailsSent,li:a.linkedinMessages,vid:a.vidyardVideos,abm:a.abmCampaigns,book:a.meetingsBooked,succ:a.successfulContacts,cond:a.meetingsConducted,opp:a.opportunitiesGenerated,ref:a.referralsGenerated,pipe:a.pipelineGenerated,rev:a.revenueClosed,gabm:a.generalAbmCampaigns,cabm:a.crossSellAbmCampaigns,uabm:a.upSellAbmCampaigns,dabm:a.dormantAbmCampaigns }}); const key=a.id||sig; if(seen.has(key)||seen.has(sig)) continue; seen.add(key); seen.add(sig); out.push(a);} return out.sort((a,b)=> a._ts - b._ts); }
+async function loadActivities(){
+      try{
+        const j=await apiJson('GET','tables/activities?limit=5000');
+        const raw=(j.data||[]).filter(a=>!a.deleted);
+        state.activities=dedupeActivities(raw);
+        try{ localStorage.setItem('lb_activities', JSON.stringify(state.activities)); }catch{}
+        setApiStatus('live');
+      } catch(e){
+        try{ state.activities = JSON.parse(localStorage.getItem('lb_activities')||'[]'); if (state.activities.length) setApiStatus('cached'); else setApiStatus('offline'); }
+        catch{ state.activities=[]; setApiStatus('offline'); }
+        if (typeof scheduleAutoRecover==='function') scheduleAutoRecover();
+      }
+      const da=document.getElementById('diagActs'); if(da) da.textContent=String(state.activities.length);
+    }
+    async function loadWeights(){
+      try{
+        const j=await apiJson('GET','tables/leaderboard_weights?limit=1000');
+        const rows=j.data||[];
+        // Build role-specific weight maps; 'all' applies to both as fallback; no 'combined' scope
+        const baseAE = {...DEFAULT_WEIGHTS};
+        const baseAM = {...DEFAULT_WEIGHTS};
+        rows.forEach(w=>{
+          const k = String(w.metric||''); if(!k) return; const val = Number(w.weight)||0; const scope = String(w.role_scope||'').toLowerCase() || 'all';
+          if (scope==='ae') baseAE[k]=val; else if (scope==='am') baseAM[k]=val; else if (scope==='all'){ baseAE[k]=val; baseAM[k]=val; }
+        });
+        // Overlay any local cached overrides in case POSTs were blocked in admin-weights
+        try{ const aeLocal = JSON.parse(localStorage.getItem('lb_weights_ae')||'null'); if (aeLocal) Object.assign(baseAE, aeLocal); }catch{}
+        try{ const amLocal = JSON.parse(localStorage.getItem('lb_weights_am')||'null'); if (amLocal) Object.assign(baseAM, amLocal); }catch{}
+        state.weights = { ae: baseAE, am: baseAM };
+      }catch{
+        // fallback to local overrides or defaults
+        let ae={...DEFAULT_WEIGHTS}, am={...DEFAULT_WEIGHTS};
+        try{ const aeLocal = JSON.parse(localStorage.getItem('lb_weights_ae')||'null'); if (aeLocal) Object.assign(ae, aeLocal); }catch{}
+        try{ const amLocal = JSON.parse(localStorage.getItem('lb_weights_am')||'null'); if (amLocal) Object.assign(am, amLocal); }catch{}
+        state.weights = { ae, am };
+      }
+    }
+
+    function availableMetrics(){
+      const shared=['callsMade','emailsSent','linkedinMessages','vidyardVideos','meetingsBooked','successfulContacts','meetingsConducted','opportunitiesGenerated','referralsGenerated','pipelineGenerated','revenueClosed'];
+      const amOnly=['accountsTargeted','generalAbmCampaigns','crossSellAbmCampaigns','upSellAbmCampaigns','dormantAbmCampaigns'];
+      if (state.board==='ae') return shared;
+      if (state.board==='combined') return shared;
+      return [...shared, ...amOnly];
+    }
+
+    function populateMetricPicker(){
+      const sel=document.getElementById('metricPicker');
+      const bar=document.getElementById('metricToolbar');
+      const opts=availableMetrics();
+      sel.innerHTML = opts.map(m=>`<option value="${m}">${m}</option>`).join('');
+      // Build icon toolbar
+      const ICONS = { callsMade:'fa-phone', emailsSent:'fa-envelope', linkedinMessages:'fa-brands fa-linkedin', vidyardVideos:'fa-video', meetingsBooked:'fa-calendar-check', meetingsConducted:'fa-person-chalkboard', successfulContacts:'fa-circle-check', opportunitiesGenerated:'fa-lightbulb', referralsGenerated:'fa-share-nodes', pipelineGenerated:'fa-funnel-dollar', revenueClosed:'fa-sack-dollar', accountsTargeted:'fa-bullseye', generalAbmCampaigns:'fa-bullhorn', crossSellAbmCampaigns:'fa-bullhorn', upSellAbmCampaigns:'fa-bullhorn', dormantAbmCampaigns:'fa-bullhorn' };
+      bar.innerHTML = opts.map(k=>`<button type="button" class="icon-toggle ${state.metrics.includes(k)?'active':''}" data-metric="${k}"><i class="fa-solid ${ICONS[k]||'fa-chart-simple'}"></i><span class="text-xs">${k}</span></button>`).join('');
+      bar.querySelectorAll('[data-metric]').forEach(btn=> btn.addEventListener('click', ()=>{ const m=btn.dataset.metric; const i=state.metrics.indexOf(m); if(i>=0) state.metrics.splice(i,1); else state.metrics.push(m); populateMetricPicker(); renderBoard(); }));
+      // Select pre-chosen metrics in hidden select element
+      for(const v of state.metrics){ const opt=[...sel.options].find(o=>o.value===v); if(opt) opt.selected=true; }
+    }
+
+    function periodRange(){ const now=new Date();
+  if(state.period==='today'){ const s=new Date(now); s.setHours(0,0,0,0); const e=new Date(now); e.setHours(23,59,59,999); return {start:s,end:e}; }
+  if(state.period==='week'){ const s=startOfWeek(now); const e=new Date(now); return {start:s,end:e}; }
+  if(state.period==='month'){ const s=startOfMonth(now); const e=new Date(now); return {start:s,end:e}; }
+  // 'all'
+  return { start: new Date(0), end: new Date(now) };
+}
+
+    function groupByUserAndRole(){ const map=new Map(); const {start,end}=periodRange(); for(const a of state.activities){ const t=new Date(a.date||a.createdAt||Date.now()); if(t<start||t>end) continue; const role=((a.role)||'').toLowerCase(); const uid=a.userId||a.user_id||a.user_id; if(!uid) continue; // require user id
+        // find role from users if not present
+        let finalRole=role; if(!finalRole){ const u=state.users.find(u=>u.id===uid); finalRole=(u?.role||'').toLowerCase(); }
+        if(state.board==='ae' && finalRole!=='ae') continue; if(state.board==='am' && finalRole!=='am') continue; if(state.board==='combined' && !(finalRole==='ae'||finalRole==='am')) continue;
+        if(state.board==='am' && state.amCategory !== 'all'){ if ((a.category||'') !== state.amCategory) continue; }
+        if(!map.has(uid)) map.set(uid,{ userId:uid, name: a.userName || state.users.find(u=>u.id===uid)?.name || state.users.find(u=>u.id===uid)?.email || 'User', role: finalRole||((state.users.find(u=>u.id===uid)?.role)||'').toLowerCase(), rows: [] });
+        map.get(uid).rows.push(a);
+    } return [...map.values()]; }
+
+    function sumMetric(rows, key){ return rows.reduce((s,r)=> s + (Number(r[key])||0), 0); }
+
+    function computeScoreForUser(user){
+      const metrics = state.metrics.length? state.metrics : availableMetrics();
+      const totals={}; metrics.forEach(k=> totals[k]=sumMetric(user.rows,k));
+      // Pick weights based on board/role: AE board -> AE weights, AM board -> AM weights, Combined -> per-user role
+      let applied = state.board==='am' ? state.weights.am : (state.board==='ae' ? state.weights.ae : ((user.role||'ae').toLowerCase()==='am' ? state.weights.am : state.weights.ae));
+      const score = metrics.reduce((s,k)=> s + (Number(totals[k])||0) * (Number(applied[k])||1), 0);
+      return { totals, score };
+    }
+
+    function initials(name){ const parts=String(name||'').trim().split(/\s+/); return (parts[0]?.[0]||'A').toUpperCase() + (parts[1]?.[0]||'').toUpperCase(); }
+    function colorForId(id){ let h=0; for(let i=0;i<String(id).length;i++){ h=(h*31 + String(id).charCodeAt(i))%360; } return `hsl(${h},70%,50%)`; }
+    function gauge(percent, color){ const r=28, c=2*Math.PI*r, off=c - (Math.max(0,Math.min(100,percent))/100)*c; return `<div class="gauge"><svg width="64" height="64"><circle cx="32" cy="32" r="28" class="track"></circle><circle cx="32" cy="32" r="28" class="bar" stroke="${color}" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}"></circle></svg><div class="center">${Math.round(percent)}%</div></div>`; }
+    function renderMetricBars(totals){
+      const keys = state.metrics.length? state.metrics : ['callsMade','emailsSent','meetingsBooked','opportunitiesGenerated','pipelineGenerated','revenueClosed'];
+      const colors = { callsMade:'#21C0DB', emailsSent:'#21C0DB', meetingsBooked:'#82C341', opportunitiesGenerated:'#82C341', pipelineGenerated:'#006B36', revenueClosed:'#006B36', linkedinMessages:'#21C0DB', vidyardVideos:'#21C0DB', accountsTargeted:'#21C0DB', generalAbmCampaigns:'#21C0DB', crossSellAbmCampaigns:'#21C0DB', upSellAbmCampaigns:'#21C0DB', dormantAbmCampaigns:'#21C0DB' };
+      const rows = keys.slice(0,2).map(k=>{
+        const v = Number(totals[k]||0); const pct = Math.min(100, (v>0? 10+Math.log10(v+1)*30 : 0));
+        return `<div class="flex items-center justify-between mb-2"><div class="text-xs text-slate-600 mr-2">${k}</div>${gauge(pct, colors[k]||'#9CA3AF')}</div>`;
+      }).join('');
+      // add two bar rows for variety
+      const bars = keys.slice(2,4).map(k=>{
+        const v = Number(totals[k]||0); const pct = Math.min(100, (v>0? 10+Math.log10(v+1)*30 : 0));
+        return `<div class="text-xs mb-1 flex items-center justify-between"><span class="text-slate-600">${k}</span><span class="text-slate-500">${v.toLocaleString()}</span></div><div class="metric-bar mb-2"><span style="width:${pct}%; background:${colors[k]||'#9CA3AF'}"></span></div>`;
+      }).join('');
+      return rows + bars;
+    }
+    function renderCard(u, idx){
+      const rankClass = idx===0? 'rank-1' : (idx===1? 'rank-2' : (idx===2? 'rank-3' : ''));
+      const badge = idx===0? '<span class="badge bg-amber-200 text-amber-800"><i class="fa-solid fa-trophy mr-1"></i>Top Performer</span>' : (idx===1? '<span class="badge bg-slate-200 text-slate-700">Silver</span>' : (idx===2? '<span class="badge bg-orange-200 text-orange-800">Bronze</span>' : ''));
+      const fallbackAvatar = (state.users.find(us=>us.id===u.userId)?.email) ? `https://source.boringavatars.com/beam/56/${encodeURIComponent(state.users.find(us=>us.id===u.userId)?.email)}` : '';
+      const avatar = (function(){ try{ if (window.Avatars){ const prof = state.users.find(us=>us.id===u.userId)||{}; return Avatars.img2x(prof,56,'rounded-full'); } }catch{} return (u.avatar_url||fallbackAvatar? `<img src=\"${u.avatar_url||fallbackAvatar}\" alt=\"${u.name}\" class=\"rounded-full\" width=\"56\" height=\"56\">` : `<span>${initials(u.name)}</span>`); })();
+      const bg = u.avatar_url? '' : `style=\"background:${colorForId(u.userId)}\"`;
+      return `<div class=\"lb-card ${rankClass}\">
+        <div class=\"lb-rank\">#${idx+1}</div>
+        <div class=\"flex items-center gap-3 relative z-1\">
+          <div class=\"avatar\" ${bg}>${avatar}</div>
+          <div class=\"flex-1 min-w-0\">
+            <div class=\"flex items-center gap-2\"><div class=\"font-extrabold text-slate-900 truncate\" title=\"${u.name}\">${u.name}</div>${badge}</div>
+            <div class=\"text-slate-600 text-xs capitalize\">${u.role||''}</div>
+          </div>
+          <div class=\"text-right pr-2 flex-shrink-0\">
+            <div class=\"text-xs text-slate-500 whitespace-nowrap\">Score</div>
+            <div class=\"text-2xl font-extrabold\">${Math.round(u.score).toLocaleString()}</div>
+          </div>
+        </div>
+        <div class=\"mt-3\">${renderMetricBars(u.totals)}</div>
+      </div>`;
+    }
+    function renderBoard(){
+      enforceAllowedBoard();
+      const users = groupByUserAndRole();
+      // Pre-compute scores in a single pass for instant UI
+      const ranked = users.map(u=>{ const { totals, score } = computeScoreForUser(u); const prof = state.users.find(us=>us.id===u.userId) || {}; let ava = prof.avatar_url || ''; try{ if (window.Avatars) ava = Avatars.getAvatarUrl(prof, 56); }catch{} const fallback = prof.email ? `https://source.boringavatars.com/beam/56/${encodeURIComponent(prof.email)}` : ''; return { ...u, totals, score, avatar_url: u.avatar_url || ava || fallback, name: u.name || prof.name || prof.email || 'User' }; }).sort((a,b)=> b.score - a.score);
+      // Compute delta to next rank for feedback
+      const nextDelta = new Map();
+      ranked.forEach((u,idx)=>{ if (idx===0) { nextDelta.set(u.userId, 0); } else { const prev = ranked[idx-1]; nextDelta.set(u.userId, Math.max(0, Math.round(prev.score - u.score + 1))); } });
+      const grid=document.getElementById('lbGrid'); const empty=document.getElementById('lbEmpty'); const podium=document.getElementById('lbPodium'); const youHint=document.getElementById('youHint'); const rising=document.getElementById('risingStars');
+      if(!ranked.length){
+  empty.classList.add('hidden');
+  // Render a fully structured demo UI with placeholders
+  const placeholderUsers = [
+    { userId:'demo1', name:'—', role: state.board==='am'?'am':'ae', score:0, totals:{} },
+    { userId:'demo2', name:'—', role: state.board==='am'?'am':'ae', score:0, totals:{} },
+    { userId:'demo3', name:'—', role: state.board==='am'?'am':'ae', score:0, totals:{} },
+  ];
+  const demoTop3 = placeholderUsers;
+  podium.innerHTML = demoTop3.map((u,idx)=>{
+    const cls = idx===0?'podium-1':(idx===1?'podium-2':'podium-3');
+    return `<div class="podium-card ${cls}" style="opacity:.6;">
+      <div class="podium-rank">#${idx+1}</div>
+      <div class="flex items-center gap-3">
+        <div class="avatar" style="background:#E5E7EB;color:#64748b"><span><i class='fa-solid fa-user'></i></span></div>
+        <div class="flex-1">
+          <div class="font-extrabold text-slate-400">No Activity Yet</div>
+          <div class="text-xs opacity-80 capitalize">${u.role}</div>
+        </div>
+        <div class="text-right pr-2">
+          <div class="text-xs opacity-80">Score</div>
+          <div class="text-2xl font-extrabold text-slate-400">0</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  rising.innerHTML = placeholderUsers.map(()=>
+    `<div class="lb-card" style="opacity:.6;">
+      <div class="flex items-center gap-3">
+        <div class="avatar" style="background:#E5E7EB;color:#64748b"><span><i class='fa-solid fa-user'></i></span></div>
+        <div class="flex-1">
+          <div class="font-extrabold text-slate-400">—</div>
+          <div class="text-xs text-slate-500">Improvement</div>
+        </div>
+        <div class="text-right text-slate-400">0%</div>
+      </div>
+    </div>`
+  ).join('');
+  grid.innerHTML = placeholderUsers.map((u,idx)=>
+    `<div class="lb-card" style="opacity:.6;">
+      <div class="lb-rank">#${idx+4}</div>
+      <div class="flex items-center gap-3">
+        <div class="avatar" style="background:#E5E7EB;color:#64748b"><span><i class='fa-solid fa-user'></i></span></div>
+        <div class="flex-1">
+          <div class="flex items-center gap-2"><div class="font-extrabold text-slate-400">—</div><span class="badge bg-slate-200 text-slate-500">—</span></div>
+          <div class="text-slate-400 text-xs capitalize">${u.role}</div>
+        </div>
+        <div class="text-right pr-2">
+          <div class="text-xs text-slate-400">Score</div>
+          <div class="text-2xl font-extrabold text-slate-400">0</div>
+        </div>
+      </div>
+      <div class="mt-3">${renderMetricBars({})}</div>
+    </div>`
+  ).join('');
+  youHint.textContent = 'No results yet—be the first to log activity!';
+  return;
+} empty.classList.add('hidden');
+      // Compute prior period ranks to find rising stars
+      // Simple heuristic: compare current score to previous period score using the same metrics
+      const { start, end } = (function(){ const now=new Date(); if(state.period==='week'){ const s=startOfWeek(now); return {start:s, end:now}; } const s=startOfMonth(now); return {start:s, end:now}; })();
+      const prevStart = new Date(start); if(state.period==='week') prevStart.setDate(prevStart.getDate()-7); else prevStart.setMonth(prevStart.getMonth()-1);
+      const prevEnd = new Date(start-1);
+      // Pre-compute previous period totals for instant rendering
+      const prevTotalsMap = new Map();
+      const metricsForScore = state.metrics.length? state.metrics : availableMetrics();
+      const weight = (k)=> Number(state.weights[k])||1;
+      for (const a of state.activities){
+        const t = new Date(a.date||a.createdAt);
+        if (t<prevStart || t>prevEnd) continue;
+        const uid = a.userId||a.user_id||a.user_id; if (!uid) continue;
+        if (!prevTotalsMap.has(uid)) prevTotalsMap.set(uid, {});
+        const obj = prevTotalsMap.get(uid);
+        for (const k of metricsForScore){ obj[k] = (obj[k]||0) + (Number(a[k])||0); }
+      }
+      const prevScore = (uid)=>{ const tot = prevTotalsMap.get(uid)||{}; let s=0; for(const k of metricsForScore){ s += (Number(tot[k]||0))*weight(k); } return s; };
+
+      // Podium for top 3
+      const top3 = ranked.slice(0,3);
+      podium.innerHTML = top3.map((u,idx)=>{
+        const cls = idx===0?'podium-1 shine': (idx===1?'podium-2':'podium-3');
+        const initialsTxt = initials(u.name); const bg = u.avatar_url? '' : `style=\"background:${colorForId(u.userId)}\"`;
+        return `<div class=\"podium-card ${cls}\">
+          <div class=\"podium-rank\">#${idx+1}</div>
+          <div class=\"flex items-center gap-3\">
+            <div class=\"avatar\">${(function(){ try{ if(window.Avatars){ const prof=state.users.find(us=>us.id===u.userId)||{}; return Avatars.img2x(prof,56,'rounded-full'); } }catch{} return (u.avatar_url?`<img src=\"${u.avatar_url}\" alt=\"${u.name}\" class=\"rounded-full\" width=\"56\" height=\"56\">`:`<span>${initialsTxt}</span>`); })()}</div>
+            <div class=\"flex-1 min-w-0\">
+              <div class=\"font-extrabold truncate\" title=\"${u.name}\">${u.name}</div>
+              <div class=\"text-xs opacity-80 capitalize\">${u.role||''}</div>
+            </div>
+            <div class=\"text-right pr-2 flex-shrink-0\">
+              <div class=\"text-xs opacity-80\">Score</div>
+              <div class=\"text-2xl font-extrabold\">${Math.round(u.score).toLocaleString()}</div>${idx>0?`<div class=\"text-[10px] text-slate-500 mt-1\"><i class=\"fa-solid fa-angle-up mr-1\"></i>Next rank: +${Number(u._deltaToNext||0).toLocaleString()}</div>`:''}
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+
+      // Rising Stars (top 3 biggest percent improvements vs previous period)
+      const withImprovement = ranked.map(u=>{ const prev = prevScore(u.userId); const delta = u.score - prev; const pct = prev>0 ? (delta/prev*100) : (u.score>0?100:0); return { ...u, prev, delta, pct }; });
+      const risingStars = withImprovement.sort((a,b)=> b.pct - a.pct).slice(0,3);
+      rising.innerHTML = risingStars.map((u)=>{
+        const initialsTxt = initials(u.name); const bg = u.avatar_url? '' : `style=\"background:${colorForId(u.userId)}\"`;
+        const color = u.pct>=0? 'text-emerald-600' : 'text-red-600';
+        return `<div class=\"lb-card glow\">
+          <div class=\"flex items-center gap-3\">
+            <div class=\"avatar\">${(function(){ try{ if(window.Avatars){ const prof=state.users.find(us=>us.id===u.userId)||{}; return Avatars.img2x(prof,56,'rounded-full'); } }catch{} return (u.avatar_url?`<img src=\"${u.avatar_url}\" alt=\"${u.name}\" class=\"rounded-full\" width=\"56\" height=\"56\">`:`<span>${initialsTxt}</span>`); })()}</div>
+            <div class=\"flex-1\">
+              <div class=\"font-extrabold\">${u.name}</div>
+              <div class=\"text-xs text-slate-600\">Improvement</div>
+            </div>
+            <div class=\"text-right ${color}\"><i class=\"fa-solid fa-arrow-up-right-dots mr-1\"></i>${Math.round(u.pct)}%</div>
+          </div>
+        </div>`;
+      }).join('');
+
+      // List rows (modern compact layout)
+      const list = document.getElementById('lbList');
+      list.innerHTML = ranked.slice(0).map((u,idx)=>{
+        const prof = state.users.find(us=>us.id===u.userId)||{};
+        const me = (getSession()?.id===u.userId);
+        let avaHtml='';
+        try{ if (window.Avatars){ avaHtml = Avatars.img2x(prof, 56, 'rounded-full'); } }catch{}
+        if (!avaHtml){ const url = (u.avatar_url||''); avaHtml = url? `<img src="${url}" alt="${u.name}" class="rounded-full" width="56" height="56">` : `<div style="background:${colorForId(u.userId)};width:56px;height:56px;border-radius:9999px;display:grid;place-items:center;color:#fff;font-weight:800;">${initials(u.name)}</div>`; }
+        const top = idx<3 ? `<span class='you-badge' style='background:#FFF204;color:#003726;'>TOP ${idx+1}</span>`: '';
+        const you = me? `<span class='you-badge'>YOU</span>`:'';
+        const keyMetric = state.rowMetric || state.metrics[0] || (state.board==='am' ? 'meetingsBooked' : 'pipelineGenerated');
+        const kv = Number(u.totals[keyMetric]||0);
+        const maxV = Math.max(1, ranked[0]?.totals[keyMetric]||1);
+        const pct = Math.min(100, Math.round((kv/maxV)*100));
+        return `
+          <div class="lb-row">
+            <div class="avatar">${avaHtml}</div>
+            <div>
+              <div class="flex items-center gap-2"><span class="font-extrabold text-slate-900 truncate" title="${u.name}">${u.name}</span>${you}${top}</div>
+              <div class="meta capitalize">#${idx+1} · ${u.role||''} · ${keyMetric}: ${kv.toLocaleString()}</div>
+              <div class="prog mt-1" aria-label="Progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}"><span style="width:${pct}%"></span></div>
+            </div>
+            <div class="text-right">
+              <div class="text-xs text-slate-500">Key</div>
+              <div class="font-semibold">${keyMetric}</div>
+            </div>
+            <div class="lb-score text-right">
+              <div class="text-xs text-slate-500">Score</div>
+              <div class="text-2xl font-extrabold">${Math.round(u.score).toLocaleString()}</div>
+            </div>
+          </div>`;
+      }).join('');
+      // Friendly hint for current user position if session exists
+      const session = getSession();
+      if(session){ const me = ranked.findIndex(r=> (r.userId===session.id)); if(me>=0){ youHint.textContent = me===0? 'You are on the top! 🎉' : `You are #${me+1}. Catch the lead — you are close!`; } else youHint.textContent=''; }
+      document.getElementById('boardTitle').textContent = (state.board==='am' ? 'AM' : (state.board==='ae' ? 'AE' : 'Combined')) + ' Leaderboard';
+      const now=new Date(); document.getElementById('periodLabel').textContent = state.period==='week'? `Week of ${startOfWeek(now).toLocaleDateString()}` : now.toLocaleDateString(undefined,{month:'long', year:'numeric'});
+    }
+
+    function populateWeightsPanel(){ const panel=document.getElementById('weightsPanel'); if (panel) panel.classList.add('hidden'); const btn=document.getElementById('saveWeights'); if (btn) btn.classList.add('hidden'); }
+
+    async function saveWeights(){ const inputs=[...document.querySelectorAll('[data-weight]')]; const session=getSession(); const payloads = inputs.map(inp=>({ metric: inp.dataset.weight, weight: Number(inp.value)||0, role_scope: state.board, updated_by: session?.email||session?.id||'admin', updated_at: Date.now() })); for(const p of payloads){ await apiJson('POST','tables/leaderboard_weights', p); } await loadWeights(); renderBoard(); }
+
+    function wireControls(){
+      const boardGroup = document.querySelector('[aria-label="Board"]'); const boardInd = document.getElementById('boardIndicator');
+      const periodGroup = document.querySelector('[aria-label="Period"]'); const periodInd = document.getElementById('periodIndicator');
+      function moveIndicator(groupEl, indEl){ const active = groupEl.querySelector('.toggle-btn-active'); if(!active) return; const br=active.getBoundingClientRect(); const gr=groupEl.getBoundingClientRect(); indEl.style.width=br.width+'px'; indEl.style.transform=`translateX(${(br.left-gr.left)-4}px)`; }
+      function updateIndicators(){ moveIndicator(boardGroup, boardInd); moveIndicator(periodGroup, periodInd); const catGroup=document.getElementById('amCatGroup'); const catInd=document.getElementById('catIndicator'); if(!catGroup.classList.contains('hidden')) moveIndicator(catGroup, catInd); }
+
+      // Hide unauthorized boards for non-admins (visual + logic)
+      document.querySelectorAll('[data-board]').forEach(btn=>{
+        const b = btn.getAttribute('data-board');
+        if (!__allowedBoards.includes(b)) { btn.classList.add('hidden'); }
+      });
+      // Ensure the active button matches the allowed default
+      document.querySelectorAll('[data-board]').forEach(b=>b.classList.remove('toggle-btn-active'));
+      const activeBtn = document.querySelector(`[data-board="${state.board}"]`);
+      if (activeBtn) activeBtn.classList.add('toggle-btn-active');
+      const catGroupInit=document.getElementById('amCatGroup'); catGroupInit.classList.toggle('hidden', state.board!=='am');
+
+      document.querySelectorAll('[data-board]').forEach(btn=> btn.addEventListener('click', async (e)=>{
+        const requested = e.currentTarget.dataset.board;
+        if (!__allowedBoards.includes(requested)) { // logic-level block
+          return;
+        }
+        document.querySelectorAll('[data-board]').forEach(b=>b.classList.remove('toggle-btn-active'));
+        e.currentTarget.classList.add('toggle-btn-active');
+        state.board = requested;
+        const catGroup=document.getElementById('amCatGroup'); catGroup.classList.toggle('hidden', state.board!=='am');
+        enforceAllowedBoard();
+        await loadWeights(); populateMetricPicker(); populateWeightsPanel(); renderBoard(); updateIndicators();
+      }));
+      document.querySelectorAll('[data-period]').forEach(btn=> btn.addEventListener('click', async (e)=>{ document.querySelectorAll('[data-period]').forEach(b=>b.classList.remove('toggle-btn-active')); e.currentTarget.classList.add('toggle-btn-active'); state.period=e.currentTarget.dataset.period; renderBoard(); updateIndicators(); }));
+      // Late-bound dynamically added Today/All buttons
+      const periodBar = document.querySelector('[aria-label="Period"]');
+      if (periodBar){ periodBar.addEventListener('click', (e)=>{ const btn=e.target.closest('button[data-period]'); if(!btn) return; document.querySelectorAll('[data-period]').forEach(b=>b.classList.remove('toggle-btn-active')); btn.classList.add('toggle-btn-active'); state.period=btn.dataset.period; renderBoard(); }); }
+      document.querySelectorAll('[data-cat]').forEach(btn=> btn.addEventListener('click', (e)=>{ document.querySelectorAll('[data-cat]').forEach(b=>b.classList.remove('toggle-btn-active')); e.currentTarget.classList.add('toggle-btn-active'); state.amCategory=e.currentTarget.dataset.cat; renderBoard(); updateIndicators(); }));
+
+      document.getElementById('refreshBtn').addEventListener('click', async ()=>{ await loadActivities(); renderBoard(); });
+      document.getElementById('metricPicker').addEventListener('change', ()=>{ const sel=document.getElementById('metricPicker'); state.metrics=[...sel.selectedOptions].map(o=>o.value); renderBoard(); });
+      document.getElementById('clearMetrics').addEventListener('click', ()=>{ state.metrics=[]; populateMetricPicker(); renderBoard(); });
+      const rowSel=document.getElementById('rowMetricSelect'); if(rowSel){ rowSel.value = state.rowMetric; rowSel.addEventListener('change', ()=>{ state.rowMetric = rowSel.value; try{ localStorage.setItem('lb_row_metric', state.rowMetric); }catch{} renderBoard(); }); }
+      /* Weight editing moved to Admin > User Management; no save here. */
+
+      window.addEventListener('resize', updateIndicators);
+      updateIndicators();
+    }
+
+    async function refreshAll(){ enforceAllowedBoard(); await loadUsers(); await loadActivities(); await loadWeights(); populateMetricPicker(); populateWeightsPanel(); renderBoard(); try{ const chip=document.getElementById('goalsStatusChip'); if(chip){ const ym=new Date().toISOString().slice(0,7); const role = (getSession()?.role||'ae').toLowerCase(); let has=false; try{ const snap = await apiJson('GET',`tables/goals_snapshots?limit=1&search=${encodeURIComponent(ym)}`); const sRow=(snap.data||[]).find(x=> !x.deleted && x.month===ym && !x.userId); if (sRow && sRow.values){ const ob = sRow.values.pipelineGenerated||{}; has = Number((role==='am'? ob.am : ob.ae)||0)>0; } }catch{} if(!has){ const goalsRes = await apiJson('GET','tables/goals?limit=1000'); const rows=(goalsRes.data||[]).filter(g=> !g.deleted && (g.role||role)===role && g.month===ym && !g.userId); has = rows.some(g=> String(g.metric||'')==='pipelineGenerated' && Number(g.target||0)>0); } const monthLabel=new Date().toLocaleString(undefined,{month:'short',year:'numeric'}); if(has){ chip.className='px-2 py-1 text-xs rounded border bg-emerald-50 border-emerald-200 text-emerald-700'; chip.textContent=`Goals set for ${role.toUpperCase()}: ${monthLabel}`; } else { chip.className='px-2 py-1 text-xs rounded border bg-amber-50 border-amber-200 text-amber-700'; chip.textContent=`No goals set for ${role.toUpperCase()}: ${monthLabel}`; } chip.classList.remove('hidden'); } }catch{} }
+
+    // real-time sync
+    window.addEventListener('storage', async (e)=>{ if(e.key==='ascm_activities_updated' || e.key==='ascm_week_reset'){ await loadActivities(); renderBoard(); document.getElementById('liveBadge').classList.remove('hidden'); setTimeout(()=>document.getElementById('liveBadge').classList.add('hidden'), 1600); } if (e.key==='lb_weights_updated'){ await loadWeights(); renderBoard(); document.getElementById('liveBadge').classList.remove('hidden'); setTimeout(()=>document.getElementById('liveBadge').classList.add('hidden'), 1600); } });
+    document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshAll(); });
+    setInterval(refreshAll, 30000);
+
+    // Simple confetti for celebrating top 5 entries (optional)
+    function confettiBurst(){ const c=document.createElement('canvas'); c.className='confetti'; document.body.appendChild(c); const ctx=c.getContext('2d'); const W=c.width=window.innerWidth; const H=c.height=window.innerHeight; const parts=Array.from({length:120},()=>({x:Math.random()*W,y:-10,vy:2+Math.random()*3,vx:-2+Math.random()*4,s:2+Math.random()*4,color:`hsl(${Math.random()*360},80%,60%)`})); let t=0; function tick(){ ctx.clearRect(0,0,W,H); parts.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; ctx.fillStyle=p.color; ctx.fillRect(p.x,p.y,p.s,p.s);}); if((t+=16)<1500) requestAnimationFrame(tick); else document.body.removeChild(c);} requestAnimationFrame(tick); }
+
+    function fastRenderFromCache(){ try{ const cachedActs = JSON.parse(localStorage.getItem('lb_activities')||'[]'); const cachedUsers = JSON.parse(localStorage.getItem('um_users')||localStorage.getItem('users')||'[]'); if (Array.isArray(cachedActs) && Array.isArray(cachedUsers) && (cachedActs.length || cachedUsers.length)){ state.activities = cachedActs; state.users = cachedUsers; setApiStatus(cachedActs.length?'cached':'checking'); populateMetricPicker(); populateWeightsPanel(); renderBoard(); } }catch{} }
+
+document.addEventListener('DOMContentLoaded', async ()=>{ setApiStatus('checking'); fastRenderFromCache(); await resolveApiBase(); wireControls(); if (typeof scheduleAutoRecover==='function') scheduleAutoRecover(); enforceAllowedBoard(); const rh=document.getElementById('roleHelp'); if(rh){ rh.classList.remove('hidden'); }
+  // diagnostics toggle
+  const dt=document.getElementById('diagToggle'); const dp=document.getElementById('diagPanel'); if(dt&&dp){ dt.addEventListener('click', ()=>{ dp.classList.toggle('hidden'); }); }
+  try{ if (!window._ascmChan) window._ascmChan = new BroadcastChannel('ascm_sync'); window._ascmChan.onmessage = (ev)=>{ const msg=ev?.data||{}; if (msg.type==='lb_weights_updated'){ loadWeights().then(renderBoard).catch(()=>{}); } if (msg.type==='users_updated'){ loadUsers().then(renderBoard).catch(()=>{}); } if (msg.type==='activities_updated'){ loadActivities().then(()=>{ renderBoard(); document.getElementById('liveBadge').classList.remove('hidden'); setTimeout(()=>document.getElementById('liveBadge').classList.add('hidden'), 1600); }).catch(()=>{}); } }; }catch{} refreshAll(); });
+
+    // Trigger confetti when storage indicates significant update
+    window.addEventListener('storage', (e)=>{ if(e.key==='ascm_activities_updated'){ confettiBurst(); } });
+  </script>
+</body>
+</html>
